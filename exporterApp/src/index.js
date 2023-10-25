@@ -27,4 +27,4 @@ function exportToS3(bucketName, jsonData){
     });
 }
 
-exportToS3('crypto-backtest-db', {teste: 'deu certo'})
+// exportToS3('crypto-backtest-db', json_example)
