@@ -1,8 +1,7 @@
 const AWS = require('aws-sdk');
-const getFormattedCurrentDate = require('./helper/date');
 require('dotenv').config();
 
-function exportToS3(bucketName, jsonData){
+function exportToS3(bucketName, jsonData, fileName){
     AWS.config.update({
         accessKeyId: process.env.ACCESS_KEY_ID,
         secretAccessKey: process.env.SECRET_ACCESS_KEY,
@@ -13,7 +12,7 @@ function exportToS3(bucketName, jsonData){
     
     const params = {
         Bucket: bucketName,
-        Key: `${getFormattedCurrentDate()}.json`,
+        Key: `${fileName}.json`,
         Body: Buffer.from(JSON.stringify(jsonData), 'utf-8'),
         ContentType: 'application/json'
     };
@@ -29,4 +28,4 @@ function exportToS3(bucketName, jsonData){
 
 module.exports = exportToS3;
 
-exportToS3('crypto-backtest-db', {json_example: 'certo'})
+exportToS3('crypto-backtest-db', {json_example: 'certo'}, 'julesca')
