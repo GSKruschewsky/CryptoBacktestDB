@@ -1,4 +1,3 @@
-const Big = require("big.js");
 const WebSocket = require("ws");
 const fetch = require("node-fetch");
 
