@@ -43,7 +43,7 @@ ws.on('message', (msg) => {
       let { lastUpdateId, ...orderbook } = msg.data;
       // console.log('\n'+JSON.stringify({ time: Date.now(), orderbook, trades }));
       let time = Date.now();
-      let time_str = new Date(clearTimeout - 60e3*60*3).toISOString().split('.')[0];
+      let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
       exportToS3("crypto-backtest-db", { time, orderbook, trades }, `Binance_${time_str}`);
     }
 

@@ -28,4 +28,4 @@ function exportToS3(bucketName, jsonData, fileName){
 
 module.exports = exportToS3;
 
-exportToS3('crypto-backtest-db', {json_example: 'certo'}, 'julesca')
+// exportToS3('crypto-backtest-db', {json_example: 'certo'}, 'julesca')
