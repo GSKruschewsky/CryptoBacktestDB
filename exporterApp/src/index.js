@@ -27,4 +27,6 @@ function exportToS3(bucketName, jsonData){
     });
 }
 
+module.exports = exportToS3;
+
 // exportToS3('crypto-backtest-db', json_example)
