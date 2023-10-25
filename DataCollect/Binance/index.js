@@ -1,6 +1,8 @@
 const WebSocket = require("ws");
 const fetch = require("node-fetch");
 
+const exportToS3 = require("../../exporterApp/src/index");
+
 const base = "BTC";
 const quote = "USDT";
 
@@ -10,7 +12,6 @@ const ws_url = 'wss://stream.binance.com:9443/stream?streams='+market+'@trade/'+
 const ws = new WebSocket(ws_url);
 
 let trades = null;
-let time = null;
 
 ws.on('close', () => {
   console.log('[!] WebSocket closed.');
@@ -40,8 +41,10 @@ ws.on('message', (msg) => {
     // New orderbook update.
     if (trades) {
       let { lastUpdateId, ...orderbook } = msg.data;
-      console.log('\n'+JSON.stringify({ time: Date.now(), orderbook, trades }));
-      // process.exit();
+      // console.log('\n'+JSON.stringify({ time: Date.now(), orderbook, trades }));
+      let time = Date.now();
+      let time_str = new Date(clearTimeout - 60e3*60*3).toISOString().split('.')[0];
+      exportToS3("crypto-backtest-db", { time, orderbook, trades }, `Binance_${time_str}`);
     }
 
     trades = [];
