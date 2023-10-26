@@ -3,7 +3,7 @@ const fetch = require("node-fetch");
 const Big = require("big.js");
 const crypto = require('crypto');
 require('dotenv').config({ path: "../../.env" });
-// const exportToS3 = require("../../exporterApp/src/index");
+const exportToS3 = require("../../exporterApp/src/index");
 
 function getWsAuthentication () {
   var key = process.env.CB_API_KEY;
@@ -32,15 +32,15 @@ function getWsAuthentication () {
   return { signature, key, passphrase, timestamp }
 }
 
+let trades = null;
+let _orderbook = null;
+
 function watchMarket (base, quote) {
   const market = `${base}-${quote}`;
   const mkt_name = `Coinbase ${base}/${quote}`;
 
   const ws_url = "wss://ws-feed.exchange.coinbase.com";
   const ws = new WebSocket(ws_url);
-
-  let trades = null;
-  let _orderbook = null;
 
   ws.on('close', () => {
     console.log('[!] ('+mkt_name+') WebSocket closed.');
@@ -104,30 +104,30 @@ function watchMarket (base, quote) {
     process.exit();
   });
 
-  setTimeout(() => {
-    // Waits until next second.
-    trades = [];
-
-    setInterval(() => {
-      // New second.
-      if (!_orderbook) return;
-      let time = Date.now();
-
-      let orderbook = {
-        asks: Object.entries(_orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 20),
-        bids: Object.entries(_orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 20)
-      };
-
-      let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
-      // exportToS3("crypto-backtest-db", { time, orderbook, trades }, `Binance_${base}-${quote}_${time_str}`);
-      // console.log({ time, orderbook, trades });
-
-      trades = [];
-    }, 1e3);
-
-  }, (parseInt(Date.now() / 1e3) + 1) * 1e3);
+  setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
 }
 
-watchMarket('BTC','USD');
+function newSecond () {
+  // New second.
+
+  if (_orderbook && trades) {
+    let time = Date.now();
+
+    let orderbook = {
+      asks: Object.entries(_orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 20),
+      bids: Object.entries(_orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 20)
+    };
+
+    let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
+    // exportToS3("crypto-backtest-db", { time, orderbook, trades }, `Coinbase_${base}-${quote}_${time_str}`);
+    console.log({ time, orderbook, trades });
+  }
+
+  trades = [];
+
+  setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
+}
+
+watchMarket("BTC", "USD");
 
 // module.exports = watchMarket;

@@ -42,7 +42,8 @@ function watchMarket (base, quote) {
         // console.log('\n'+JSON.stringify({ time: Date.now(), orderbook, trades }));
         let time = Date.now();
         let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
-        exportToS3("crypto-backtest-db", { time, orderbook, trades }, `Binance_${base}-${quote}_${time_str}`);
+        // exportToS3("crypto-backtest-db", { time, orderbook, trades }, `Binance_${base}-${quote}_${time_str}`);
+        console.log({ time, orderbook, trades });
       }
 
       trades = [];
@@ -51,8 +52,10 @@ function watchMarket (base, quote) {
     }
 
     console.log('[E] ('+mkt_name+') WebSocket unexpected message:', msg);
-    // process.exit();
+    process.exit();
   });
 }
 
-module.exports = watchMarket;
+watchMarket("BTC", "USDT");
+
+// module.exports = watchMarket;
