@@ -1,13 +1,10 @@
 const WebSocket = require("ws");
 const fetch = require("node-fetch");
-
 const exportToS3 = require("../../exporterApp/src/index");
 
-const base = "BTC";
-const quote = "USDT";
-
-module.exports = function (base, quote) {
+function watchMarket (base, quote) {
   const market = (base+quote).toLowerCase();
+  const mkt_name = `Binance ${base}/${quote}`;
 
   const ws_url = 'wss://stream.binance.com:9443/stream?streams='+market+'@trade/'+market+'@depth20';
   const ws = new WebSocket(ws_url);
@@ -15,15 +12,15 @@ module.exports = function (base, quote) {
   let trades = null;
 
   ws.on('close', () => {
-    console.log('[!] WebSocket closed.');
+    console.log('[!] ('+mkt_name+') WebSocket closed.');
   });
 
   ws.on('error', (err) => {
-    console.log('[E] WebSocket :',err);
+    console.log('[E] ('+mkt_name+') WebSocket :',err);
   });
 
   ws.on('open', () => {
-    console.log('[!] WebSocket opened.');
+    console.log('[!] ('+mkt_name+') WebSocket open.');
   });
 
   ws.on('message', (msg) => {
@@ -53,8 +50,9 @@ module.exports = function (base, quote) {
       return;
     }
 
-    console.log('WebSocket unexpected message:', msg);
-    process.exit();
+    console.log('[E] ('+mkt_name+') WebSocket unexpected message:', msg);
+    // process.exit();
   });
 };
 
+module.exports = watchMarket;
