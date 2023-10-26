@@ -53,6 +53,6 @@ function watchMarket (base, quote) {
     console.log('[E] ('+mkt_name+') WebSocket unexpected message:', msg);
     // process.exit();
   });
-};
+}
 
 module.exports = watchMarket;
