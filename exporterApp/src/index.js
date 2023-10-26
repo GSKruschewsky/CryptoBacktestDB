@@ -1,5 +1,5 @@
 const AWS = require('aws-sdk');
-require('dotenv').config();
+require('dotenv').config({path: '../../.env'});
 
 function exportToS3(bucketName, jsonData, fileName){
     AWS.config.update({
