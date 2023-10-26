@@ -2,6 +2,8 @@ const WebSocket = require("ws");
 const fetch = require("node-fetch");
 const exportToS3 = require("../../exporterApp/src/index");
 
+let _validation_list = [];
+
 function watchMarket (base, quote) {
   const market = (base+quote).toLowerCase();
   const mkt_name = `Binance ${base}/${quote}`;
@@ -21,6 +23,8 @@ function watchMarket (base, quote) {
 
   ws.on('open', () => {
     console.log('[!] ('+mkt_name+') WebSocket open.');
+
+    setInterval(() => ws.pong(), 60e3);
   });
 
   ws.on('message', (msg) => {
@@ -39,11 +43,23 @@ function watchMarket (base, quote) {
       // New orderbook update.
       if (trades) {
         let { lastUpdateId, ...orderbook } = msg.data;
-        // console.log('\n'+JSON.stringify({ time: Date.now(), orderbook, trades }));
         let time = Date.now();
         let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
-        // exportToS3("crypto-backtest-db", { time, orderbook, trades }, `Binance_${base}-${quote}_${time_str}`);
-        console.log({ time, orderbook, trades });
+
+        let obj = { time, orderbook, trades };
+
+        _validation_list.push(JSON.stringify(obj));
+        _validation_list = _validation_list.slice(-100);
+
+        if (_validation_list.length == 100) {
+          if (!_validation_list.some(json => json != _validation_list[0])) {
+            console.log('[E] As ultimas 100 postagens foram iguais!');
+            process.exit();
+          }
+        }
+        
+        // exportToS3("crypto-backtest-db", obj, `Binance_${base}-${quote}_${time_str}`);
+        console.log(obj);
       }
 
       trades = [];

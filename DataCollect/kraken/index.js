@@ -4,6 +4,7 @@ const exportToS3 = require("../../exporterApp/src/index");
 const kraken = new Kraken();
 let trades = null;
 let current_order_book = null;
+let _validation_list = [];
 
 async function watchMarket (base, quote) {
   await kraken.ws.trade()
@@ -46,8 +47,21 @@ function newSecond () {
   if (current_order_book && trades) {
     let time = Date.now();
     let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
-    // exportToS3("crypto-backtest-db", { time, orderbook: current_order_book, trades }, `Kraken_${base}-${quote}_${time_str}`);
-    console.log({ time, orderbook: current_order_book, trades });
+
+    let obj = { time, orderbook: current_order_book, trades };
+
+    _validation_list.push(JSON.stringify(obj));
+    _validation_list = _validation_list.slice(-100);
+
+    if (_validation_list.length == 100) {
+      if (!_validation_list.some(json => json != _validation_list[0])) {
+        console.log('[E] As ultimas 100 postagens foram iguais!');
+        process.exit();
+      }
+    }
+    
+    // exportToS3("crypto-backtest-db", obj, `Kraken_${base}-${quote}_${time_str}`);
+    console.log(obj);
   }
 
   trades = [];

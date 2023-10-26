@@ -34,6 +34,7 @@ function getWsAuthentication () {
 
 let trades = null;
 let _orderbook = null;
+let _validation_list = [];
 
 function watchMarket (base, quote) {
   const market = `${base}-${quote}`;
@@ -112,15 +113,27 @@ function newSecond () {
 
   if (_orderbook && trades) {
     let time = Date.now();
+    let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
 
     let orderbook = {
       asks: Object.entries(_orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 20),
       bids: Object.entries(_orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 20)
     };
 
-    let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
-    // exportToS3("crypto-backtest-db", { time, orderbook, trades }, `Coinbase_${base}-${quote}_${time_str}`);
-    console.log({ time, orderbook, trades });
+    let obj = { time, orderbook, trades };
+
+    _validation_list.push(JSON.stringify(obj));
+    _validation_list = _validation_list.slice(-100);
+
+    if (_validation_list.length == 100) {
+      if (!_validation_list.some(json => json != _validation_list[0])) {
+        console.log('[E] As ultimas 100 postagens foram iguais!');
+        process.exit();
+      }
+    }
+    
+    // exportToS3("crypto-backtest-db", obj, `Coinbase_${base}-${quote}_${time_str}`);
+    console.log(obj);
   }
 
   trades = [];
