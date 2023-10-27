@@ -6,6 +6,12 @@ require('dotenv').config({ path: "../../.env" });
 // const exportToS3 = require("../../exporterApp/src/index");
 const sendMail = require("../../helper/sendMail");
 
+let trades = null;
+let _orderbook = null;
+let _validation_list = [];
+let ping_no_answer = false;
+let market, mkt_name, ws_url, newSecTimeout, pings_interval;
+
 function getWsAuthentication () {
   var key = process.env.CB_API_KEY;
   var secret = process.env.CB_API_SECRET;
@@ -29,15 +35,11 @@ function getWsAuthentication () {
   return { signature, key, passphrase, timestamp }
 }
 
-let trades = null;
-let _orderbook = null;
-let _validation_list = [];
-let market, mkt_name, ws_url, newSecTimeout;
-
 function connectToExchange () {
   trades = null;
   _orderbook = null;
   _validation_list = [];
+  ping_no_answer = false;
 
   const ws = new WebSocket(ws_url);
 
@@ -45,14 +47,23 @@ function connectToExchange () {
 
   ws.on('close', () => {
     clearTimeout(newSecTimeout);
+    clearInterval(pings_interval);
     console.log('[!] ('+mkt_name+') WebSocket closed.');
     connectToExchange();
   });
 
   ws.on('error', (err) => {
-    clearTimeout(newSecTimeout);
-    console.log('[E] ('+mkt_name+') WebSocket :',err);
+    console.log(`[E] WebSocket (Coinbase ${mkt_name}):`,err);
+    sendMail(
+      process.env.SEND_ERROR_MAILS, 
+      `Coinbase ${mkt_name}`,
+      `WebSocket error: ${err}`
+    ).catch(console.error);
     process.exit();
+  });
+
+  ws.on('pong', () => {
+    ping_no_answer = false;
   });
 
   ws.on('open', () => {
@@ -64,6 +75,23 @@ function connectToExchange () {
       "product_ids": [market],
       ...getWsAuthentication()
     }));
+
+    pings_interval = setInterval(() => {
+      // ws.pong();
+      
+      if (ping_no_answer) {
+        // Não recebemos uma resposta do ping.
+        sendMail(
+          process.env.SEND_ERROR_MAILS, 
+          `Coinbase ${mkt_name}`,
+          'Servidor não respondeu ao ping enviado.'
+        ).catch(console.error);
+        process.exit();
+      }
+      ping_no_answer = true;
+      ws.ping();
+
+    }, 60e3);
   });
 
   ws.on('message', (msg) => {
@@ -107,9 +135,10 @@ function connectToExchange () {
   
     sendMail(
       process.env.SEND_ERROR_MAILS, 
-      mkt_name, 
+      `Coinbase ${mkt_name}`,
       `WebSocket unexpected message: ${msg}`
     ).catch(console.error);
+    process.exit();
   });
 
   newSecTimeout = setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
@@ -145,9 +174,10 @@ function newSecond () {
       if (!_validation_list.some(json => json != _validation_list[0])) {
         sendMail(
           process.env.SEND_ERROR_MAILS, 
-          "Coinbase", 
-          "[E] As ultimas 100 postagens foram iguais!"
+          `Coinbase ${mkt_name}`,
+          'As ultimas 100 postagens foram iguais!'
         ).catch(console.error);
+        process.exit();
       }
     }
 

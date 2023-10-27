@@ -6,28 +6,55 @@ require('dotenv').config({ path: "../../.env" });
 
 let _validation_list = [];
 let trades = null;
-let market, mkt_name, ws_url, ws;
+let ping_no_answer = false;
+let market, mkt_name, ws_url, ws, pings_interval;
 
 function connectToExchange () {
   _validation_list = [];
   trades = null;
+  ping_no_answer = false;
 
   ws = new WebSocket(ws_url);
 
   ws.on('close', () => {
+    clearInterval(pings_interval);
     console.log('[!] ('+mkt_name+') WebSocket closed.');
     connectToExchange();
   });
 
   ws.on('error', (err) => {
-    console.log('[E] ('+mkt_name+') WebSocket :',err);
+    console.log(`[E] WebSocket (Binance ${mkt_name}):`,err);
+    sendMail(
+      process.env.SEND_ERROR_MAILS, 
+      `Binance ${mkt_name}`, 
+      `WebSocket error: ${err}`
+    ).catch(console.error);
     process.exit();
+  });
+
+  ws.on('pong', () => {
+    ping_no_answer = false;
   });
 
   ws.on('open', () => {
     console.log('[!] ('+mkt_name+') WebSocket open.');
 
-    setInterval(() => ws.pong(), 60e3);
+    pings_interval = setInterval(() => {
+      ws.pong();
+      
+      if (ping_no_answer) {
+        // Não recebemos uma resposta do ping.
+        sendMail(
+          process.env.SEND_ERROR_MAILS, 
+          `Binance ${mkt_name}`,
+          'Servidor não respondeu ao ping enviado.'
+        ).catch(console.error);
+        process.exit();
+      }
+      ping_no_answer = true;
+      ws.ping();
+
+    }, 60e3);
   });
 
   ws.on('message', (msg) => {
@@ -60,9 +87,10 @@ function connectToExchange () {
           if (!_validation_list.some(json => json != _validation_list[0])) {
             sendMail(
               process.env.SEND_ERROR_MAILS, 
-              "Binance", 
-              "[E] As ultimas 100 postagens foram iguais!"
+              `Binance ${mkt_name}`,
+              'As ultimas 100 postagens foram iguais!',
             ).catch(console.error);
+            process.exit();
           }
         }
 
@@ -80,9 +108,10 @@ function connectToExchange () {
 
     sendMail(
       process.env.SEND_ERROR_MAILS, 
-      mkt_name, 
+      `Binance ${mkt_name}`,
       `WebSocket unexpected message: ${msg}`
     ).catch(console.error);
+    process.exit();
   });
 }
 
