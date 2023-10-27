@@ -1,24 +1,25 @@
 const WebSocket = require("ws");
 const fetch = require("node-fetch");
-const exportToS3 = require("../../exporterApp/src/index");
+// const exportToS3 = require("../../exporterApp/src/index");
 
 let _validation_list = [];
+let trades = null;
+let market, mkt_name, ws_url, ws;
 
-function watchMarket (base, quote) {
-  const market = (base+quote).toLowerCase();
-  const mkt_name = `Binance ${base}/${quote}`;
+function connectToExchange () {
+  _validation_list = [];
+  trades = null;
 
-  const ws_url = 'wss://stream.binance.com:9443/stream?streams='+market+'@trade/'+market+'@depth20';
-  const ws = new WebSocket(ws_url);
-
-  let trades = null;
+  ws = new WebSocket(ws_url);
 
   ws.on('close', () => {
     console.log('[!] ('+mkt_name+') WebSocket closed.');
+    connectToExchange();
   });
 
   ws.on('error', (err) => {
     console.log('[E] ('+mkt_name+') WebSocket :',err);
+    process.exit();
   });
 
   ws.on('open', () => {
@@ -34,7 +35,7 @@ function watchMarket (base, quote) {
       // New market trade.
       if (trades) {
         let { T: time, q: amount, p: price, m } = msg.data;
-        trades.push({ market: base+'/'+quote , time, side: (m ? 'sell' : 'buy'), amount, price });
+        trades.push({ time, side: (m ? 'sell' : 'buy'), amount, price });
       }
       return;
     }
@@ -46,10 +47,12 @@ function watchMarket (base, quote) {
         let time = Date.now();
         let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
 
-        let obj = { time, orderbook, trades };
+        let obj = { orderbook, trades };
 
         _validation_list.push(JSON.stringify(obj));
         _validation_list = _validation_list.slice(-100);
+
+        obj.time = time;
 
         if (_validation_list.length == 100) {
           if (!_validation_list.some(json => json != _validation_list[0])) {
@@ -57,9 +60,12 @@ function watchMarket (base, quote) {
             process.exit();
           }
         }
-        
+
         // exportToS3("crypto-backtest-db", obj, `Binance_${base}-${quote}_${time_str}`);
-        console.log(obj);
+        console.log('time:',time);
+        console.log('best_ask:',obj.orderbook.asks[0]);
+        console.log('best_bid:',obj.orderbook.bids[0]);
+        console.log('trades ('+trades.length+'):',obj.trades,'\n');
       }
 
       trades = [];
@@ -70,6 +76,13 @@ function watchMarket (base, quote) {
     console.log('[E] ('+mkt_name+') WebSocket unexpected message:', msg);
     process.exit();
   });
+}
+
+function watchMarket (base, quote) {
+  market = (base+quote).toLowerCase();
+  mkt_name = `Binance ${base}/${quote}`;
+  ws_url = 'wss://stream.binance.com:9443/stream?streams='+market+'@trade/'+market+'@depth20';
+  connectToExchange();
 }
 
 watchMarket("BTC", "USDT");

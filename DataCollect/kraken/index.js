@@ -1,5 +1,5 @@
 const { Kraken } = require("node-kraken-api");
-const exportToS3 = require("../../exporterApp/src/index");
+// const exportToS3 = require("../../exporterApp/src/index");
 
 const kraken = new Kraken();
 let trades = null;
@@ -8,10 +8,9 @@ let _validation_list = [];
 
 async function watchMarket (base, quote) {
   await kraken.ws.trade()
-  .on('update', ([[ price, amount, time, side ]], market)  => {
+  .on('update', ([[ price, amount, time, side ]])  => {
     if (trades) {
       let tradedata = { 
-        market, 
         time: time * 1e3, 
         side: (side == "b" ? "buy" : "sell"), 
         amount, 
@@ -29,8 +28,8 @@ async function watchMarket (base, quote) {
   await kraken.ws.book({depth: 100})
   .on("mirror", ({as, bs}) => {
     current_order_book = {
-      bids: bs.slice(0, 20),
-      asks: as.slice(0, 20)
+      bids: bs.slice(0, 20).map(([p, q]) => [ p, q ]),
+      asks: as.slice(0, 20).map(([p, q]) => [ p, q ])
     }
   })
   .on("error", (error) => {
@@ -48,10 +47,12 @@ function newSecond () {
     let time = Date.now();
     let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
 
-    let obj = { time, orderbook: current_order_book, trades };
+    let obj = { orderbook: current_order_book, trades };
 
     _validation_list.push(JSON.stringify(obj));
     _validation_list = _validation_list.slice(-100);
+
+    obj.time = time;
 
     if (_validation_list.length == 100) {
       if (!_validation_list.some(json => json != _validation_list[0])) {
@@ -59,9 +60,12 @@ function newSecond () {
         process.exit();
       }
     }
-    
+
     // exportToS3("crypto-backtest-db", obj, `Kraken_${base}-${quote}_${time_str}`);
-    console.log(obj);
+    console.log('time:',time);
+    console.log('best_ask:',obj.orderbook.asks[0]);
+    console.log('best_bid:',obj.orderbook.bids[0]);
+    console.log('trades ('+trades.length+'):',obj.trades,'\n');
   }
 
   trades = [];

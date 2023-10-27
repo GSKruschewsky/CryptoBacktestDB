@@ -3,7 +3,7 @@ const fetch = require("node-fetch");
 const Big = require("big.js");
 const crypto = require('crypto');
 require('dotenv').config({ path: "../../.env" });
-const exportToS3 = require("../../exporterApp/src/index");
+// const exportToS3 = require("../../exporterApp/src/index");
 
 function getWsAuthentication () {
   var key = process.env.CB_API_KEY;
@@ -35,20 +35,27 @@ function getWsAuthentication () {
 let trades = null;
 let _orderbook = null;
 let _validation_list = [];
+let market, mkt_name, ws_url, newSecTimeout;
 
-function watchMarket (base, quote) {
-  const market = `${base}-${quote}`;
-  const mkt_name = `Coinbase ${base}/${quote}`;
+function connectToExchange () {
+  trades = null;
+  _orderbook = null;
+  _validation_list = [];
 
-  const ws_url = "wss://ws-feed.exchange.coinbase.com";
   const ws = new WebSocket(ws_url);
 
+  ws.on('ping', data => ws.pong(data));
+
   ws.on('close', () => {
+    clearTimeout(newSecTimeout);
     console.log('[!] ('+mkt_name+') WebSocket closed.');
+    connectToExchange();
   });
 
   ws.on('error', (err) => {
+    clearTimeout(newSecTimeout);
     console.log('[E] ('+mkt_name+') WebSocket :',err);
+    process.exit();
   });
 
   ws.on('open', () => {
@@ -93,8 +100,8 @@ function watchMarket (base, quote) {
     if (msg.type == "match") {
       // New trade.
       if (trades) {
-        let { product_id: market, time, side, size: amount, price } = msg;
-        trades.push({ market, time: new Date(time).getTime(), side, amount, price });
+        let { time, side, size: amount, price } = msg;
+        trades.push({ time: new Date(time).getTime(), side, amount, price });
       }
       return;
     }
@@ -105,7 +112,14 @@ function watchMarket (base, quote) {
     process.exit();
   });
 
-  setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
+  newSecTimeout = setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
+}
+
+function watchMarket (base, quote) {
+  market = `${base}-${quote}`;
+  mkt_name = `Coinbase ${base}/${quote}`;
+  ws_url = "wss://ws-feed.exchange.coinbase.com";
+  connectToExchange();
 }
 
 function newSecond () {
@@ -120,10 +134,12 @@ function newSecond () {
       bids: Object.entries(_orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 20)
     };
 
-    let obj = { time, orderbook, trades };
+    let obj = { orderbook, trades };
 
     _validation_list.push(JSON.stringify(obj));
     _validation_list = _validation_list.slice(-100);
+
+    obj.time = time;
 
     if (_validation_list.length == 100) {
       if (!_validation_list.some(json => json != _validation_list[0])) {
@@ -131,14 +147,17 @@ function newSecond () {
         process.exit();
       }
     }
-    
+
     // exportToS3("crypto-backtest-db", obj, `Coinbase_${base}-${quote}_${time_str}`);
-    console.log(obj);
+    console.log('time:',time);
+    console.log('best_ask:',obj.orderbook.asks[0]);
+    console.log('best_bid:',obj.orderbook.bids[0]);
+    console.log('trades ('+trades.length+'):',obj.trades,'\n');
   }
 
   trades = [];
 
-  setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
+  newSecTimeout = setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
 }
 
 watchMarket("BTC", "USD");
