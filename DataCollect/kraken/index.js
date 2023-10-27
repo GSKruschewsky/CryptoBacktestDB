@@ -1,5 +1,7 @@
 const { Kraken } = require("node-kraken-api");
 const exportToS3 = require("../../exporterApp/src/index");
+const sendMail = require("../../helper/sendMail");
+require('dotenv').config({ path: "../../.env" });
 
 const kraken = new Kraken();
 let trades = null;
@@ -21,8 +23,11 @@ async function watchMarket (base, quote) {
     }
   })
   .on("error", (error) => {
-    console.log("[E] New trade error:",error);
-    process.exit();
+    sendMail(
+      process.env.SEND_ERROR_MAILS, 
+      "Kraken", 
+      `[E] New trade error: ${error}`
+    ).catch(console.error);
   })
   .subscribe(`${base}/${quote}`);
 
@@ -34,8 +39,11 @@ async function watchMarket (base, quote) {
     }
   })
   .on("error", (error) => {
-    console.log("[E] Orderbook update:",error);
-    process.exit();
+    sendMail(
+      process.env.SEND_ERROR_MAILS, 
+      "Kraken", 
+      `[E] Orderbook update: ${error}`
+    ).catch(console.error);
   })
   .subscribe(`${base}/${quote}`); 
 
@@ -55,8 +63,11 @@ function newSecond () {
 
     if (_validation_list.length == 100) {
       if (!_validation_list.some(json => json != _validation_list[0])) {
-        console.log('[E] As ultimas 100 postagens foram iguais!');
-        process.exit();
+        sendMail(
+          process.env.SEND_ERROR_MAILS, 
+          "Kraken", 
+          "[E] As ultimas 100 postagens foram iguais!"
+        ).catch(console.error);
       }
     }
     

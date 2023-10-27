@@ -4,15 +4,12 @@ const Big = require("big.js");
 const crypto = require('crypto');
 require('dotenv').config({ path: "../../.env" });
 const exportToS3 = require("../../exporterApp/src/index");
+const sendMail = require("../../helper/sendMail");
 
 function getWsAuthentication () {
   var key = process.env.CB_API_KEY;
   var secret = process.env.CB_API_SECRET;
   var passphrase = process.env.CB_API_PASSPHRASE;
-
-  // console.log('process.env:',process.env);
-  // console.log('secret:',secret);
-  // console.log('passphrase:',passphrase);
 
   // create the json request object
   var timestamp = Date.now() / 1000; // in ms
@@ -101,8 +98,11 @@ function watchMarket (base, quote) {
 
     if (msg.type == "subscriptions" || msg.type == "last_match") return;
   
-    console.log('[E] ('+mkt_name+') WebSocket unexpected message:', msg);
-    process.exit();
+    sendMail(
+      process.env.SEND_ERROR_MAILS, 
+      mkt_name, 
+      `WebSocket unexpected message: ${msg}`
+    ).catch(console.error);
   });
 
   setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
@@ -127,8 +127,11 @@ function newSecond () {
 
     if (_validation_list.length == 100) {
       if (!_validation_list.some(json => json != _validation_list[0])) {
-        console.log('[E] As ultimas 100 postagens foram iguais!');
-        process.exit();
+        sendMail(
+          process.env.SEND_ERROR_MAILS, 
+          "Coinbase", 
+          "[E] As ultimas 100 postagens foram iguais!"
+        ).catch(console.error);
       }
     }
     
