@@ -1,6 +1,8 @@
 const WebSocket = require("ws");
 const fetch = require("node-fetch");
 // const exportToS3 = require("../../exporterApp/src/index");
+const sendMail = require("../../helper/sendMail");
+require('dotenv').config({ path: "../../.env" });
 
 let _validation_list = [];
 let trades = null;
@@ -56,8 +58,11 @@ function connectToExchange () {
 
         if (_validation_list.length == 100) {
           if (!_validation_list.some(json => json != _validation_list[0])) {
-            console.log('[E] As ultimas 100 postagens foram iguais!');
-            process.exit();
+            sendMail(
+              process.env.SEND_ERROR_MAILS, 
+              "Binance", 
+              "[E] As ultimas 100 postagens foram iguais!"
+            ).catch(console.error);
           }
         }
 
@@ -73,8 +78,11 @@ function connectToExchange () {
       return;
     }
 
-    console.log('[E] ('+mkt_name+') WebSocket unexpected message:', msg);
-    process.exit();
+    sendMail(
+      process.env.SEND_ERROR_MAILS, 
+      mkt_name, 
+      `WebSocket unexpected message: ${msg}`
+    ).catch(console.error);
   });
 }
 
