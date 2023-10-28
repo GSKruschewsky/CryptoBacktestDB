@@ -7,7 +7,7 @@ require('dotenv').config({ path: "../../.env" });
 let _validation_list = [];
 let trades = null;
 let ping_no_answer = false;
-let market, mkt_name, ws_url, ws, pings_interval;
+let market, mkt_name, ws_url, ws;
 
 function connectToExchange () {
   _validation_list = [];
@@ -17,7 +17,6 @@ function connectToExchange () {
   ws = new WebSocket(ws_url);
 
   ws.on('close', () => {
-    clearInterval(pings_interval);
     console.log('[!] ('+mkt_name+') WebSocket closed.');
     connectToExchange();
   });
@@ -36,25 +35,12 @@ function connectToExchange () {
     ping_no_answer = false;
   });
 
+  ws.on('ping', () => {
+    ws.pong();
+  });
+
   ws.on('open', () => {
     console.log('[!] ('+mkt_name+') WebSocket open.');
-
-    pings_interval = setInterval(() => {
-      ws.pong();
-      
-      if (ping_no_answer) {
-        // Não recebemos uma resposta do ping.
-        sendMail(
-          process.env.SEND_ERROR_MAILS, 
-          `Binance ${mkt_name}`,
-          'Servidor não respondeu ao ping enviado.'
-        ).catch(console.error);
-        process.exit();
-      }
-      ping_no_answer = true;
-      ws.ping();
-
-    }, 60e3);
   });
 
   ws.on('message', (msg) => {
@@ -72,6 +58,19 @@ function connectToExchange () {
     if (msg.stream == market+'@depth20') {
       // New orderbook update.
       if (trades) {
+        if (ping_no_answer) {
+          // Não recebemos uma resposta do ping.
+          console.log(`[E] Binance ${mkt_name} > Servidor não respondeu ao ping enviado.`);
+          sendMail(
+            process.env.SEND_ERROR_MAILS, 
+            `Binance ${mkt_name}`,
+            'Servidor não respondeu ao ping enviado.'
+          ).catch(console.error);
+          process.exit();
+        }
+        ping_no_answer = true;
+        ws.ping();
+
         let { lastUpdateId, ...orderbook } = msg.data;
         let time = Date.now();
         let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
@@ -85,6 +84,7 @@ function connectToExchange () {
 
         if (_validation_list.length == 100) {
           if (!_validation_list.some(json => json != _validation_list[0])) {
+            console.log(`[E] Binance ${mkt_name} > As ultimas 100 postagens foram iguais!`);
             sendMail(
               process.env.SEND_ERROR_MAILS, 
               `Binance ${mkt_name}`,
@@ -106,6 +106,7 @@ function connectToExchange () {
       return;
     }
 
+    console.log(`[E] Binance ${mkt_name} > WebSocket unexpected message:`,msg);
     sendMail(
       process.env.SEND_ERROR_MAILS, 
       `Binance ${mkt_name}`,

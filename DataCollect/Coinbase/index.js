@@ -10,7 +10,7 @@ let trades = null;
 let _orderbook = null;
 let _validation_list = [];
 let ping_no_answer = false;
-let market, mkt_name, ws_url, newSecTimeout, pings_interval;
+let market, mkt_name, ws_url, newSecTimeout;
 
 function getWsAuthentication () {
   var key = process.env.CB_API_KEY;
@@ -47,13 +47,12 @@ function connectToExchange () {
 
   ws.on('close', () => {
     clearTimeout(newSecTimeout);
-    clearInterval(pings_interval);
     console.log('[!] ('+mkt_name+') WebSocket closed.');
     connectToExchange();
   });
 
   ws.on('error', (err) => {
-    console.log(`[E] WebSocket (Coinbase ${mkt_name}):`,err);
+    console.log(`[E] (Coinbase ${mkt_name}) > WebSocket error:`,err);
     sendMail(
       process.env.SEND_ERROR_MAILS, 
       `Coinbase ${mkt_name}`,
@@ -75,23 +74,6 @@ function connectToExchange () {
       "product_ids": [market],
       ...getWsAuthentication()
     }));
-
-    pings_interval = setInterval(() => {
-      // ws.pong();
-      
-      if (ping_no_answer) {
-        // Não recebemos uma resposta do ping.
-        sendMail(
-          process.env.SEND_ERROR_MAILS, 
-          `Coinbase ${mkt_name}`,
-          'Servidor não respondeu ao ping enviado.'
-        ).catch(console.error);
-        process.exit();
-      }
-      ping_no_answer = true;
-      ws.ping();
-
-    }, 60e3);
   });
 
   ws.on('message', (msg) => {
@@ -133,6 +115,7 @@ function connectToExchange () {
 
     if (msg.type == "subscriptions" || msg.type == "last_match") return;
   
+    console.log(`[E] (Coinbase ${mkt_name}) > WebSocket unexpected message:`,msg);
     sendMail(
       process.env.SEND_ERROR_MAILS, 
       `Coinbase ${mkt_name}`,
@@ -153,8 +136,20 @@ function watchMarket (base, quote) {
 
 function newSecond () {
   // New second.
-
   if (_orderbook && trades) {
+    if (ping_no_answer) {
+      // Não recebemos uma resposta do ping.
+      console.log(`[E] (Coinbase ${mkt_name}) > Servidor não respondeu ao ping enviado.`);
+      sendMail(
+        process.env.SEND_ERROR_MAILS, 
+        `Coinbase ${mkt_name}`,
+        'Servidor não respondeu ao ping enviado.'
+      ).catch(console.error);
+      process.exit();
+    }
+    ping_no_answer = true;
+    ws.ping();
+
     let time = Date.now();
     let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
 
@@ -172,6 +167,7 @@ function newSecond () {
 
     if (_validation_list.length == 100) {
       if (!_validation_list.some(json => json != _validation_list[0])) {
+        console.log(`[E] (Coinbase ${mkt_name}) > As ultimas 100 postagens foram iguais!`);
         sendMail(
           process.env.SEND_ERROR_MAILS, 
           `Coinbase ${mkt_name}`,
