@@ -10,7 +10,7 @@ let trades = null;
 let _orderbook = null;
 let _validation_list = [];
 let ping_no_answer = false;
-let market, mkt_name, ws_url, newSecTimeout;
+let market, mkt_name, ws, ws_url, newSecTimeout;
 
 function getWsAuthentication () {
   var key = process.env.CB_API_KEY;
@@ -41,7 +41,7 @@ function connectToExchange () {
   _validation_list = [];
   ping_no_answer = false;
 
-  const ws = new WebSocket(ws_url);
+  ws = new WebSocket(ws_url);
 
   ws.on('ping', data => ws.pong(data));
 
@@ -52,10 +52,10 @@ function connectToExchange () {
   });
 
   ws.on('error', (err) => {
-    console.log(`[E] (Coinbase ${mkt_name}) > WebSocket error:`,err);
+    console.log(`[E] (${mkt_name}) > WebSocket error:`,err);
     sendMail(
       process.env.SEND_ERROR_MAILS, 
-      `Coinbase ${mkt_name}`,
+      `${mkt_name}`,
       `WebSocket error: ${err}`
     ).catch(console.error);
     process.exit();
@@ -115,10 +115,10 @@ function connectToExchange () {
 
     if (msg.type == "subscriptions" || msg.type == "last_match") return;
   
-    console.log(`[E] (Coinbase ${mkt_name}) > WebSocket unexpected message:`,msg);
+    console.log(`[E] (${mkt_name}) > WebSocket unexpected message:`,msg);
     sendMail(
       process.env.SEND_ERROR_MAILS, 
-      `Coinbase ${mkt_name}`,
+      `${mkt_name}`,
       `WebSocket unexpected message: ${msg}`
     ).catch(console.error);
     process.exit();
@@ -139,10 +139,10 @@ function newSecond () {
   if (_orderbook && trades) {
     if (ping_no_answer) {
       // Não recebemos uma resposta do ping.
-      console.log(`[E] (Coinbase ${mkt_name}) > Servidor não respondeu ao ping enviado.`);
+      console.log(`[E] (${mkt_name}) > Servidor não respondeu ao ping enviado.`);
       sendMail(
         process.env.SEND_ERROR_MAILS, 
-        `Coinbase ${mkt_name}`,
+        `${mkt_name}`,
         'Servidor não respondeu ao ping enviado.'
       ).catch(console.error);
       process.exit();
@@ -167,10 +167,10 @@ function newSecond () {
 
     if (_validation_list.length == 100) {
       if (!_validation_list.some(json => json != _validation_list[0])) {
-        console.log(`[E] (Coinbase ${mkt_name}) > As ultimas 100 postagens foram iguais!`);
+        console.log(`[E] (${mkt_name}) > As ultimas 100 postagens foram iguais!`);
         sendMail(
           process.env.SEND_ERROR_MAILS, 
-          `Coinbase ${mkt_name}`,
+          `${mkt_name}`,
           'As ultimas 100 postagens foram iguais!'
         ).catch(console.error);
         process.exit();

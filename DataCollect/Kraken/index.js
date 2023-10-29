@@ -25,10 +25,10 @@ async function watchMarket (base, quote) {
     }
   })
   .on("error", (error) => {
-    console.log(`[E] (Kraken ${mkt_name}) > New trade error:`,error);
+    console.log(`[E] (${mkt_name}) > New trade error:`,error);
     sendMail(
       process.env.SEND_ERROR_MAILS, 
-      `Kraken ${mkt_name}`,
+      `${mkt_name}`,
       `[E] New trade error: ${error}`
     ).catch(console.error);
     process.exit();
@@ -43,10 +43,10 @@ async function watchMarket (base, quote) {
     }
   })
   .on("error", (error) => {
-    console.log(`[E] (Kraken ${mkt_name}) > Orderbook update:`,error);
+    console.log(`[E] (${mkt_name}) > Orderbook update:`,error);
     sendMail(
       process.env.SEND_ERROR_MAILS, 
-      `Kraken ${mkt_name}`,
+      `${mkt_name}`,
       `[E] Orderbook update: ${error}`
     ).catch(console.error);
     process.exit();
@@ -71,10 +71,10 @@ function newSecond () {
 
     if (_validation_list.length == 100) {
       if (!_validation_list.some(json => json != _validation_list[0])) {
-        console.log(`[E] (Kraken ${mkt_name}) > As ultimas 100 postagens foram iguais!`);
+        console.log(`[E] (${mkt_name}) > As ultimas 100 postagens foram iguais!`);
         sendMail(
           process.env.SEND_ERROR_MAILS, 
-          `Kraken ${mkt_name}`,
+          `${mkt_name}`,
           'As ultimas 100 postagens foram iguais!'
         ).catch(console.error);
         process.exit();
