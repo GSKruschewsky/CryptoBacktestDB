@@ -1,5 +1,9 @@
-const AWS = require('aws-sdk');
-require('dotenv').config({path: '../../.env'});
+// const AWS = require('aws-sdk');
+const { PutObjectCommand, S3Client } = require("@aws-sdk/client-s3");
+
+require('dotenv').config();
+
+process.exit();
 
 function exportToS3(bucketName, jsonData, fileName){
     AWS.config.update({
@@ -26,6 +30,6 @@ function exportToS3(bucketName, jsonData, fileName){
     });
 }
 
-module.exports = exportToS3;
+// module.exports = exportToS3;
 
-// exportToS3('crypto-backtest-db', {json_example: 'certo'}, 'julesca')
+exportToS3('crypto-backtest-db', {json_example: 'certo'}, 'julesca')

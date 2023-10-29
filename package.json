@@ -5,13 +5,15 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "testExporter": "node exporterApp/src/index.js",
     "binance": "node DataCollect/Binance/index.js",
     "kraken": "node DataCollect/Kraken/index.js",
-    "Coinbase": "node DataCollect/Coinbase/index.js"
+    "coinbase": "node DataCollect/Coinbase/index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.438.0",
     "aws-sdk": "^2.1481.0",
     "big.js": "^6.2.1",
     "dotenv": "^16.3.1",

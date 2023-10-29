@@ -1,8 +1,8 @@
 const WebSocket = require("ws");
 const fetch = require("node-fetch");
+require('dotenv').config();
 const exportToS3 = require("../../exporterApp/src/index");
 const sendMail = require("../../helper/sendMail");
-require('dotenv').config();
 
 // // Mostrar data no 'console.log'.
 // const old_log = console.log;

@@ -1,7 +1,7 @@
 const { Kraken } = require("node-kraken-api");
+require('dotenv').config();
 const exportToS3 = require("../../exporterApp/src/index");
 const sendMail = require("../../helper/sendMail");
-require('dotenv').config();
 
 const kraken = new Kraken();
 let trades = null;
