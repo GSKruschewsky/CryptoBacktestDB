@@ -1,15 +1,17 @@
 const { Kraken } = require("node-kraken-api");
 const exportToS3 = require("../../exporterApp/src/index");
 const sendMail = require("../../helper/sendMail");
-require('dotenv').config({ path: "../../.env" });
+require('dotenv').config();
 
 const kraken = new Kraken();
 let trades = null;
 let current_order_book = null;
 let _validation_list = [];
-let mkt_name;
+let base, quote, mkt_name;
 
-async function watchMarket (base, quote) {
+async function watchMarket (_base, _quote) {
+  base = _base;
+  quote = _quote;
   mkt_name = `Kraken ${base}/${quote}`;
 
   await kraken.ws.trade()

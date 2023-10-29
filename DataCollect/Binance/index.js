@@ -2,7 +2,7 @@ const WebSocket = require("ws");
 const fetch = require("node-fetch");
 const exportToS3 = require("../../exporterApp/src/index");
 const sendMail = require("../../helper/sendMail");
-require('dotenv').config({ path: "../../.env" });
+require('dotenv').config();
 
 // // Mostrar data no 'console.log'.
 // const old_log = console.log;
@@ -18,7 +18,7 @@ let trades = null;
 let orderbook = null;
 let _validation_list = [];
 let ping_no_answer = false;
-let market, mkt_name, ws, ws_url, newSecTimeout;
+let base, quote, market, mkt_name, ws, ws_url, newSecTimeout;
 
 function connectToExchange () {
   trades = null;
@@ -87,7 +87,9 @@ function connectToExchange () {
   newSecTimeout = setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
 }
 
-function watchMarket (base, quote) {
+function watchMarket (_base, _quote) {
+  base = _base;
+  quote = _quote;
   market = (base+quote).toLowerCase();
   mkt_name = `Binance ${base}/${quote}`;
   ws_url = 'wss://stream.binance.com:9443/stream?streams='+market+'@trade/'+market+'@depth20@100ms';

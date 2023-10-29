@@ -2,7 +2,7 @@ const WebSocket = require("ws");
 const fetch = require("node-fetch");
 const Big = require("big.js");
 const crypto = require('crypto');
-require('dotenv').config({ path: "../../.env" });
+require('dotenv').config();
 const exportToS3 = require("../../exporterApp/src/index");
 const sendMail = require("../../helper/sendMail");
 
@@ -10,7 +10,7 @@ let trades = null;
 let _orderbook = null;
 let _validation_list = [];
 let ping_no_answer = false;
-let market, mkt_name, ws, ws_url, newSecTimeout;
+let base, quote, market, mkt_name, ws, ws_url, newSecTimeout;
 
 function getWsAuthentication () {
   var key = process.env.CB_API_KEY;
@@ -127,7 +127,9 @@ function connectToExchange () {
   newSecTimeout = setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
 }
 
-function watchMarket (base, quote) {
+function watchMarket (_base, _quote) {
+  base = _base;
+  quote = _quote;
   market = `${base}-${quote}`;
   mkt_name = `Coinbase ${base}/${quote}`;
   ws_url = "wss://ws-feed.exchange.coinbase.com";
