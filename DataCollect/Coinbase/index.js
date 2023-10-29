@@ -3,7 +3,7 @@ const fetch = require("node-fetch");
 const Big = require("big.js");
 const crypto = require('crypto');
 require('dotenv').config({ path: "../../.env" });
-// const exportToS3 = require("../../exporterApp/src/index");
+const exportToS3 = require("../../exporterApp/src/index");
 const sendMail = require("../../helper/sendMail");
 
 let trades = null;
@@ -177,11 +177,11 @@ function newSecond () {
       }
     }
 
-    // exportToS3("crypto-backtest-db", obj, `Coinbase_${base}-${quote}_${time_str}`);
-    console.log('time:',time);
-    console.log('best_ask:',obj.orderbook.asks[0]);
-    console.log('best_bid:',obj.orderbook.bids[0]);
-    console.log('trades ('+trades.length+'):',obj.trades,'\n');
+    exportToS3("crypto-backtest-db", obj, `Coinbase_${base}-${quote}_${time_str}`);
+    // console.log('time:',time);
+    // console.log('best_ask:',obj.orderbook.asks[0]);
+    // console.log('best_bid:',obj.orderbook.bids[0]);
+    // console.log('trades ('+trades.length+'):',obj.trades,'\n');
   }
 
   trades = [];

@@ -1,6 +1,6 @@
 const WebSocket = require("ws");
 const fetch = require("node-fetch");
-// const exportToS3 = require("../../exporterApp/src/index");
+const exportToS3 = require("../../exporterApp/src/index");
 const sendMail = require("../../helper/sendMail");
 require('dotenv').config({ path: "../../.env" });
 
@@ -132,11 +132,11 @@ function newSecond () {
       }
     }
 
-    // exportToS3("crypto-backtest-db", obj, `Binance_${base}-${quote}_${time_str}`);
-    console.log('time:',time);
-    console.log('best_ask:',obj.orderbook.asks[0]);
-    console.log('best_bid:',obj.orderbook.bids[0]);
-    console.log('trades ('+trades.length+'):',obj.trades,'\n');
+    exportToS3("crypto-backtest-db", obj, `Binance_${base}-${quote}_${time_str}`);
+    // console.log('time:',time);
+    // console.log('best_ask:',obj.orderbook.asks[0]);
+    // console.log('best_bid:',obj.orderbook.bids[0]);
+    // console.log('trades ('+trades.length+'):',obj.trades,'\n');
   }
 
   trades = [];
