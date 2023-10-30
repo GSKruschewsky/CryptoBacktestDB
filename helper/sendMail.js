@@ -1,5 +1,7 @@
-const nodemailer = require("nodemailer");
-require('dotenv').config();
+// const nodemailer = require("nodemailer");
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+dotenv.config();
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -23,4 +25,4 @@ async function sendMail(mailTo, exchange, message) {
   console.log(`Message sent: ${info.messageId}`);
 }
 
-module.exports = sendMail
+export default sendMail;

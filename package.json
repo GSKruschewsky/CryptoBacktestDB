@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "testExporter": "node exporterApp/src/index.js",
+    "testExporter": "node exporterApp/src/index.mjs",
     "binance": "node DataCollect/Binance/index.js",
     "kraken": "node DataCollect/Kraken/index.js",
     "coinbase": "node DataCollect/Coinbase/index.js"
@@ -21,5 +21,6 @@
     "node-kraken-api": "^2.2.2",
     "nodemailer": "^6.9.7",
     "ws": "^8.14.2"
-  }
+  },
+  "type": "module"
 }

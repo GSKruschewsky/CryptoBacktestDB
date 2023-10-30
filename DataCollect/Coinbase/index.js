@@ -1,10 +1,11 @@
-const WebSocket = require("ws");
-const fetch = require("node-fetch");
-const Big = require("big.js");
-const crypto = require('crypto');
-require('dotenv').config();
-const exportToS3 = require("../../exporterApp/src/index");
-const sendMail = require("../../helper/sendMail");
+import WebSocket from "ws";
+import fetch from "node-fetch";
+import Big from "big.js";
+import crypto from "crypto";
+import exportToS3 from "../../exporterApp/src/index.js";
+import sendMail from "../../helper/sendMail.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 let trades = null;
 let _orderbook = null;
@@ -86,7 +87,7 @@ function connectToExchange () {
         bids: Object.fromEntries(msg.bids.slice(0, 1000)),
         time: msg.time
       };
-      last_second = new Date(_orderbook.time).getSeconds();
+
       return;
     }
 
@@ -179,7 +180,18 @@ function newSecond () {
       }
     }
 
-    exportToS3("crypto-backtest-db", obj, `Coinbase_${base}-${quote}_${time_str}`);
+    const filename = `Coinbase_${base}-${quote}_${time_str}`;
+    exportToS3("crypto-backtest-db", obj, filename)
+    .then(r => console.log(`[!] Arquivo enviado: ${filename}`))
+    .catch(err => {
+      console.log(`[E] ${mkt_name} > exportToS3 - Failed to upload file:`,err);
+      sendMail(
+        process.env.SEND_ERROR_MAILS, 
+        `${mkt_name}`,
+        'Bot falhou ao enviar arquivo para AWS S3!',
+      ).catch(console.error);
+      process.exit();
+    });
     // console.log('time:',time);
     // console.log('best_ask:',obj.orderbook.asks[0]);
     // console.log('best_bid:',obj.orderbook.bids[0]);
@@ -193,4 +205,4 @@ function newSecond () {
 
 watchMarket("BTC", "USD");
 
-// module.exports = watchMarket;
+// export default watchMarket;
