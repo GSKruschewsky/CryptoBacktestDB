@@ -25,4 +25,6 @@ async function sendMail(mailTo, exchange, message) {
   console.log(`Message sent: ${info.messageId}`);
 }
 
+// sendMail(process.env.SEND_ERROR_MAILS, "Buseta", "JORGE E MATHEUS FDP!");
+
 export default sendMail;

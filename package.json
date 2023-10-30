@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "testExporter": "node exporterApp/src/index.mjs",
+    "testMail": "node helper/sendMail.js",
     "binance": "node DataCollect/Binance/index.js",
     "kraken": "node DataCollect/Kraken/index.js",
     "coinbase": "node DataCollect/Coinbase/index.js"

@@ -14,7 +14,7 @@ async function exportToS3 (bucketName, jsonData, fileName){
     return client.send(new PutObjectCommand({
         Bucket: bucketName,
         Key: `${fileName}.json`,
-        Body: Buffer.from(JSON.stringify(jsonData), 'utf-8'),
+        Body: Buffer.from(typeof jsonData == 'string' ? jsonData : JSON.stringify(jsonData), 'utf-8'),
         ContentType: 'application/json'
     }));
 }

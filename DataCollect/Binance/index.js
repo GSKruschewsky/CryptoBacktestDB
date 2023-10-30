@@ -5,26 +5,32 @@ import sendMail from "../../helper/sendMail.js";
 import dotenv from "dotenv";
 dotenv.config();
 
+function get_date (ts = Date.now()) {
+  ts -= 60e3*60*3;
+  return `${new Date(ts).toLocaleString('pt-BR', { timeZone: 'UTC' }).replace(',','')}.${(`000${ts % 1e3}`).slice(-3)}`;
+}
+
 // // Mostrar data no 'console.log'.
 // const old_log = console.log;
-// const new_log = (...args) => {
-//   const ts = Date.now() - 60e3*60*3;
-//   const dt = `${new Date(ts).toLocaleString('pt-BR', { timeZone: 'UTC' }).replace(',','')}.${(`000${ts % 1e3}`).slice(-3)} -`;
-//   old_log(...[ dt, ...args ]);
-// }
+// const new_log = (...args) => old_log(...[ `${get_date()} -`, ...args ]);
 // console.log = new_log;
 // // 
 
+let day_data = [];
 let trades = null;
 let orderbook = null;
 let _validation_list = [];
+let market_synced = false;
 let ping_no_answer = false;
+let last_day = new Date(Date.now() - 60e3*60*3).getUTCHours();
+let last_sent_data_time = null;
 let base, quote, market, mkt_name, ws, ws_url, newSecTimeout;
 
 function connectToExchange () {
   trades = null;
   orderbook = null;
   _validation_list = [];
+  market_synced = false;
   ping_no_answer = false;
 
   ws = new WebSocket(ws_url);
@@ -54,11 +60,12 @@ function connectToExchange () {
   });
 
   ws.on('open', () => {
-    console.log('[!] ('+mkt_name+') WebSocket open.');
+    console.log('[!] ('+mkt_name+') WebSocket open.\n');
   });
 
   ws.on('message', (msg) => {
     msg = JSON.parse(msg);
+    // console.log(msg);
 
     if (msg.stream == market+'@trade') {
       // New market trade.
@@ -66,6 +73,12 @@ function connectToExchange () {
         let { T: time, q: amount, p: price, m } = msg.data;
         trades.push({ time, side: (m ? 'sell' : 'buy'), amount, price });
       }
+
+      if ((!market_synced) && orderbook) {
+        process.stdout.moveCursor(0, 2); // Move the cursor down two lines
+        market_synced = true;
+      }
+
       return;
     }
 
@@ -99,63 +112,82 @@ function watchMarket (_base, _quote) {
 
 function newSecond () {
   // New second.
-  let time = Date.now();
-  let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
+  if (market_synced) {
+    let time = Date.now();
 
-  if (orderbook && trades) {
-    if (ping_no_answer) {
-      // Não recebemos uma resposta do ping.
-      console.log(`[E] ${mkt_name} > Servidor não respondeu ao ping enviado.`);
-      sendMail(
-        process.env.SEND_ERROR_MAILS, 
-        `${mkt_name}`,
-        'Servidor não respondeu ao ping enviado.'
-      ).catch(console.error);
-      process.exit();
+    // Checks if it is a new day.
+    let today = new Date(time - 60e3*60*3).getUTCHours();
+    if (today != last_day) {
+      last_day = today;
+      newDay(time);
     }
-    ping_no_answer = true;
-    ws.ping();
 
-    let obj = { orderbook, trades };
-
-    _validation_list.push(JSON.stringify(obj));
-    _validation_list = _validation_list.slice(-100);
-
-    obj.time = time;
-
-    if (_validation_list.length == 100) {
-      if (!_validation_list.some(json => json != _validation_list[0])) {
-        console.log(`[E] ${mkt_name} > As ultimas 100 postagens foram iguais!`);
+    if (orderbook && trades) {
+      if (ping_no_answer) {
+        // Não recebemos uma resposta do ping.
+        console.log(`[E] ${mkt_name} > Servidor não respondeu ao ping enviado.`);
         sendMail(
           process.env.SEND_ERROR_MAILS, 
           `${mkt_name}`,
-          'As ultimas 100 postagens foram iguais!',
+          'Servidor não respondeu ao ping enviado.'
         ).catch(console.error);
         process.exit();
       }
+      ping_no_answer = true;
+      ws.ping();
+
+      let obj = { orderbook, trades };
+
+      _validation_list.push(JSON.stringify(obj));
+      _validation_list = _validation_list.slice(-100);
+
+      obj.time = Math.round(time / 1e3);
+
+      if (_validation_list.length == 100) {
+        if (!_validation_list.some(json => json != _validation_list[0])) {
+          console.log(`[E] ${mkt_name} > As ultimas 100 postagens foram iguais!`);
+          sendMail(
+            process.env.SEND_ERROR_MAILS, 
+            `${mkt_name}`,
+            'As ultimas 100 postagens foram iguais!',
+          ).catch(console.error);
+          process.exit();
+        }
+      }
+
+      day_data.push(JSON.stringify(obj));
+      process.stdout.moveCursor(0, -2); // Move the cursor up two lines
+      process.stdout.write(`Last save to S3: ${(last_sent_data_time ? get_date(last_sent_data_time) : '')}\r`);
+      process.stdout.write(`\nLast market snapshot: ${get_date(time)}\r\n`);
     }
 
-    const filename = `Binance_${base}-${quote}_${time_str}`;
-    exportToS3("crypto-backtest-db", obj, filename)
-    .then(r => console.log(`[!] Arquivo enviado: ${filename}`))
-    .catch(err => {
-      console.log(`[E] ${mkt_name} > exportToS3 - Failed to upload file:`,err);
-      sendMail(
-        process.env.SEND_ERROR_MAILS, 
-        `${mkt_name}`,
-        'Bot falhou ao enviar arquivo para AWS S3!',
-      ).catch(console.error);
-      process.exit();
-    });
-    // console.log('time:',time);
-    // console.log('best_ask:',obj.orderbook.asks[0]);
-    // console.log('best_bid:',obj.orderbook.bids[0]);
-    // console.log('trades ('+trades.length+'):',obj.trades,'\n');
+    trades = [];
   }
 
-  trades = [];
-
   newSecTimeout = setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
+}
+
+function newDay (time) {
+  // New day, save data and reset 'day_data'.
+  const day_str = new Date(time - 60e3*60*3).toISOString().split('T')[0];
+  const filename = `Binance_${base}-${quote}_${day_str}`;
+
+  exportToS3("crypto-backtest-db", `[${day_data.join(',')}]`, filename)
+  .then(r => {
+    // console.log(`[!] Maket data sent to S3: ${filename}`);
+    last_sent_data_time = time;
+  })
+  .catch(err => {
+    console.log(`[E] ${mkt_name} > exportToS3 - Failed to upload file:`,err);
+    sendMail(
+      process.env.SEND_ERROR_MAILS, 
+      mkt_name,
+      'Bot falhou ao enviar arquivo para AWS S3!',
+    ).catch(console.error);
+    process.exit();
+  });
+
+  day_data = [];
 }
 
 watchMarket("BTC", "USDT");
