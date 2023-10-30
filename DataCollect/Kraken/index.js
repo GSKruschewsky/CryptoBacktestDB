@@ -44,7 +44,8 @@ async function watchMarket (_base, _quote) {
     }
 
     if ((!market_synced) && current_order_book) {
-      process.stdout.moveCursor(0, 2); // Move the cursor down two lines
+      // process.stdout.moveCursor(0, 2); // Move the cursor down two lines
+      console.log('\n');
       market_synced = true;
     }
   })

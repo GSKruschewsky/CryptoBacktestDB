@@ -129,7 +129,8 @@ function connectToExchange () {
       }
 
       if ((!market_synced) && _orderbook) {
-        process.stdout.moveCursor(0, 2); // Move the cursor down two lines
+        // process.stdout.moveCursor(0, 2); // Move the cursor down two lines
+        console.log('\n');
         market_synced = true;
       }
 
