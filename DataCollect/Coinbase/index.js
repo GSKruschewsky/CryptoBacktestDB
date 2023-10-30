@@ -4,6 +4,8 @@ import Big from "big.js";
 import crypto from "crypto";
 import exportToS3 from "../../exporterApp/src/index.js";
 import sendMail from "../../helper/sendMail.js";
+import ansi from "ansi";
+const cursor = ansi(process.stdout);
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -129,8 +131,7 @@ function connectToExchange () {
       }
 
       if ((!market_synced) && _orderbook) {
-        // process.stdout.moveCursor(0, 2); // Move the cursor down two lines
-        console.log('\n');
+        console.log('\n'); // Move the cursor down two lines
         market_synced = true;
       }
 
@@ -211,9 +212,11 @@ function newSecond () {
       }
 
       day_data.push(JSON.stringify(obj));
-      process.stdout.moveCursor(0, -2); // Move the cursor up two lines
-      process.stdout.write(`Last save to S3: ${(last_sent_data_time ? get_date(last_sent_data_time) : '')}\r`);
-      process.stdout.write(`\nLast market snapshot: ${get_date(time)}\r\n`);
+      
+      cursor.up();
+      cursor.up();
+      cursor.write(`Last save to S3: ${ last_sent_data_time ? get_date(last_sent_data_time) : '' }\n`);
+      cursor.write(`Last market snapshot: ${get_date(time)}\n`);
     }
 
     trades = [];
