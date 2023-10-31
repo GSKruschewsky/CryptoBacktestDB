@@ -1,5 +1,5 @@
 import { Kraken } from "node-kraken-api";
-import exportToS3 from "../../exporterApp/src/index.js";
+import sendToS3 from "../../exporterApp/src/index.js";
 import sendMail from "../../helper/sendMail.js";
 import ansi from "ansi";
 const cursor = ansi(process.stdout);
@@ -134,13 +134,13 @@ function newDay (time) {
   const day_str = new Date(time - 60e3*60*3).toISOString().split('T')[0];
   const filename = `Kraken_${base}-${quote}_${day_str}`;
 
-  exportToS3("crypto-backtest-db", `[${day_data.join(',')}]`, filename)
+  sendToS3("crypto-backtest-db", `[${day_data.join(',')}]`, filename)
   .then(r => {
     // console.log(`[!] Maket data sent to S3: ${filename}`);
     last_sent_data_time = time;
   })
   .catch(err => {
-    console.log(`[E] ${mkt_name} > exportToS3 - Failed to upload file:`,err);
+    console.log(`[E] ${mkt_name} > sendToS3 - Failed to upload file:`,err);
     sendMail(
       process.env.SEND_ERROR_MAILS, 
       mkt_name,

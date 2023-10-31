@@ -13,16 +13,14 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-async function sendMail(mailTo, exchange, message) {
-  const info = await transporter.sendMail({
+async function sendMail (mailTo, exchange, message) {
+  return transporter.sendMail({
     from: '"CryptoBacktestDB 👻" <adm@codiegos.com>',
     to: mailTo,
     subject: `Erro 𝕏 - ${exchange}`, 
     text: `Ocorreu um erro com o bot da exchange ${exchange}. \nMensagem: ${message}`, 
     html: `<b>Ocorreu um erro com o bot ${exchange}. <br>Mensagem: ${message}</b>`,
   });
-
-  console.log(`Message sent: ${info.messageId}`);
 }
 
 // sendMail(process.env.SEND_ERROR_MAILS, "Buseta", "JORGE E MATHEUS FDP!");

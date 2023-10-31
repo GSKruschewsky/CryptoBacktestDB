@@ -10,7 +10,7 @@ const client = new S3Client({
     }
 });
 
-async function exportToS3 (bucketName, jsonData, fileName){
+async function sendToS3 (bucketName, jsonData, fileName){
     return client.send(new PutObjectCommand({
         Bucket: bucketName,
         Key: `${fileName}.json`,
@@ -19,6 +19,6 @@ async function exportToS3 (bucketName, jsonData, fileName){
     }));
 }
 
-export default exportToS3;
+export default sendToS3;
 
-// exportToS3('crypto-backtest-db', {json_example: 'certo'}, 'julesca')
+// sendToS3('crypto-backtest-db', {json_example: 'certo'}, 'julesca')

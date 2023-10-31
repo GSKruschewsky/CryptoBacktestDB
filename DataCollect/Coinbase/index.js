@@ -2,8 +2,8 @@ import WebSocket from "ws";
 import fetch from "node-fetch";
 import Big from "big.js";
 import crypto from "crypto";
-import exportToS3 from "../../exporterApp/src/index.js";
-import sendMail from "../../helper/sendMail.js";
+import sendToS3 from "../../Helper/sendToS3.js";
+import sendMail from "../../Helper/sendMail.js";
 import ansi from "ansi";
 const cursor = ansi(process.stdout);
 import dotenv from "dotenv";
@@ -70,9 +70,9 @@ function connectToExchange () {
     connectToExchange();
   });
 
-  ws.on('error', (err) => {
+  ws.on('error', async (err) => {
     console.log(`[E] (${mkt_name}) > WebSocket error:`,err);
-    sendMail(
+    await sendMail(
       process.env.SEND_ERROR_MAILS, 
       `${mkt_name}`,
       `WebSocket error: ${err}`
@@ -230,13 +230,13 @@ function newDay (time) {
   const day_str = new Date(time - 60e3*60*3).toISOString().split('T')[0];
   const filename = `Coinbase_${base}-${quote}_${day_str}`;
 
-  exportToS3("crypto-backtest-db", `[${day_data.join(',')}]`, filename)
+  sendToS3("crypto-backtest-db", `[${day_data.join(',')}]`, filename)
   .then(r => {
     // console.log(`[!] Maket data sent to S3: ${filename}`);
     last_sent_data_time = time;
   })
   .catch(err => {
-    console.log(`[E] ${mkt_name} > exportToS3 - Failed to upload file:`,err);
+    console.log(`[E] ${mkt_name} > sendToS3 - Failed to upload file:`,err);
     sendMail(
       process.env.SEND_ERROR_MAILS, 
       mkt_name,

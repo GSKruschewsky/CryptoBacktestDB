@@ -1,7 +1,7 @@
 import WebSocket from "ws";
 import fetch from "node-fetch";
-import exportToS3 from "../../exporterApp/src/index.js";
-import sendMail from "../../helper/sendMail.js";
+import sendToS3 from "../../Helper/sendToS3.js";
+import sendMail from "../../Helper/sendMail.js";
 import ansi from "ansi";
 const cursor = ansi(process.stdout);
 import dotenv from "dotenv";
@@ -43,9 +43,9 @@ function connectToExchange () {
     connectToExchange();
   });
 
-  ws.on('error', (err) => {
+  ws.on('error', async (err) => {
     console.log(`[E] WebSocket (${mkt_name}):`,err);
-    sendMail(
+    await sendMail(
       process.env.SEND_ERROR_MAILS, 
       `${mkt_name}`, 
       `WebSocket error: ${err}`
@@ -65,7 +65,7 @@ function connectToExchange () {
     console.log('[!] ('+mkt_name+') WebSocket open.\n');
   });
 
-  ws.on('message', (msg) => {
+  ws.on('message', async (msg) => {
     msg = JSON.parse(msg);
     // console.log(msg);
 
@@ -92,7 +92,7 @@ function connectToExchange () {
     }
 
     console.log(`[E] ${mkt_name} > WebSocket unexpected message:`,msg);
-    sendMail(
+    await sendMail(
       process.env.SEND_ERROR_MAILS, 
       `${mkt_name}`,
       `WebSocket unexpected message: ${msg}`
@@ -112,7 +112,7 @@ function watchMarket (_base, _quote) {
   connectToExchange();
 }
 
-function newSecond () {
+async function newSecond () {
   // New second.
   if (market_synced) {
     let time = Date.now();
@@ -128,7 +128,7 @@ function newSecond () {
       if (ping_no_answer) {
         // Não recebemos uma resposta do ping.
         console.log(`[E] ${mkt_name} > Servidor não respondeu ao ping enviado.`);
-        sendMail(
+        await sendMail(
           process.env.SEND_ERROR_MAILS, 
           `${mkt_name}`,
           'Servidor não respondeu ao ping enviado.'
@@ -148,7 +148,7 @@ function newSecond () {
       if (_validation_list.length == 100) {
         if (!_validation_list.some(json => json != _validation_list[0])) {
           console.log(`[E] ${mkt_name} > As ultimas 100 postagens foram iguais!`);
-          sendMail(
+          await sendMail(
             process.env.SEND_ERROR_MAILS, 
             `${mkt_name}`,
             'As ultimas 100 postagens foram iguais!',
@@ -176,14 +176,14 @@ function newDay (time) {
   const day_str = new Date(time - 60e3*60*3).toISOString().split('T')[0];
   const filename = `Binance_${base}-${quote}_${day_str}`;
 
-  exportToS3("crypto-backtest-db", `[${day_data.join(',')}]`, filename)
+  sendToS3("crypto-backtest-db", `[${day_data.join(',')}]`, filename)
   .then(r => {
     // console.log(`[!] Maket data sent to S3: ${filename}`);
     last_sent_data_time = time;
   })
-  .catch(err => {
-    console.log(`[E] ${mkt_name} > exportToS3 - Failed to upload file:`,err);
-    sendMail(
+  .catch(async err => {
+    console.log(`[E] ${mkt_name} > sendToS3 - Failed to upload file:`,err);
+    await sendMail(
       process.env.SEND_ERROR_MAILS, 
       mkt_name,
       'Bot falhou ao enviar arquivo para AWS S3!',

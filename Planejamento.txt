@@ -1,0 +1,24 @@
+Input:
+  Corretora
+  Base
+  Quote
+
+Processo:
+  Sincronização de dados com a corretora e o mercado selecionado
+
+Output:
+  Imagens do mercado especificado no input em intervalos de 1 segundo.
+  Tais imagens devem ser convertidas em objetos JSON e armazenadas em nuvem no sistema S3 da AWS.
+
+Utilizaremos o seguintes modulos NPM:
+  ccxt: 
+    Para sincronização dos dados de diferentes mercados em difertentes corretoras.
+  
+  @aws-sdk/client-s3: 
+    Para armazenar os dados em nuvem no sistema S3 da AWS.
+  
+  dotenv: 
+    Para configuração de váriaveis de ambiente.
+  
+  nodemailer: 
+    Para notificações via email a respeito do sistema.
