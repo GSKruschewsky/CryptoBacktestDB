@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="stylesheets/style.css">
+</head>
+<body>
+
+  <div class="container">
+    <table class="responsive-table">
+      <thead class="responsive-table__head">
+        <tr class="responsive-table__row">
+          <th class="responsive-table__head__title responsive-table__head__title--name">Exchange</th>
+          <th class="responsive-table__head__title responsive-table__head__title--status">Status</th>
+          <th class="responsive-table__head__title responsive-table__head__title--types">Última atualização</th>
+          <th class="responsive-table__head__title responsive-table__head__title--country" style="width:10%!important">Ações</th>
+        </tr>
+      </thead>
+      <!-- Responsive Table Body Section -->
+      <tbody class="responsive-table__body">
+        <tr class="responsive-table__row">
+          <td class="responsive-table__body__text responsive-table__body__text--name">
+            <img class="user-icon" src="images/binance.png"/>
+            Binance
+          </td>
+          <td class="responsive-table__body__text responsive-table__body__text--status"><span class="status-indicator status-indicator--active"></span>Ativa</td>
+          <td class="responsive-table__body__text responsive-table__body__text--types">Attendee, F1</td>
+          <td class="responsive-table__body__text responsive-table__body__text--update" style="width:10%!important">-</td>
+        </tr>
+        <tr class="responsive-table__row">
+          <td class="responsive-table__body__text responsive-table__body__text--name">
+            <img class="user-icon" src="images/coinbase.png"/>
+            Coinbase
+          </td>
+          <td class="responsive-table__body__text responsive-table__body__text--status"><span class="status-indicator status-indicator--active"></span>Ativa</td>
+          <td class="responsive-table__body__text responsive-table__body__text--types">Attendee, F5</td>
+          <td class="responsive-table__body__text responsive-table__body__text--update" style="width:10%!important">-</td>
+        </tr>
+        <tr class="responsive-table__row">
+          <td class="responsive-table__body__text responsive-table__body__text--name">
+            <img class="user-icon" src="images/kraken.png"/>
+            Kraken
+          </td>
+          <td class="responsive-table__body__text responsive-table__body__text--status"><span class="status-indicator status-indicator--active"></span>Ativa</td>
+          <td class="responsive-table__body__text responsive-table__body__text--types">Attendee, MSR</td>
+          <td class="responsive-table__body__text responsive-table__body__text--update" style="width:10%!important">-</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const headTitleName = document.querySelector(
+      ".responsive-table__head__title--name"
+    );
+    const headTitleStatus = document.querySelector(
+      ".responsive-table__head__title--status"
+    );
+    const headTitleTypes = document.querySelector(
+      ".responsive-table__head__title--types"
+    );
+    const headTitleUpdate = document.querySelector(
+      ".responsive-table__head__title--update"
+    );
+    const headTitleCountry = document.querySelector(
+      ".responsive-table__head__title--country"
+    );
+
+    const bodyTextName = document.querySelectorAll(
+      ".responsive-table__body__text--name"
+    );
+    const bodyTextStatus = document.querySelectorAll(
+      ".responsive-table__body__text--status"
+    );
+    const bodyTextTypes = document.querySelectorAll(
+      ".responsive-table__body__text--types"
+    );
+    const bodyTextUpdate = document.querySelectorAll(
+      ".responsive-table__body__text--update"
+    );
+    const bodyTextCountry = document.querySelectorAll(
+      ".responsive-table__body__text--country"
+    );
+
+    const totalTableBodyRow = document.querySelectorAll(
+      ".responsive-table__body .responsive-table__row"
+    );
+
+    for (let i = 0; i < totalTableBodyRow.length; i++) {
+      bodyTextName[i].setAttribute("data-title", headTitleName.innerText);
+      bodyTextStatus[i].setAttribute("data-title", headTitleStatus.innerText);
+      bodyTextTypes[i].setAttribute("data-title", headTitleTypes.innerText);
+      bodyTextUpdate[i].setAttribute("data-title", headTitleUpdate.innerText);
+      bodyTextCountry[i].setAttribute("data-title", headTitleCountry.innerText);
+    }
+
+  </script>
+
+</body>
+</html>
