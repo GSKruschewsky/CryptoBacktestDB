@@ -1,29 +1,38 @@
-const WebSocket = require("ws");
-const fetch = require("node-fetch");
-require('dotenv').config();
-const exportToS3 = require("../../exporterApp/src/index");
-const sendMail = require("../../helper/sendMail");
+import WebSocket from "ws";
+import fetch from "node-fetch";
+import sendToS3 from "../../Helper/sendToS3.js";
+import sendMail from "../../Helper/sendMail.js";
+import ansi from "ansi";
+const cursor = ansi(process.stdout);
+import dotenv from "dotenv";
+dotenv.config();
+
+function get_date (ts = Date.now()) {
+  ts -= 60e3*60*3;
+  return `${new Date(ts).toLocaleString('pt-BR', { timeZone: 'UTC' }).replace(',','')}.${(`000${ts % 1e3}`).slice(-3)}`;
+}
 
 // // Mostrar data no 'console.log'.
 // const old_log = console.log;
-// const new_log = (...args) => {
-//   const ts = Date.now() - 60e3*60*3;
-//   const dt = `${new Date(ts).toLocaleString('pt-BR', { timeZone: 'UTC' }).replace(',','')}.${(`000${ts % 1e3}`).slice(-3)} -`;
-//   old_log(...[ dt, ...args ]);
-// }
+// const new_log = (...args) => old_log(...[ `${get_date()} -`, ...args ]);
 // console.log = new_log;
 // // 
 
+let day_data = [];
 let trades = null;
 let orderbook = null;
 let _validation_list = [];
+let market_synced = false;
 let ping_no_answer = false;
+let last_day = new Date(Date.now() - 60e3*60*3).getUTCHours();
+let last_sent_data_time = null;
 let base, quote, market, mkt_name, ws, ws_url, newSecTimeout;
 
 function connectToExchange () {
   trades = null;
   orderbook = null;
   _validation_list = [];
+  market_synced = false;
   ping_no_answer = false;
 
   ws = new WebSocket(ws_url);
@@ -34,9 +43,9 @@ function connectToExchange () {
     connectToExchange();
   });
 
-  ws.on('error', (err) => {
+  ws.on('error', async (err) => {
     console.log(`[E] WebSocket (${mkt_name}):`,err);
-    sendMail(
+    await sendMail(
       process.env.SEND_ERROR_MAILS, 
       `${mkt_name}`, 
       `WebSocket error: ${err}`
@@ -53,11 +62,12 @@ function connectToExchange () {
   });
 
   ws.on('open', () => {
-    console.log('[!] ('+mkt_name+') WebSocket open.');
+    console.log('[!] ('+mkt_name+') WebSocket open.\n');
   });
 
-  ws.on('message', (msg) => {
+  ws.on('message', async (msg) => {
     msg = JSON.parse(msg);
+    // console.log(msg);
 
     if (msg.stream == market+'@trade') {
       // New market trade.
@@ -65,6 +75,12 @@ function connectToExchange () {
         let { T: time, q: amount, p: price, m } = msg.data;
         trades.push({ time, side: (m ? 'sell' : 'buy'), amount, price });
       }
+
+      if ((!market_synced) && orderbook) {
+        console.log('\n'); // Move the cursor down two lines
+        market_synced = true;
+      }
+
       return;
     }
 
@@ -76,7 +92,7 @@ function connectToExchange () {
     }
 
     console.log(`[E] ${mkt_name} > WebSocket unexpected message:`,msg);
-    sendMail(
+    await sendMail(
       process.env.SEND_ERROR_MAILS, 
       `${mkt_name}`,
       `WebSocket unexpected message: ${msg}`
@@ -96,56 +112,88 @@ function watchMarket (_base, _quote) {
   connectToExchange();
 }
 
-function newSecond () {
+async function newSecond () {
   // New second.
-  let time = Date.now();
-  let time_str = new Date(time - 60e3*60*3).toISOString().split('.')[0];
+  if (market_synced) {
+    let time = Date.now();
 
-  if (orderbook && trades) {
-    if (ping_no_answer) {
-      // Não recebemos uma resposta do ping.
-      console.log(`[E] ${mkt_name} > Servidor não respondeu ao ping enviado.`);
-      sendMail(
-        process.env.SEND_ERROR_MAILS, 
-        `${mkt_name}`,
-        'Servidor não respondeu ao ping enviado.'
-      ).catch(console.error);
-      process.exit();
+    // Checks if it is a new day.
+    let today = new Date(time - 60e3*60*3).getUTCHours();
+    if (today != last_day) {
+      last_day = today;
+      newDay(time);
     }
-    ping_no_answer = true;
-    ws.ping();
 
-    let obj = { orderbook, trades };
-
-    _validation_list.push(JSON.stringify(obj));
-    _validation_list = _validation_list.slice(-100);
-
-    obj.time = time;
-
-    if (_validation_list.length == 100) {
-      if (!_validation_list.some(json => json != _validation_list[0])) {
-        console.log(`[E] ${mkt_name} > As ultimas 100 postagens foram iguais!`);
-        sendMail(
+    if (orderbook && trades) {
+      if (ping_no_answer) {
+        // Não recebemos uma resposta do ping.
+        console.log(`[E] ${mkt_name} > Servidor não respondeu ao ping enviado.`);
+        await sendMail(
           process.env.SEND_ERROR_MAILS, 
           `${mkt_name}`,
-          'As ultimas 100 postagens foram iguais!',
+          'Servidor não respondeu ao ping enviado.'
         ).catch(console.error);
         process.exit();
       }
+      ping_no_answer = true;
+      ws.ping();
+
+      let obj = { orderbook, trades };
+
+      _validation_list.push(JSON.stringify(obj));
+      _validation_list = _validation_list.slice(-100);
+
+      obj.time = Math.round(time / 1e3);
+
+      if (_validation_list.length == 100) {
+        if (!_validation_list.some(json => json != _validation_list[0])) {
+          console.log(`[E] ${mkt_name} > As ultimas 100 postagens foram iguais!`);
+          await sendMail(
+            process.env.SEND_ERROR_MAILS, 
+            `${mkt_name}`,
+            'As ultimas 100 postagens foram iguais!',
+          ).catch(console.error);
+          process.exit();
+        }
+      }
+
+      day_data.push(JSON.stringify(obj));
+
+      cursor.up();
+      cursor.up();
+      cursor.write(`Last save to S3: ${ last_sent_data_time ? get_date(last_sent_data_time) : '' }\n`);
+      cursor.write(`Last market snapshot: ${get_date(time)}\n`);
     }
 
-    exportToS3("crypto-backtest-db", obj, `Binance_${base}-${quote}_${time_str}`);
-    // console.log('time:',time);
-    // console.log('best_ask:',obj.orderbook.asks[0]);
-    // console.log('best_bid:',obj.orderbook.bids[0]);
-    // console.log('trades ('+trades.length+'):',obj.trades,'\n');
+    trades = [];
   }
-
-  trades = [];
 
   newSecTimeout = setTimeout(newSecond, (parseInt(Date.now() / 1e3) + 1) * 1e3 - Date.now());
 }
 
+function newDay (time) {
+  // New day, save data and reset 'day_data'.
+  const day_str = new Date(time - 60e3*60*3).toISOString().split('T')[0];
+  const filename = `Binance_${base}-${quote}_${day_str}`;
+
+  sendToS3("crypto-backtest-db", `[${day_data.join(',')}]`, filename)
+  .then(r => {
+    // console.log(`[!] Maket data sent to S3: ${filename}`);
+    last_sent_data_time = time;
+  })
+  .catch(async err => {
+    console.log(`[E] ${mkt_name} > sendToS3 - Failed to upload file:`,err);
+    await sendMail(
+      process.env.SEND_ERROR_MAILS, 
+      mkt_name,
+      'Bot falhou ao enviar arquivo para AWS S3!',
+    ).catch(console.error);
+    process.exit();
+  });
+
+  day_data = [];
+}
+
 watchMarket("BTC", "USDT");
 
-// module.exports = watchMarket;
+// export default watchMarket;
