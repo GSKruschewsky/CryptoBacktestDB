@@ -10,9 +10,11 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.438.0",
+    "big.js": "^6.2.1",
     "dotenv": "^16.3.1",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.7",
     "ws": "^8.14.2"
-  }
+  },
+  "type": "module"
 }

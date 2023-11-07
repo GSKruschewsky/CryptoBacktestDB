@@ -1,0 +1,65 @@
+{
+  "Binance-SPOT": {
+    "separator": "",
+    "rest": {
+      "isMarketUpper": true,
+      "url": "https://api.binance.com",
+      "timeout": 15000,
+      "endpoints": {
+        "orderbook": {
+          "path": "/api/v3/depth?symbol=<market>&limit=5000"
+        },
+        "trades": {
+          "path": "/api/v3/aggTrades?symbol=<market>&startTime=<since>"
+        }
+      },
+      "response": {
+        "orderbook": {
+          "asks": "asks",
+          "bids": "bids",
+          "last_update_nonce": "lastUpdateId"
+        },
+        "trades": {
+          "timestamp": "T",
+          "is_buy_key": "m",
+          "is_buy_value": false,
+          "price": "p",
+          "amount": "q"
+        }
+      }
+    },
+    "ws": {
+      "isMarketUpper": false,
+      "url": "wss://stream.binance.com:9443/stream",
+      "timeout": 15000,
+      "subcriptions": {
+        "orderbook": "{\"method\":\"SUBSCRIBE\",\"params\":[\"<market>@depth@100ms\"],\"id\":<ws_req_id>}",
+        "trades": "{\"method\":\"SUBSCRIBE\",\"params\":[\"<market>@trade\"],\"id\":<ws_req_id>}"
+      },
+      "msg_type": {
+        "orderbook": "<market>@depth@100ms",
+        "trades": "<market>@trade"
+      },
+      "msg": {
+        "id": "id",
+        "type": "stream",
+        "data_inside": "data",
+        "orderbook": {
+          "asks": "a",
+          "bids": "b",
+          "timestamp": "E",
+          "first_upd_nonce_key": "U",
+          "last_upd_nonce_key": "u"
+        },
+        "trades": {
+          "receive_separately_trades_as_obj": true,
+          "timestamp": "T",
+          "is_buy_key": "m",
+          "is_buy_value": false,
+          "price": "p",
+          "amount": "q"
+        }
+      }
+    }
+  }
+}
