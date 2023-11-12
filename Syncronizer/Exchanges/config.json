@@ -29,11 +29,21 @@
         "trades": {
           "path": "/api/v3/aggTrades?symbol=<market>&startTime=<since>",
           "response": {
+            "trade_id_key": "l",
+            "newer_first": false,
             "timestamp": "T",
             "is_buy_key": "m",
             "is_buy_value": false,
             "price": "p",
-            "amount": "q"
+            "amount": "q",
+            "pagination": {
+              "check_for_newer": true,
+              "max_arr_size": 1000,
+              "newer_first": false,
+              "to_del_url": "&startTime=<since>",
+              "to_add_url": "&fromId=<page_id>",
+              "page_id": "a"
+            }
           }
         }
       }
@@ -72,6 +82,8 @@
             "id": "id"
           },
           "update": {
+            "id_should_be_higher": true,
+            "trade_id_key": "t",
             "channel_id_key": "stream",
             "channel_id": "<market>@trade",
             "data_inside": "data",
@@ -89,6 +101,7 @@
   "kraken-spot": {
     "is_market_upper": true,
     "timestamp_in_seconds": true,
+    "trades_custom_id": true,
     "rest": {
       "url": "https://api.kraken.com",
       "timeout": 15000,
@@ -108,15 +121,25 @@
           }
         },
         "trades": {
-          "path": "/0/public/Trades?pair=<market>&since=<since>",
+          "path": "/0/public/Trades?pair=<market>&count=1000&since=<since>",
           "response": {
+            "newer_first": false,
             "data_inside": "result",
             "get_first_value": true,
-            "timestamp": 2,
-            "is_buy_key": 3,
+            "timestamp": "2",
+            "is_buy_key": "3",
             "is_buy_value": "b",
-            "price": 0,
-            "amount": 1
+            "price": "0",
+            "amount": "1",
+            "trade_id_key": "6",
+            "pagination": {
+              "check_for_newer": true,
+              "max_arr_size": 1000,
+              "newer_first": false,
+              "to_del_url": "<since>",
+              "to_add_url": "<page_id>",
+              "page_id": "2"
+            }
           }
         }
       }
@@ -200,6 +223,8 @@
         "trades": {
           "path": "/products/<market>/trades",
           "response": {
+            "trade_id_key": "trade_id",
+            "newer_first": true,
             "timestamp": "time",
             "is_buy_key": "side",
             "is_buy_value": "buy",
@@ -275,6 +300,7 @@
             "id_value": "matches"
           },
           "update": {
+            "trade_id_key": "trade_id",
             "receive_separately_trades_as_obj": true,
             "channel_id_key": "type",
             "channel_id": "match",

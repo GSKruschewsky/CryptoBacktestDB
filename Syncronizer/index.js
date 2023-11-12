@@ -13,7 +13,9 @@ if (args.length !== 3) {
 }
 
 // Melhorias para fazer:
-// [ ] Processar trade id para evitar trades duplicados na sincronização inicial.
+// [*] Processar trade id para evitar trades duplicados na sincronização inicial.
+// [*] Binance-spot: use pagination on trades.
+// [*] Kraken-spot: use pagination on trades.
 
 // Exchanges to add:
 // [*] kraken-spot
@@ -242,12 +244,20 @@ function format_trades_msg (msg) {
     else if (exc.timestamp_ISO_format)
       timestamp = new Date(timestamp).getTime();
     
-    return {
+    let obj = {
       timestamp,
       is_buy: (t[exc.ws.subcriptions.trades.update.is_buy_key] == exc.ws.subcriptions.trades.update.is_buy_value),
       price: t[exc.ws.subcriptions.trades.update.price],
       amount: t[exc.ws.subcriptions.trades.update.amount]
-    }
+    };
+
+    if (exc.ws.subcriptions.trades.update.trade_id_key != undefined)
+      obj.trade_id = t[exc.ws.subcriptions.trades.update.trade_id_key];
+
+    if (exc.trades_custom_id)
+      obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
+
+    return obj;
   });
 }
 
@@ -690,13 +700,20 @@ async function syncronizer () {
   // console.log('init_trades:',init_trades);
   
   // Set trades from initial snapshot.
-  trades = init_trades.map(t => {
+  trades = (exc.rest.endpoints.trades.response.newer_first ? init_trades.reverse() : init_trades)
+  .map(t => {
     let obj = {
       timestamp: exc.timestamp_ISO_format ? new Date(t[exc.rest.endpoints.trades.response.timestamp]).getTime() : t[exc.rest.endpoints.trades.response.timestamp],
       is_buy: (t[exc.rest.endpoints.trades.response.is_buy_key] == exc.rest.endpoints.trades.response.is_buy_value),
       price: t[exc.rest.endpoints.trades.response.price],
       amount: t[exc.rest.endpoints.trades.response.amount]
     };
+
+    if (exc.rest.endpoints.trades.response.trade_id_key != undefined)
+      obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
+
+    if (exc.trades_custom_id)
+      obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
 
     const _pagination = exc.rest.endpoints.trades.response.pagination;
     if (_pagination?.page_id != undefined)
@@ -710,83 +727,192 @@ async function syncronizer () {
     const _pagination = exc.rest.endpoints.trades.response.pagination; 
 
     console.log('Trades pagination...');
-    console.log('since=',since);
-    console.log('(since - 1e3)=',since - 1e3);
 
-    let older_trade = _pagination.newer_first ? trades[trades.length - 1] : trades[0];
+    if (_pagination.check_for_newer) {
+      console.log('_pagination.max_arr_size:',_pagination.max_arr_size);
+      let trades_resp_arr_size = init_trades.length;
+      while (trades_resp_arr_size == _pagination.max_arr_size) {
+        console.log('trades_resp_arr_size:',trades_resp_arr_size);
 
-    while (older_trade.timestamp > since - 1e3) {
-      console.log('older_trade.timestamp=',older_trade.timestamp);
-      
-      let raw_trades = null;
-      try {
-        raw_trades = await Promise.race([
-          new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000), "TIMEOUT.")),
-          fetch(
-            (exc.rest.url + exc.rest.endpoints.trades.path + exc.rest.endpoints.trades.response.pagination.to_add_url)
-            .replace('<market>', market.rest)
-            .replace('<since>', since)
-            .replace('<page_id>', older_trade['_'+_pagination.page_id])
-          )
-          .then(r => r.json())
-          .then(r => {
-            if (r?.[exc.rest.error.key] != undefined) {
-              let really_an_error = false;
-              
-              if (exc.rest.error.is_array) {
-                if (r[exc.rest.error.key].length > 0)
-                  really_an_error = true;
-              } else {
-                if (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value)
-                  really_an_error = true;
+        let raw_trades = null;
+        try {
+          raw_trades = await Promise.race([
+            new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000), "TIMEOUT.")),
+            fetch(
+              (exc.rest.url + exc.rest.endpoints.trades.path + _pagination.to_add_url)
+              .replace(_pagination.to_del_url, '')
+              .replace('<market>', market.rest)
+              .replace('<since>', since)
+              .replace('<page_id>', trades[trades.length-1]['_'+_pagination.page_id]) // Newer trade id.
+            )
+            .then(r => r.json())
+            .then(r => {
+              if (r?.[exc.rest.error.key] != undefined) {
+                let really_an_error = false;
+                
+                if (exc.rest.error.is_array) {
+                  if (r[exc.rest.error.key].length > 0)
+                    really_an_error = true;
+                } else {
+                  if (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value)
+                    really_an_error = true;
+                }
+        
+                if (really_an_error) throw { endpoint: 'trades (at pagination)', error: r };
               }
+                
+              r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
+        
+              if (exc.rest.endpoints.trades.response.get_first_value)
+                r = Object.values(r)[0];
+        
+              return r;
+            })
+          ]);
+        } catch (err) {
+          console.log('[E] At trades pagination loop:',err);
+          throw "Failed to get all necessary trades.";
+        }
+
+        let newer_trades = raw_trades.map(t => {
+          let obj = {
+            timestamp: exc.timestamp_ISO_format ? new Date(t[exc.rest.endpoints.trades.response.timestamp]).getTime() : t[exc.rest.endpoints.trades.response.timestamp],
+            is_buy: (t[exc.rest.endpoints.trades.response.is_buy_key] == exc.rest.endpoints.trades.response.is_buy_value),
+            price: t[exc.rest.endpoints.trades.response.price],
+            amount: t[exc.rest.endpoints.trades.response.amount]
+          };
+
+          if (exc.rest.endpoints.trades.response.trade_id_key != undefined)
+            obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
       
-              if (really_an_error) throw { endpoint: 'trades (at pagination)', error: r };
-            }
-              
-            r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
+          if (exc.trades_custom_id)
+            obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
       
-            if (exc.rest.endpoints.trades.response.get_first_value)
-              r = Object.values(r)[0];
+          const _pagination = exc.rest.endpoints.trades.response.pagination;
+          if (_pagination?.page_id != undefined)
+            obj['_'+_pagination.page_id] = t[_pagination.page_id];
       
-            return r;
-          })
-        ]);
-      } catch (err) {
-        console.log('[E] At trades pagination loop:',err);
-        throw "Failed to get all necessary trades.";
+          return obj;
+        })
+        .filter(t => { // Evita trades repetidos.
+          const _key = exc.rest.endpoints.trades.response.trade_id_key != undefined ? 'trade_id' : 'custom_id';
+          return trades.every(rt => rt[_key] != t[_key]);
+        });
+        
+        if (_pagination.newer_first) {
+          trades = [ ...trades, ...newer_trades.reverse() ];
+          trades_resp_arr_size = newer_trades.length;
+        } else {
+          trades = [ ...trades, ...newer_trades ];
+          trades_resp_arr_size = newer_trades.length;
+        }
       }
 
-      let older_trades = raw_trades.map(t => {
-        let obj = {
-          timestamp: exc.timestamp_ISO_format ? new Date(t[exc.rest.endpoints.trades.response.timestamp]).getTime() : t[exc.rest.endpoints.trades.response.timestamp],
-          is_buy: (t[exc.rest.endpoints.trades.response.is_buy_key] == exc.rest.endpoints.trades.response.is_buy_value),
-          price: t[exc.rest.endpoints.trades.response.price],
-          amount: t[exc.rest.endpoints.trades.response.amount]
-        };
-    
-        const _pagination = exc.rest.endpoints.trades.response.pagination;
-        if (_pagination?.page_id != undefined)
-          obj['_'+_pagination.page_id] = t[_pagination.page_id];
-    
-        return obj;
-      });
+      console.log('[!] Got all necessary trades: trades_resp_arr_size=',trades_resp_arr_size);
 
-      if (_pagination.newer_first) {
-        trades = [ ...trades, ...older_trades ];
-        older_trade = trades[trades.length - 1];
+    } else {
+      console.log('since=',since);
+      console.log('(since - 1e3)=',since - 1e3);
+      let older_trade = trades[0];
+
+      while (older_trade.timestamp > since - 1e3) {
+        console.log('older_trade.timestamp=',older_trade.timestamp);
+        
+        let raw_trades = null;
+        try {
+          raw_trades = await Promise.race([
+            new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000), "TIMEOUT.")),
+            fetch(
+              (exc.rest.url + exc.rest.endpoints.trades.path + exc.rest.endpoints.trades.response.pagination.to_add_url)
+              .replace('<market>', market.rest)
+              .replace('<since>', since)
+              .replace('<page_id>', older_trade['_'+_pagination.page_id])
+            )
+            .then(r => r.json())
+            .then(r => {
+              if (r?.[exc.rest.error.key] != undefined) {
+                let really_an_error = false;
+                
+                if (exc.rest.error.is_array) {
+                  if (r[exc.rest.error.key].length > 0)
+                    really_an_error = true;
+                } else {
+                  if (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value)
+                    really_an_error = true;
+                }
+        
+                if (really_an_error) throw { endpoint: 'trades (at pagination)', error: r };
+              }
+                
+              r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
+        
+              if (exc.rest.endpoints.trades.response.get_first_value)
+                r = Object.values(r)[0];
+        
+              return r;
+            })
+          ]);
+        } catch (err) {
+          console.log('[E] At trades pagination loop:',err);
+          throw "Failed to get all necessary trades.";
+        }
+
+        let older_trades = raw_trades.map(t => {
+          let obj = {
+            timestamp: exc.timestamp_ISO_format ? new Date(t[exc.rest.endpoints.trades.response.timestamp]).getTime() : t[exc.rest.endpoints.trades.response.timestamp],
+            is_buy: (t[exc.rest.endpoints.trades.response.is_buy_key] == exc.rest.endpoints.trades.response.is_buy_value),
+            price: t[exc.rest.endpoints.trades.response.price],
+            amount: t[exc.rest.endpoints.trades.response.amount]
+          };
+
+          if (exc.rest.endpoints.trades.response.trade_id_key != undefined)
+            obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
+      
+          if (exc.trades_custom_id)
+            obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
+      
+          const _pagination = exc.rest.endpoints.trades.response.pagination;
+          if (_pagination?.page_id != undefined)
+            obj['_'+_pagination.page_id] = t[_pagination.page_id];
+      
+          return obj;
+        })
+        .filter(t => { // Evita trades repetidos.
+          const _key = exc.rest.endpoints.trades.response.trade_id_key != undefined ? 'trade_id' : 'custom_id';
+          return trades.every(rt => rt[_key] != t[_key]);
+        });
+
+        if (_pagination.newer_first) {
+          trades = [ ...older_trades.reverse(), ...trades ]; // Newer at last.
+          older_trade = trades[0];
+        } else {
+          trades = [ ...older_trades, ...trades ]; // Newer at last.
+          older_trade = trades[0];
+        }
       }
+
+      console.log('[!] Got all necessary trades: since=',since,'older_trade.timestmap=',older_trade.timestamp);
     }
-
-    console.log('[!] Got all necessary trades: since=',since,'older_trade.timestmap=',older_trade.timestamp);
   }
+
+  // Evita trades repetidos.
+  trades_upd_cache = trades_upd_cache.filter(t => { 
+    if (exc.ws.subcriptions.trades.update.id_should_be_higher)
+      return t.trade_id > trades[trades.length-1].trade_id;
+
+    const _key = exc.ws.subcriptions.trades.update.trade_id_key != undefined ? 'trade_id' : 'custom_id';
+    return trades.every(rt => rt[_key] != t[_key]);
+  });
 
   console.log('cached trades:',trades_upd_cache);
   console.log('trades from init_trades:',trades);
 
   // Apply cached trades updates.
   if (trades_upd_cache.length > 0) {
-    trades = [ ...trades, ...trades_upd_cache ];
+    trades = [ // Newer at the end here. 
+      ...(exc.rest.endpoints.trades.response.newer_first ? trades.reverse() : trades), 
+      ...trades_upd_cache
+    ];
     trades_upd_cache = [];
   }
   
