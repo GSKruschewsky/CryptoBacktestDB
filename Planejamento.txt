@@ -11,8 +11,11 @@ Output:
   Tais imagens devem ser convertidas em objetos JSON e armazenadas em nuvem no sistema S3 da AWS.
 
 Utilizaremos o seguintes modulos NPM:
-  ccxt: 
+  Syncornizer: 
     Para sincronização dos dados de diferentes mercados em difertentes corretoras.
+
+  big.js:
+    Para algumas comparações matematicas de números decimais que exigem precisão.
   
   @aws-sdk/client-s3: 
     Para armazenar os dados em nuvem no sistema S3 da AWS.
