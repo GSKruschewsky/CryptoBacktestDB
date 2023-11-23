@@ -316,5 +316,121 @@
         [ "type", "last_match" ]
       ]
     }
+  },
+  "okx-spot": {
+    "separator": "-",
+    "is_market_upper": true,
+    "rest": {
+      "url": "https://www.okx.com",
+      "timeout": 15000,
+      "error": {
+        "key": "code",
+        "value_not": "0"
+      },
+      "endpoints": {
+        "available_pairs": {
+          "path": "/api/v5/public/instruments?instType=SPOT",
+          "response": {
+            "data_inside": "data",
+            "symbol": "instId",
+            "status_key": "state",
+            "status_active": "live"
+          }
+        },
+        "trades": {
+          "path": "/api/v5/market/history-trades?instId=<market>&limit=100",
+          "response": {
+            "data_inside": "data",
+            "trade_id_key": "tradeId",
+            "newer_first": true,
+            "timestamp": "ts",
+            "is_buy_key": "side",
+            "is_buy_value": "buy",
+            "price": "px",
+            "amount": "sz",
+            "pagination": {
+              "max_arr_size": 100,
+              "newer_first": true,
+              "to_add_url": "&type=1&before=<page_id>",
+              "page_id": "tradeId"
+            }
+          }
+        }
+      }
+    },
+    "ws": {
+      "url": "wss://ws.okx.com:8443/ws/v5/public",
+      "timeout": 15000,
+      "error": {
+        "key": "event",
+        "value": "error"
+      },
+      "auth": {
+        "nonce_to_eval": "Date.now() / 1e3",
+        "algo": "sha256",
+        "message": "<nonce>GET/users/self/verify",
+        "digest_to": "base64",
+        "sign_pass": true
+      },
+      "login": {
+        "request": "{\"op\":\"login\",\"args\":[{\"apiKey\":\"<api_key>\",\"passphrase\":\"<api_pass>\",\"timestamp\":\"<sign_nonce>\",\"sign\":\"<signature>\"}]}",
+        "response": {
+          "id_key": "event",
+          "id_value": "login",
+          "success_key": "code",
+          "success_value": "0"
+        }
+      },
+      "subcriptions": {
+        "orderbook": {
+          "request": "{\"op\":\"subscribe\",\"args\":[{\"channel\":\"books\",\"instId\":\"<market>\"}]}",
+          "response": {
+            "is_object": true,
+            "object_id_key": "event",
+            "object_id_value": "subscribe",
+            "id": "arg.channel",
+            "id_value": "books"
+          },
+          "snapshot": {
+            "channel_id": "snapshot",
+            "identifier_key": "action",
+            "identifier_value": "snapshot"
+          },
+          "update": {
+            "data_inside_arr": true,
+            "data_inside_arr_inside": "data",
+            "channel_id_key": "action",
+            "channel_id": "update",
+            "asks": "asks",
+            "bids": "bids",
+            "timestamp": "ts",
+            "pl": {
+              "price": "0",
+              "amount": "1"
+            }
+          }
+        },
+        "trades": {
+          "request": "{\"op\":\"subscribe\",\"args\":[{\"channel\":\"trades\",\"instId\":\"<market>\"}]}",
+          "response": {
+            "is_object": true,
+            "object_id_key": "event",
+            "object_id_value": "subscribe",
+            "id": "arg.channel",
+            "id_value": "trades"
+          },
+          "update": {
+            "data_inside": "data",
+            "channel_id_key": "arg.channel",
+            "channel_id": "trades",
+            "timestamp": "ts",
+            "is_buy_key": "side",
+            "is_buy_value": "buy",
+            "price": "px",
+            "amount": "sz"
+          }
+        }
+      }
+    }
   }
 }

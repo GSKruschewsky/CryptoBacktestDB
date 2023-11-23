@@ -25,7 +25,7 @@ if (args.length !== 3) {
 // [ ] lmax_digital-spot
 
 // [*] binance-spot
-// [ ] okx-spot
+// [*] okx-spot
 // [ ] htx-spot (huobi)
 // [ ] mexc-spot
 // [ ] bybit-spot
@@ -327,34 +327,45 @@ function connect () {
       ws.ping();
     }, (exc.ws.timeout || 5000));
 
-    // Envia pedido de subscriçao de oerderbook.
-    let orderbook_sub_req = exc.ws.subcriptions.orderbook.request
-    .replace('<market>', market.ws)
-    .replace('<ws_req_id>', ++ws_req_nonce);
-
-    // Autentica requisição de subscrição do orderbook se necessario.
-    if (exc.ws.subcriptions.orderbook.require_auth) {
+    if (exc.ws.login != undefined) {
+      // Sends login request.
       const { signature, sign_nonce } = authenticate();
-      
-      orderbook_sub_req = orderbook_sub_req
-      .replace('<api_key>', api.key)
-      .replace('<api_pass>', api.pass)
-      .replace('<sign_nonce>', sign_nonce)
-      .replace('<signature>', signature);
+      ws.send(
+        exc.ws.login.request
+        .replace('<api_key>', api.key)
+        .replace('<api_pass>', api.pass)
+        .replace('<sign_nonce>', sign_nonce)
+        .replace('<signature>', signature)
+      );
+
+    } else {
+      // Envia pedido de subscriçao de orderbook.
+      let orderbook_sub_req = exc.ws.subcriptions.orderbook.request
+      .replace('<market>', market.ws)
+      .replace('<ws_req_id>', ++ws_req_nonce);
+
+      // Autentica requisição de subscrição do orderbook se necessario.
+      if (exc.ws.subcriptions.orderbook.require_auth) {
+        const { signature, sign_nonce } = authenticate();
+        
+        orderbook_sub_req = orderbook_sub_req
+        .replace('<api_key>', api.key)
+        .replace('<api_pass>', api.pass)
+        .replace('<sign_nonce>', sign_nonce)
+        .replace('<signature>', signature);
+      }
+
+      ws.send(orderbook_sub_req);
+      info.orderbook.req_id = exc.ws.subcriptions.orderbook.response.id_value || ws_req_nonce;
+
+      // Envia pedido de subscrição de trades.
+      let trades_sub_req = exc.ws.subcriptions.trades.request
+      .replace('<market>', market.ws)
+      .replace('<ws_req_id>', ++ws_req_nonce);
+
+      ws.send(trades_sub_req);
+      info.trades.req_id = exc.ws.subcriptions.trades.response.id_value || ws_req_nonce;
     }
-
-    ws.send(orderbook_sub_req);
-    
-    info.orderbook.req_id = exc.ws.subcriptions.orderbook.response.id_value || ws_req_nonce;
-    
-    // Envia pedido de subscrição de trades.
-    let trades_sub_req = exc.ws.subcriptions.trades.request
-    .replace('<market>', market.ws)
-    .replace('<ws_req_id>', ++ws_req_nonce);
-
-    ws.send(trades_sub_req);
-    
-    info.trades.req_id = exc.ws.subcriptions.trades.response.id_value || ws_req_nonce;
   });
 
   // Finalmente, aqui processaremos os dados recebidos do servidor.
@@ -372,11 +383,66 @@ function connect () {
       return;
     }
 
+    // If 'login', check if its a login response.
+    if (exc.ws.login != undefined && 
+    msg[exc.ws.login.response.id_key] != undefined && 
+    (exc.ws.login.response.id_value == null || msg[exc.ws.login.response.id_key] == exc.ws.login.response.id_value)) {
+      if (exc.ws.login.response.success_key == undefined || (
+        msg[exc.ws.login.response.success_key] != undefined && (
+          exc.ws.login.response.success_value == undefined || 
+          msg[exc.ws.login.response.success_key] == exc.ws.login.response.success_value
+        )
+      )) {
+        console.log('[!] Logado com sucesso.');
+
+        // Envia pedido de subscriçao de orderbook.
+        let orderbook_sub_req = exc.ws.subcriptions.orderbook.request
+        .replace('<market>', market.ws)
+        .replace('<ws_req_id>', ++ws_req_nonce);
+
+        // Autentica requisição de subscrição do orderbook se necessario.
+        if (exc.ws.subcriptions.orderbook.require_auth) {
+          const { signature, sign_nonce } = authenticate();
+          
+          orderbook_sub_req = orderbook_sub_req
+          .replace('<api_key>', api.key)
+          .replace('<api_pass>', api.pass)
+          .replace('<sign_nonce>', sign_nonce)
+          .replace('<signature>', signature);
+        }
+
+        ws.send(orderbook_sub_req);
+        info.orderbook.req_id = exc.ws.subcriptions.orderbook.response.id_value || ws_req_nonce;
+
+        // Envia pedido de subscrição de trades.
+        let trades_sub_req = exc.ws.subcriptions.trades.request
+        .replace('<market>', market.ws)
+        .replace('<ws_req_id>', ++ws_req_nonce);
+
+        ws.send(trades_sub_req);
+        info.trades.req_id = exc.ws.subcriptions.trades.response.id_value || ws_req_nonce;
+
+      } else {
+        console.log('[E] Falha ao fazer login:',msg);
+        if (_prom) 
+          _prom.reject({ endpoint: "ws-login", error: msg });
+        else 
+          ws.terminate();
+      }
+
+      return;
+    }
+
     // Handle 'trades' subscription response.
     if (!info.trades.is_subscribed) {
       let this_is_trades_subscription_response = false;
 
-      if (exc.ws.subcriptions.trades.response.acum_list) {
+      if (exc.ws.subcriptions.trades.response.is_object) {
+        if (msg[exc.ws.subcriptions.trades.response.object_id_key] == exc.ws.subcriptions.trades.response.object_id_value &&
+        exc.ws.subcriptions.trades.response.id.split('.').reduce((f, k) => f = f?.[k], msg) == info.trades.req_id)
+          this_is_trades_subscription_response = true;
+
+      } else if (exc.ws.subcriptions.trades.response.acum_list) {
         if (msg[exc.ws.subcriptions.trades.response.list_id_key] == exc.ws.subcriptions.trades.response.list_id_value &&
         (msg[exc.ws.subcriptions.trades.response.list_inside] || msg).some(
           x => x[exc.ws.subcriptions.trades.response.id] == exc.ws.subcriptions.trades.response.id_value
@@ -408,7 +474,12 @@ function connect () {
     if (!info.orderbook.is_subscribed) {
       let this_is_orderbook_subscription_response = false;
 
-      if (exc.ws.subcriptions.orderbook.response.acum_list) {
+      if (exc.ws.subcriptions.orderbook.response.is_object) {
+        if (msg[exc.ws.subcriptions.orderbook.response.object_id_key] == exc.ws.subcriptions.orderbook.response.object_id_value &&
+        exc.ws.subcriptions.orderbook.response.id.split('.').reduce((f, k) => f = f?.[k], msg) == info.orderbook.req_id)
+          this_is_orderbook_subscription_response = true;
+
+      } else if (exc.ws.subcriptions.orderbook.response.acum_list) {
         if (msg[exc.ws.subcriptions.orderbook.response.list_id_key] == exc.ws.subcriptions.orderbook.response.list_id_value &&
         (msg[exc.ws.subcriptions.orderbook.response.list_inside] || msg).some(
           x => x[exc.ws.subcriptions.orderbook.response.id] == exc.ws.subcriptions.orderbook.response.id_value
@@ -446,7 +517,7 @@ function connect () {
       else
         _channel_id = msg.slice(exc.ws.subcriptions.orderbook.update.channel_id_key)[0]
     } else {
-      _channel_id = msg[exc.ws.subcriptions.orderbook.update.channel_id_key];
+      _channel_id = exc.ws.subcriptions.orderbook.update.channel_id_key.split('.').reduce((f, k) => f = f?.[k], msg);
     }
     if (info.orderbook.channel_id && (
       _channel_id == info.orderbook.channel_id || 
@@ -457,6 +528,22 @@ function connect () {
         msg
         .slice(...exc.ws.subcriptions.orderbook.update.data_inside.split(','))
         .forEach(x => handle_orderbook_msg(format_orderbook_msg(x), info, _prom));
+        return;
+
+      } else if (exc.ws.subcriptions.orderbook.update.data_inside_arr && 
+      exc.ws.subcriptions.orderbook.update.data_inside_arr_inside) {
+        let _base_upd = Object.keys(msg)
+        .reduce((s, k) => {
+          if (k != exc.ws.subcriptions.orderbook.update.data_inside_arr_inside)
+            s[k] = msg[k];
+          return s;
+        }, {});
+        
+        msg[exc.ws.subcriptions.orderbook.update.data_inside_arr_inside]
+        .forEach(upd => {
+          handle_orderbook_msg(format_orderbook_msg({ ..._base_upd, ...upd }), info, _prom);
+        });
+
         return;
       }
 
@@ -475,7 +562,7 @@ function connect () {
       else
         _channel_id = msg.slice(exc.ws.subcriptions.trades.update.channel_id_key)[0]
     } else {
-      _channel_id = msg[exc.ws.subcriptions.trades.update.channel_id_key];
+      _channel_id = exc.ws.subcriptions.trades.update.channel_id_key.split('.').reduce((f, k) => f = f?.[k], msg);
     }
     if (info.trades.channel_id && _channel_id == info.trades.channel_id) 
       return handle_trades_msg(
@@ -571,11 +658,11 @@ async function syncronizer () {
           let really_an_error = false;
           
           if (exc.rest.error.is_array) {
-            if (r[exc.rest.error.key].length > 0)
-              really_an_error = true;
+            really_an_error = (r[exc.rest.error.key].length > 0);
+          } else if (exc.rest.error.value_not != undefined) {
+            really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
           } else {
-            if (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value)
-              really_an_error = true;
+            really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
           }
 
           if (really_an_error) throw { endpoint: 'available_pairs', error: r };
@@ -637,11 +724,11 @@ async function syncronizer () {
         let really_an_error = false;
         
         if (exc.rest.error.is_array) {
-          if (r[exc.rest.error.key].length > 0)
-            really_an_error = true;
+          really_an_error = (r[exc.rest.error.key].length > 0);
+        } else if (exc.rest.error.value_not != undefined) {
+          really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
         } else {
-          if (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value)
-            really_an_error = true;
+          really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
         }
 
         if (really_an_error) throw { endpoint: 'available_pairs', error: r };
@@ -670,11 +757,11 @@ async function syncronizer () {
           let really_an_error = false;
           
           if (exc.rest.error.is_array) {
-            if (r[exc.rest.error.key].length > 0)
-              really_an_error = true;
+            really_an_error = (r[exc.rest.error.key].length > 0);
+          } else if (exc.rest.error.value_not != undefined) {
+            really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
           } else {
-            if (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value)
-              really_an_error = true;
+            really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
           }
 
           if (really_an_error) throw { endpoint: 'available_pairs', error: r };
@@ -751,11 +838,11 @@ async function syncronizer () {
                 let really_an_error = false;
                 
                 if (exc.rest.error.is_array) {
-                  if (r[exc.rest.error.key].length > 0)
-                    really_an_error = true;
+                  really_an_error = (r[exc.rest.error.key].length > 0);
+                } else if (exc.rest.error.value_not != undefined) {
+                  really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
                 } else {
-                  if (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value)
-                    really_an_error = true;
+                  really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
                 }
         
                 if (really_an_error) throw { endpoint: 'trades (at pagination)', error: r };
@@ -834,11 +921,11 @@ async function syncronizer () {
                 let really_an_error = false;
                 
                 if (exc.rest.error.is_array) {
-                  if (r[exc.rest.error.key].length > 0)
-                    really_an_error = true;
+                  really_an_error = (r[exc.rest.error.key].length > 0);
+                } else if (exc.rest.error.value_not != undefined) {
+                  really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
                 } else {
-                  if (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value)
-                    really_an_error = true;
+                  really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
                 }
         
                 if (really_an_error) throw { endpoint: 'trades (at pagination)', error: r };
