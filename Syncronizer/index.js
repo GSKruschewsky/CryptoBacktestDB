@@ -6,20 +6,25 @@ import exchanges from './Exchanges/index.js';
 import dotenv from "dotenv";
 dotenv.config();
 
-const args = process.argv.slice(2); // Get command-line arguments, starting from index 2
-if (args.length !== 3) {
-  console.log("Usage: npm sync <exchange> <base> <quote>");
+let args = process.argv.slice(2); // Get command-line arguments, starting from index 2
+
+// Set the default 'delay_time_in_seconds' to 3.
+if (args.length === 3) args.push(3);
+
+if (args.length !== 4) {
+  console.log("Usage: npm sync <exchange> <base> <quote> <delay_time_in_seconds>(optional, default= 3)");
   process.exit(1);
 }
 
 // Melhorias para fazer:
-// [ ] Remove 'custom_id' and 'trade_id' from trades array when posting every second.
-// [ ] If receive an 'orderbook update' with 'timestamp' < '(now - 1s)' save it in 'orderbook_to_post', instead of every second create a copy of the current 'orderbook' to 'orderbook_to_post'.
+// [*] Remove 'custom_id' and 'trade_id' from trades array when posting every second.
+// [*] Fix the delayed version of 'orderbook'.
+// [*] Let the user set how much delayed post data should be. (Set default to 3 seconds)
 
 // Exchanges to add:
 // [*] kraken-spot
 // [*] coinbase-spot
-// [ ] gemini-spot
+// [*] gemini-spot
 // [ ] bitstamp-spot
 // [ ] lmax_digital-spot
 
@@ -32,11 +37,15 @@ if (args.length !== 3) {
 let exchange = args[0];
 let base = args[1];
 let quote = args[2];
+const delay_time_in_seconds = args[3];
 
 let markets = null;
 
 let orderbook = null;
 let orderbook_upd_cache = [];
+
+let orderbooks = [];
+let delayed_orderbook = null; // Will store the delayed and simplified version of orderbook.
 
 let trades = null;
 let trades_upd_cache = [];
@@ -46,6 +55,7 @@ let api = {};
 let market = {};
 let ws_req_nonce = 0;
 let authenticate = null;
+
 
 function apply_orderbook_upd (upd) {
   // console.log('Book upd:',upd);
@@ -62,6 +72,16 @@ function apply_orderbook_upd (upd) {
       if (upd.first_update_nonce > orderbook.last_update_nonce + 1)
         return;
     }
+  }
+  
+  if (delayed_orderbook === null || Math.floor(orderbook.timestamp / 1e3) != Math.floor(upd.timestamp / 1e3)) {
+    let save_it = (delayed_orderbook != null);
+    delayed_orderbook = {
+      asks: Object.entries(orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 25),
+      bids: Object.entries(orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 25),
+      timestamp: orderbook.timestamp
+    };
+    if (save_it) orderbooks.unshift(delayed_orderbook);
   }
   
   // Apply updates.
@@ -1080,7 +1100,6 @@ async function syncronizer () {
 // export default syncronizer;
 
 // Debugging 'syncronizer'.
-let _orderbook = null; // Will sotre a simplified version of orderbook.
 syncronizer()
 .then(() => {
   // console.log('orderbook:',orderbook);
@@ -1090,37 +1109,58 @@ syncronizer()
     // Set time variables.
     const timestamp = Date.now();
     const second = Math.floor(timestamp / 1e3);
-    const data_time = second - 1;
+    const data_time = second - delay_time_in_seconds;
 
     // Call 'everySecond' again at each new second.
     setTimeout(everySecond, (second + 1) * 1e3 - timestamp);
   
     // Trades that ocurred in the last second.
-    const _trades = trades.filter(t => 
+    const trades_to_post = trades
+    .filter(t => 
       t.timestamp >= (data_time - 1) * 1e3 &&
       t.timestamp < data_time * 1e3
-    );
+    )
+    .map(t => {
+      delete t.trade_id;
+      delete t.custom_id;
+      return t;
+    });
+
+    // If did not received a new orderbook update do not wait until a new update comes in to update 'delayed_orderbook'.
+    if (orderbook.timestamp < (second - 1) * 1e3 && delayed_orderbook.timestamp != orderbook.timestamp) {
+      delayed_orderbook = {
+        asks: Object.entries(orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 25),
+        bids: Object.entries(orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 25),
+        timestamp: orderbook.timestamp
+      };
+      orderbooks.unshift(delayed_orderbook);
+    }
+
+    const orderbook_to_post = orderbooks.find(ob => ob.timestamp < data_time * 1e3);
   
     // Log everything. (Just for debuging...)
-    if (_orderbook != null) 
+    if (orderbook_to_post != null) 
       console.log({
-        asks: _orderbook.asks.slice(0, 5),
-        bids: _orderbook.bids.slice(0, 5),
-        book_timestamp: _orderbook.timestamp,
-        trades: _trades,
+        asks: orderbook_to_post.asks.slice(0, 5),
+        bids: orderbook_to_post.bids.slice(0, 5),
+        book_timestamp: orderbook_to_post.timestamp,
+        trades: trades_to_post,
         second: data_time,
         timestamp
       });
   
-    // A simpliflied version of orderbook, w/ 25 depth.
-    _orderbook = {
-      asks: Object.entries(orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 25),
-      bids: Object.entries(orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 25),
-      timestamp: orderbook.timestamp
-    };
+    // // A simpliflied version of orderbook, w/ 25 depth.
+    // _orderbook = {
+    //   asks: Object.entries(orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 25),
+    //   bids: Object.entries(orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 25),
+    //   timestamp: orderbook.timestamp
+    // };
   
-    // Remove anything older then 3 seconds from 'trades'.
-    trades = trades.filter(t => t.timestamp > (second - 3) * 1e3);
+    // Remove anything older then ('delay_time_in_seconds' + 2) seconds from 'trades'.
+    trades = trades.filter(t => t.timestamp > (second - (delay_time_in_seconds + 2)) * 1e3);
+    
+    // Remove anything older then ('delay_time_in_seconds' + 2) seconds from 'orderbooks'.
+    orderbooks = orderbooks.filter(ob => ob.timestamp > (second - (delay_time_in_seconds + 2)) * 1e3);
   };
   setTimeout(everySecond, 1e3 - Date.now() % 1e3);
 })
