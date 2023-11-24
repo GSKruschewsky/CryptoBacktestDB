@@ -1,0 +1,117 @@
+{
+  "separator": "-",
+  "is_market_upper": true,
+  "timestamp_ISO_format": true,
+  "rest": {
+    "url": "https://api.exchange.coinbase.com",
+    "timeout": 15000,
+    "is_market_upper": true,
+    "error": {
+      "key": "message"
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/products",
+        "response": {
+          "symbol": "id",
+          "status_key": "status",
+          "status_active": "online"
+        }
+      },
+      "trades": {
+        "path": "/products/<market>/trades",
+        "response": {
+          "trade_id_key": "trade_id",
+          "newer_first": true,
+          "timestamp": "time",
+          "is_buy_key": "side",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "size",
+          "pagination": {
+            "newer_first": true,
+            "to_add_url": "?after=<page_id>",
+            "page_id": "trade_id"
+          }
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://ws-feed.exchange.coinbase.com",
+    "timeout": 15000,
+    "error": {
+      "key": "type",
+      "value": "error"
+    },
+    "auth": {
+      "nonce_to_eval": "Date.now() / 1e3",
+      "algo": "sha256",
+      "secret_buffer_from": "base64",
+      "message": "<nonce>GET/users/self/verify",
+      "digest_to": "base64",
+      "sign_pass": true
+    },
+    "subcriptions": {
+      "orderbook": {
+        "request": "{\"type\":\"subscribe\",\"product_ids\":[\"<market>\"],\"channels\":[\"level2\"],\"signature\":\"<signature>\",\"key\":\"<api_key>\",\"passphrase\":\"<api_pass>\",\"timestamp\":\"<sign_nonce>\"}",
+        "require_auth": true,
+        "response": {
+          "acum_list": true,
+          "list_id_key": "type",
+          "list_id_value": "subscriptions",
+          "list_inside": "channels",
+          "id": "name",
+          "id_value": "level2"
+        },
+        "snapshot": {
+          "channel_id": "snapshot",
+          "identifier_key": "type",
+          "identifier_value": "snapshot",
+          "asks": "asks",
+          "bids": "bids",
+          "pl": {
+            "price": "0",
+            "amount": "1"
+          }
+        },
+        "update": {
+          "updates_inside": "changes",
+          "channel_id_key": "type",
+          "channel_id": "l2update",
+          "asks_and_bids_together": true,
+          "timestamp": "time",
+          "pl": {
+            "price": "1",
+            "amount": "2",
+            "is_bids_key": "0",
+            "is_bids_value": "buy"
+          }
+        }
+      },
+      "trades": {
+        "request": "{\"type\":\"subscribe\",\"product_ids\":[\"<market>\"],\"channels\":[\"matches\"]}",
+        "response": {
+          "acum_list": true,
+          "list_inside": "channels",
+          "id": "name",
+          "id_value": "matches"
+        },
+        "update": {
+          "trade_id_key": "trade_id",
+          "receive_separately_trades_as_obj": true,
+          "channel_id_key": "type",
+          "channel_id": "match",
+          "timestamp": "time",
+          "is_buy_key": "side",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "size"
+        }
+      }
+    },
+    "msgs_to_ignore": [
+      [ "type", "last_match" ]
+    ]
+  }
+}

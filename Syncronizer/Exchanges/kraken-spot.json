@@ -1,0 +1,102 @@
+{
+  "is_market_upper": true,
+  "timestamp_in_seconds": true,
+  "trades_custom_id": true,
+  "rest": {
+    "url": "https://api.kraken.com",
+    "timeout": 15000,
+    "separator": "",
+    "error": {
+      "key": "error",
+      "is_array": true
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/0/public/AssetPairs",
+        "response": {
+          "data_inside": "result",
+          "symbol": "altname",
+          "status_key": "status",
+          "status_active": "online"
+        }
+      },
+      "trades": {
+        "path": "/0/public/Trades?pair=<market>&count=1000&since=<since>",
+        "response": {
+          "newer_first": false,
+          "data_inside": "result",
+          "get_first_value": true,
+          "timestamp": "2",
+          "is_buy_key": "3",
+          "is_buy_value": "b",
+          "price": "0",
+          "amount": "1",
+          "trade_id_key": "6",
+          "pagination": {
+            "check_for_newer": true,
+            "max_arr_size": 1000,
+            "newer_first": false,
+            "to_del_url": "<since>",
+            "to_add_url": "<page_id>",
+            "page_id": "2"
+          }
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://ws.kraken.com",
+    "timeout": 15000,
+    "separator": "/",
+    "error": {
+      "key": "event",
+      "value": "error"
+    },
+    "subcriptions": {
+      "orderbook": {
+        "request": "{\"event\":\"subscribe\",\"reqid\":<ws_req_id>,\"pair\":[\"<market>\"],\"subscription\":{\"name\":\"book\",\"depth\":1000}}",
+        "response": {
+          "id": "reqid",
+          "channel_id_key": "channelName"
+        },
+        "snapshot": {
+          "identifier_key": "bs",
+          "channel_id_key": 2,
+          "asks": "as",
+          "bids": "bs"
+        },
+        "update": {
+          "data_inside": "1,-2",
+          "channel_id_key": -2,
+          "asks": "a",
+          "bids": "b",
+          "pl": {
+            "price": 0,
+            "amount": 1,
+            "timestamp": 2
+          }
+        }
+      },
+      "trades": {
+        "request": "{\"event\":\"subscribe\",\"reqid\":<ws_req_id>,\"pair\":[\"<market>\"],\"subscription\":{\"name\":\"trade\"}}",
+        "response": {
+          "id": "reqid",
+          "channel_id_key": "channelName"
+        },
+        "update": {
+          "data_inside": 1,
+          "channel_id_key": 2,
+          "timestamp": 2,
+          "is_buy_key": 3,
+          "is_buy_value": "b",
+          "price": 0,
+          "amount": 1
+        }
+      }
+    },
+    "msgs_to_ignore": [
+      [ "status", "online" ],
+      [ "event", "heartbeat" ]
+    ]
+  }
+}

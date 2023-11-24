@@ -11,6 +11,9 @@ Output:
   Tais imagens devem ser convertidas em objetos JSON e armazenadas em nuvem no sistema S3 da AWS.
 
 Utilizaremos o seguintes modulos NPM:
+  ws:
+    Para estabelecer conexões através do WebSocket das exchanges.
+
   Syncornizer: 
     Para sincronização dos dados de diferentes mercados em difertentes corretoras.
 

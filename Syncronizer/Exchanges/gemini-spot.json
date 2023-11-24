@@ -1,0 +1,86 @@
+{
+  "separator": "",
+  "trades_custom_id": true,
+  "rest": {
+    "url": "https://api.gemini.com",
+    "timeout": 15000,
+    "is_market_upper": false,
+    "error": {
+      "key": "result",
+      "value": "error"
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/v1/symbols",
+        "response": {
+          
+        }
+      },
+      "trades": {
+        "path": "/v1/trades/<market>?limit_trades=500&timestamp=<since>",
+        "response": {
+          "trade_id_key": "tid",
+          "newer_first": true,
+          "timestamp": "timestampms",
+          "is_buy_key": "type",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "amount",
+          "pagination": {
+            "check_for_newer": true,
+            "max_arr_size": 500,
+            "to_del_url": "&timestamp=<since>",
+            "to_add_url": "&since_tid=<page_id>",
+            "page_id": "tid"
+          }
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://api.gemini.com/v1/marketdata/<market>",
+    "timeout": 15000,
+    "is_market_upper": true,
+    "error": {
+      "key": "result",
+      "value": "error"
+    },
+    "subcriptions": {
+      "orderbook": {
+        "snapshot": {
+          "identifier_key": "events.0.reason",
+          "identifier_value": "initial",
+          "asks_and_bids_together": true
+        },
+        "update": {
+          "channel_id_key": "events.0.type",
+          "channel_id": "change",
+          "updates_inside": "events",
+          "asks_and_bids_together": true,
+          "timestamp": "timestampms",
+          "pl": {
+            "price": "price",
+            "amount": "remaining",
+            "is_bids_key": "side",
+            "is_bids_value": "bid"
+          }
+        }
+      },
+      "trades": {
+        "update": {
+          "channel_id_key": "events.0.type",
+          "channel_id": "trade",
+          "trades_inside": "events",
+          "timestamp": "timestampms",
+          "is_buy_key": "makerSide",
+          "is_buy_value": "ask",
+          "price": "price",
+          "amount": "amount"
+        }
+      }
+    },
+    "msgs_to_ignore": [
+      [ "type", "heartbeat" ]
+    ]
+  }
+}
