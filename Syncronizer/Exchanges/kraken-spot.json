@@ -84,13 +84,13 @@
           "channel_id_key": "channelName"
         },
         "update": {
-          "data_inside": 1,
-          "channel_id_key": 2,
-          "timestamp": 2,
-          "is_buy_key": 3,
+          "data_inside": "1",
+          "channel_id_key": "2",
+          "timestamp": "2",
+          "is_buy_key": "3",
           "is_buy_value": "b",
-          "price": 0,
-          "amount": 1
+          "price": "0",
+          "amount": "1"
         }
       }
     },

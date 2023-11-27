@@ -1,0 +1,97 @@
+{
+  "separator": "",
+  "is_market_upper": false,
+  "rest": {
+    "url": "https://www.bitstamp.net/",
+    "timeout": 15000,
+    "error": {
+      "key": "response_code"
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/api/v2/trading-pairs-info/",
+        "response": {
+          "symbol": "url_symbol",
+          "status_key": "trading",
+          "status_active": "Enabled"
+        }
+      },
+      "orderbook": {
+        "path": "/api/v2/order_book/<market>/",
+        "response": {
+          "data_inside": "tick",
+          "timestamp_in_micro": true,
+          "asks": "asks",
+          "bids": "bids",
+          "timestamp": "microtimestamp",
+          "last_update_nonce": "microtimestamp"
+        }
+      },
+      "trades": {
+        "path": "/api/v2/transactions/<market>/?time=minute",
+        "response": {
+          "trade_id_key": "tid",
+          "newer_first": true,
+          "timestamp": "date",
+          "timestamp_in_seconds": "date",
+          "is_buy_key": "type",
+          "is_buy_value": "0",
+          "price": "price",
+          "amount": "amount"
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://ws.bitstamp.net",
+    "timeout": 15000,
+    "error": {
+      
+    },
+    "subcriptions": {
+      "orderbook": {
+        "request": "{\"event\":\"bts:subscribe\",\"data\":{\"channel\":\"diff_order_book_<market>\"}}",
+        "response": {
+          "id": "event",
+          "id_value": "bts:subscription_succeeded",
+          "channel_id_key": "channel",
+          "channel_id_val": "diff_order_book_<market>"
+        },
+        "update": {
+          "channel_id_key": "channel",
+          "data_inside": "data",
+          "asks": "asks",
+          "bids": "bids",
+          "pl": {
+            "price": "0",
+            "amount": "1"
+          },
+          "timestamp": "microtimestamp",
+          "timestamp_in_micro": true,
+          "last_upd_nonce_key": "microtimestamp"
+        }
+      },
+      "trades": {
+        "request": "{\"event\":\"bts:subscribe\",\"data\":{\"channel\":\"live_trades_<market>\"}}",
+        "response": {
+          "id": "event",
+          "id_value": "bts:subscription_succeeded",
+          "channel_id_key": "channel",
+          "channel_id_val": "live_trades_<market>"
+        },
+        "update": {
+          "channel_id_key": "channel",
+          "data_inside": "data",
+          "receive_separately_trades_as_obj": true,
+          "trade_id_key": "id",
+          "timestamp": "microtimestamp",
+          "timestamp_in_micro": true,
+          "is_buy_key": "type",
+          "is_buy_value": "0",
+          "price": "price_str",
+          "amount": "amount_str"
+        }
+      }
+    }
+  }
+}

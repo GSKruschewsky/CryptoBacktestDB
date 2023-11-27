@@ -33,7 +33,7 @@
         }
       },
       "orderbook": {
-        "path": "/market/depth?symbol=<market>&type=step0&depth=20",
+        "path": "/market/depth?symbol=<market>&type=step0",
         "response": {
           "data_inside": "tick",
           "asks": "asks",
@@ -55,7 +55,7 @@
     },
     "subcriptions": {
       "orderbook": {
-        "request": "{\"sub\":\"market.<market>.mbp.20\",\"id\":\"<ws_req_id>\"}",
+        "request": "{\"sub\":\"market.<market>.mbp.400\",\"id\":\"<ws_req_id>\"}",
         "response": {
           "id": "id",
           "channel_id_key": "subbed"
@@ -70,7 +70,8 @@
             "amount": "1"
           },
           "timestamp": "ts",
-          "last_upd_nonce_key": "version"
+          "prev_upd_nonce_key": "prevSeqNum",
+          "last_upd_nonce_key": "seqNum"
         }
       }
     },

@@ -8,6 +8,8 @@ dotenv.config();
 
 // Commonjs importing 
 import pkg from 'node-gzip';
+import { resolve } from 'path';
+import { rejects } from 'assert';
 const { ungzip } = pkg;
 
 let args = process.argv.slice(2); // Get command-line arguments, starting from index 2
@@ -24,12 +26,14 @@ if (args.length !== 4) {
 // [*] Remove 'custom_id' and 'trade_id' from trades array when posting every second.
 // [*] Fix the delayed version of 'orderbook'.
 // [*] Let the user set how much delayed post data should be. (Set default to 3 seconds)
+// [*] Better orderbook sync mechanism and better validation of orderbooks update.
+// [ ] Re-sync mechanism (for both orderbook and trades) in case of a disconnect from the server.
 
 // Exchanges to add:
 // [*] kraken-spot
 // [*] coinbase-spot
 // [*] gemini-spot
-// [ ] bitstamp-spot
+// [*] bitstamp-spot
 // [ ] lmax_digital-spot
 
 // [*] binance-spot
@@ -62,20 +66,31 @@ let ws_req_nonce = 0;
 let authenticate = null;
 
 
-function apply_orderbook_upd (upd) {
+function apply_orderbook_upd (upd, ws, cached = false) {
   // console.log('Book upd:',upd);
 
   // Validate updates.
-  if (upd.last_update_nonce && upd.last_update_nonce <= orderbook.last_update_nonce)
+  if (upd.last_update_nonce && upd.last_update_nonce <= orderbook.last_update_nonce) {
+    if (!cached) {
+      console.log('[E] apply_orderbook_upd: upd.last_update_nonce ('+upd.last_update_nonce+') <= orderbook.last_update_nonce ('+orderbook.last_update_nonce+').');
+      ws.terminate();
+    }
     return;
+  }
 
   if (upd.first_update_nonce) {
     if (orderbook.received_first_update) {
-      if (upd.first_update_nonce != orderbook.last_update_nonce + 1)
+      if (upd.first_update_nonce != orderbook.last_update_nonce + 1) {
+        console.log('[E] apply_orderbook_upd: upd.first_update_nonce ('+upd.first_update_nonce+') <= != orderbook.last_update_nonce + 1 ('+(orderbook.last_update_nonce + 1)+').');
+        ws.terminate();
         return;
+      }
     } else {
-      if (upd.first_update_nonce > orderbook.last_update_nonce + 1)
+      if (upd.first_update_nonce > orderbook.last_update_nonce + 1) {
+        console.log('[E] apply_orderbook_upd: upd.first_update_nonce ('+upd.first_update_nonce+') > orderbook.last_update_nonce + 1 ('+(orderbook.last_update_nonce + 1)+').');
+        ws.terminate();
         return;
+      }
     }
   }
   
@@ -106,7 +121,7 @@ function apply_orderbook_upd (upd) {
   orderbook.last_update_nonce = upd.last_update_nonce;
 }
 
-function handle_orderbook_msg (msg, _prom, _ws) {
+function handle_orderbook_msg (msg, _prom, _ws, ws) {
   // console.log('Book update:',msg);
 
   if (msg.is_snapshot) {
@@ -119,7 +134,7 @@ function handle_orderbook_msg (msg, _prom, _ws) {
 
     // Apply cached orderbook updates.
     while (orderbook_upd_cache.length > 0) {
-      apply_orderbook_upd(orderbook_upd_cache[0]);
+      apply_orderbook_upd(orderbook_upd_cache[0], ws, true);
       orderbook_upd_cache.shift();
     }
 
@@ -132,10 +147,23 @@ function handle_orderbook_msg (msg, _prom, _ws) {
     }
 
   } else {
-    if (orderbook == null || orderbook_upd_cache.length > 0) {
+    if (orderbook == null) {
+      // Just cache update.
       orderbook_upd_cache.push(msg);
+
+    } else if (orderbook_upd_cache.length > 0) {
+      // Apply all cached orderbook updates.
+      while (orderbook_upd_cache.length > 0) {
+        apply_orderbook_upd(orderbook_upd_cache[0], ws, true);
+        orderbook_upd_cache.shift();
+      }
+
+      // Then apply update.
+      apply_orderbook_upd(msg, ws);
+
     } else {
-      apply_orderbook_upd(msg);
+      // Just apply update.
+      apply_orderbook_upd(msg, ws);
     }
   }
 }
@@ -220,6 +248,8 @@ function format_orderbook_msg (msg, _ws) {
       formatted.timestamp = new Date(formatted.timestamp).getTime();
     else if (exc.timestamp_in_seconds) 
       formatted.timestamp *= 1e3;
+    else if (exc.timestamp_in_micro || _orderbook.update.timestamp_in_micro)
+      formatted.timestamp /= 1e3;
 
   } else if (_orderbook.snapshot?.pl?.timestamp || _orderbook.update.pl?.timestamp) {
     let timestamp_asks = (updates[(is_snapshot && _orderbook.snapshot?.asks) || _orderbook.update.asks] || [])
@@ -242,6 +272,8 @@ function format_orderbook_msg (msg, _ws) {
       formatted.timestamp = new Date(formatted.timestamp).getTime();
     else if (exc.timestamp_in_seconds) 
       formatted.timestamp *= 1e3;
+    else if (exc.timestamp_in_micro || _orderbook.update.timestamp_in_micro)
+      formatted.timestamp /= 1e3;
   }
 
   // Set first and last update_nonces if required.
@@ -254,6 +286,7 @@ function format_orderbook_msg (msg, _ws) {
     formatted.last_update_nonce = (msg[_orderbook.update.last_upd_nonce_key] || updates[_orderbook.update.last_upd_nonce_key]);
 
   // Retorna a mensagem formatada.
+  // console.log('Formatted orderbook msg:',formatted);
   return formatted;
 }
 
@@ -279,10 +312,12 @@ function format_trades_msg (msg, _ws) {
   return (msg?.[_ws.subcriptions.trades.update.trades_inside] || msg).map(t => {
     let timestamp = (t[_ws.subcriptions.trades.update.timestamp] || msg[_ws.subcriptions.trades.update.timestamp]);
   
-    if (exc.timestamp_in_seconds)
+    if (exc.timestamp_in_seconds || _ws.subcriptions.trades.update.timestamp_in_seconds)
       timestamp *= 1e3;
-    else if (exc.timestamp_ISO_format)
+    else if (exc.timestamp_ISO_format || _ws.subcriptions.trades.update.timestamp_ISO_format)
       timestamp = new Date(timestamp).getTime();
+    else if (exc.timestamp_in_micro || _ws.subcriptions.trades.update.timestamp_in_micro)
+      timestamp /= 1e3;
     
     let obj = {
       timestamp,
@@ -529,7 +564,9 @@ function connect (_ws) {
       if (this_is_trades_subscription_response) {
         info.trades.is_subscribed = true;
     
-        if (_ws.subcriptions.trades?.response?.channel_id_key)
+        if (_ws.subcriptions.trades?.response?.channel_id_key && 
+        (_ws.subcriptions.trades.response.channel_id_val == undefined ||
+        msg[_ws.subcriptions.trades.response.channel_id_key] == _ws.subcriptions.trades.response.channel_id_val.replace('<market>', market.ws)))
           info.trades.channel_id = msg[_ws.subcriptions.trades.response.channel_id_key];
         else if (_ws.subcriptions.trades.update.channel_id)
           info.trades.channel_id = _ws.subcriptions.trades.update.channel_id.replace('<market>', market.ws);
@@ -574,7 +611,9 @@ function connect (_ws) {
         if (_ws.not_handle_trades !== true && _ws.subcriptions.orderbook.response.include_trades) {
           info.trades.is_subscribed = true;
       
-          if (_ws.subcriptions.trades?.response?.channel_id_key)
+          if (_ws.subcriptions.trades?.response?.channel_id_key && 
+          (_ws.subcriptions.trades.response.channel_id_val == undefined ||
+          msg[_ws.subcriptions.trades.response.channel_id_key] == _ws.subcriptions.trades.response.channel_id_val.replace('<market>', market.ws)))
             info.trades.channel_id = msg[_ws.subcriptions.trades.response.channel_id_key];
           else if (_ws.subcriptions.trades.update.channel_id)
             info.trades.channel_id = _ws.subcriptions.trades.update.channel_id.replace('<market>', market.ws);
@@ -588,7 +627,9 @@ function connect (_ws) {
           console.log('[!] Successfully subscribed to trades updates.');
         }
 
-        if (_ws.subcriptions.orderbook.response.channel_id_key)
+        if (_ws.subcriptions.orderbook.response.channel_id_key &&
+        (_ws.subcriptions.orderbook.response.channel_id_val == undefined ||
+        msg[_ws.subcriptions.orderbook.response.channel_id_key] == _ws.subcriptions.orderbook.response.channel_id_val.replace('<market>', market.ws)))
           info.orderbook.channel_id = msg[_ws.subcriptions.orderbook.response.channel_id_key];
         else if (_ws.subcriptions.orderbook.update.channel_id)
           info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id.replace('<market>', market.ws);
@@ -629,7 +670,7 @@ function connect (_ws) {
         if (_ws.subcriptions.orderbook.update.data_inside?.includes(',')) {
           msg
           .slice(..._ws.subcriptions.orderbook.update.data_inside.split(','))
-          .forEach(x => handle_orderbook_msg(format_orderbook_msg(x, _ws), _prom, _ws));
+          .forEach(x => handle_orderbook_msg(format_orderbook_msg(x, _ws), _prom, _ws, ws));
           return;
   
         } else if (_ws.subcriptions.orderbook.update.data_inside_arr && 
@@ -643,14 +684,14 @@ function connect (_ws) {
           
           msg[_ws.subcriptions.orderbook.update.data_inside_arr_inside]
           .forEach(upd => {
-            handle_orderbook_msg(format_orderbook_msg({ ..._base_upd, ...upd }, _ws), _prom, _ws);
+            handle_orderbook_msg(format_orderbook_msg({ ..._base_upd, ...upd }, _ws), _prom, _ws, ws);
           });
   
           return;
         }
   
         return handle_orderbook_msg(
-          format_orderbook_msg(msg?.[_ws.subcriptions.orderbook.update.data_inside] || msg, _ws),
+          format_orderbook_msg(msg?.[_ws.subcriptions.orderbook.update.data_inside] || msg, _ws, ws),
           _prom, 
           _ws
         );
@@ -845,52 +886,16 @@ async function syncronizer () {
 
   // 'since' represents the start of the second that we are syncing.
   let since = Math.floor(Date.now() / 1e3);
-  if (!exc.timestamp_in_seconds) since *= 1e3; 
+  if (!exc.timestamp_in_seconds) since *= 1e3;
 
-  // Set promise to get initial trades snapshot.
-  let _proms = [
-    fetch(
-      (exc.rest.url + exc.rest.endpoints.trades.path)
-      .replace('<market>', market.rest)
-      .replace('<since>', since)
-    )
-    .then(r => r.json())
-    .then(r => {
-      if (r?.[exc.rest.error.key] != undefined) {
-        let really_an_error = false;
-        
-        if (exc.rest.error.is_array) {
-          really_an_error = (r[exc.rest.error.key].length > 0);
-        } else if (exc.rest.error.value_not != undefined) {
-          really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
-        } else {
-          really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
-        }
-
-        if (really_an_error) throw { endpoint: 'available_pairs', error: r };
-      }
-        
-      // console.log('init_trades response:',r);
-      if (exc.rest.endpoints.trades.response.get_first_value)
-        r = Object.values(r)[0];
-      else
-        r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
-
-      if (exc.rest.endpoints.trades.response.foreach_concat_inside != undefined) {
-        const ck = exc.rest.endpoints.trades.response.foreach_concat_inside; // concat key
-        r = r.reduce((s, v) => [ ...s, ...v[ck]], []);
-      }
-
-      init_trades = r;
-    })
-  ];
-
-  // Set promise to get initial orderbook snapshot. (If required)
-  if (exc.rest.endpoints.orderbook)
-    _proms.push(
+  // Tenta fazer a requisição incial de trades com um TIMEOUT.
+  try {
+    await Promise.race([
+      new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000), "TIMEOUT.")),
       fetch(
-        (exc.rest.url + exc.rest.endpoints.orderbook.path)
+        (exc.rest.url + exc.rest.endpoints.trades.path)
         .replace('<market>', market.rest)
+        .replace('<since>', since)
       )
       .then(r => r.json())
       .then(r => {
@@ -904,34 +909,43 @@ async function syncronizer () {
           } else {
             really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
           }
-
+  
           if (really_an_error) throw { endpoint: 'available_pairs', error: r };
         }
-
-        r = (r?.[exc.rest.endpoints.orderbook.response.data_inside] || r);
-
-        init_orderbook = r;
+          
+        // console.log('init_trades response:',r);
+        if (exc.rest.endpoints.trades.response.get_first_value)
+          r = Object.values(r)[0];
+        else
+          r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
+  
+        if (exc.rest.endpoints.trades.response.foreach_concat_inside != undefined) {
+          const ck = exc.rest.endpoints.trades.response.foreach_concat_inside; // concat key
+          r = r.reduce((s, v) => [ ...s, ...v[ck]], []);
+        }
+  
+        init_trades = r;
       })
-    );
-
-  // Tenta fazer as requisições definidas acima com um TIMEOUT.
-  try {
-    await Promise.race([
-      new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000), "TIMEOUT.")),
-      Promise.all(_proms)
     ]);
   } catch (err) {
-    console.log('[E] Initial snapshot request(s):',err);
-    throw 'Initial snapshot request(s) failed.'
+    console.log('[E] Initial trades snapshot request:',err);
+    throw 'Initial trades snapshot request failed.'
   }
-
-  // console.log('init_trades:',init_trades);
   
   // Set trades from initial snapshot.
   trades = (exc.rest.endpoints.trades.response.newer_first ? init_trades.reverse() : init_trades)
   .map(t => {
+    let timestamp = t[exc.rest.endpoints.trades.response.timestamp];
+
+    if (exc.timestamp_ISO_format || exc.rest.endpoints.trades.response.timestamp_ISO_format)
+      timestamp = new Date(timestamp).getTime();
+    else if (exc.timestamp_in_seconds || exc.rest.endpoints.trades.response.timestamp_in_seconds)
+      timestamp *= 1e3;
+    else if (exc.timestamp_in_micro || exc.rest.endpoints.trades.response.timestamp_in_micro)
+      timestamp /= 1e3;
+
     let obj = {
-      timestamp: exc.timestamp_ISO_format ? new Date(t[exc.rest.endpoints.trades.response.timestamp]).getTime() : t[exc.rest.endpoints.trades.response.timestamp],
+      timestamp,
       is_buy: (t[exc.rest.endpoints.trades.response.is_buy_key] == exc.rest.endpoints.trades.response.is_buy_value),
       price: t[exc.rest.endpoints.trades.response.price],
       amount: t[exc.rest.endpoints.trades.response.amount]
@@ -1125,11 +1139,11 @@ async function syncronizer () {
     }
   }
 
-  // Evita trades repetidos.
+  // Evita trades repetidos, removendo os trades obtidos na requisição acima dos trades em cache.
   let _t_ws = exc.ws2 != undefined && exc.ws2.subcriptions.trades ? exc.ws2 : exc.ws;
   trades_upd_cache = trades_upd_cache.filter(t => { 
     if (_t_ws.subcriptions.trades.update.id_should_be_higher)
-      return t.trade_id > trades[trades.length-1].trade_id;
+      return trades.length == 0 || t.trade_id > trades[trades.length-1].trade_id;
 
     const _key = _t_ws.subcriptions.trades.update.trade_id_key != undefined ? 'trade_id' : 'custom_id';
     return trades.every(rt => rt[_key] != t[_key]);
@@ -1140,27 +1154,81 @@ async function syncronizer () {
 
   // Apply cached trades updates.
   if (trades_upd_cache.length > 0) {
-    trades = [ // Newer at the end here. 
+    trades = [
       ...(exc.rest.endpoints.trades.response.newer_first ? trades.reverse() : trades), 
       ...trades_upd_cache
     ];
     trades_upd_cache = [];
   }
+  console.log('[!] Trades synced.');
+
+  // Tenta fazer requisição inicial do orderbook, se necessario.
+  if (exc.rest.endpoints.orderbook) {
+    let _rest_update_last_nonce_key = exc.rest.endpoints.orderbook.response.last_update_nonce;
+    let _ws_update_last_nonce_key = (exc.ws.subcriptions?.orderbook?.update?.last_upd_nonce_key || exc.ws2.subcriptions?.orderbook?.update?.last_upd_nonce_key);
+    do {
+      // console.log('first cached ob update nonce:',(orderbook_upd_cache[0]?.last_update_nonce));
+      // console.log('initial ob nonce:',init_orderbook?.[_rest_update_last_nonce_key],'\n');
+
+      try {
+        init_orderbook = await Promise.race([
+          new Promise((resolve, reject) => setTimeout(reject, exc.rest.timeout, "TIMEDOUT.")),
+          fetch(
+            (exc.rest.url + exc.rest.endpoints.orderbook.path)
+            .replace('<market>', market.rest)
+          )
+          .then(r => r.json())
+          .then(r => {
+            if (r?.[exc.rest.error.key] != undefined) {
+              let really_an_error = false;
+              
+              if (exc.rest.error.is_array) {
+                really_an_error = (r[exc.rest.error.key].length > 0);
+              } else if (exc.rest.error.value_not != undefined) {
+                really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
+              } else {
+                really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
+              }
+    
+              if (really_an_error) throw { endpoint: 'available_pairs', error: r };
+            }
+    
+            r = (r?.[exc.rest.endpoints.orderbook.response.data_inside] || r);
+    
+            return r;
+          })
+        ]);
+
+      } catch (error) {
+        console.log('[E] Initial orderbook snapshot request:',error);
+        throw 'Initial orderbook snapshot request failed.'
+      }
+
+    } while (_rest_update_last_nonce_key != undefined &&
+    _ws_update_last_nonce_key != undefined &&
+    (orderbook_upd_cache[0]?.last_update_nonce == undefined || 
+    Big(orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook[_rest_update_last_nonce_key])));
+    
+    // console.log('Final:');
+    // console.log('first cached ob update nonce:',(orderbook_upd_cache[0].last_update_nonce));
+    // console.log('initial ob nonce:',init_orderbook?.[_rest_update_last_nonce_key],'\n');
+  }
   
   // If got initial orderbook, set initial orderbook.
   if (init_orderbook) {
+    // Parse 'timestamp'.
+    let timestamp = init_orderbook?.[exc.rest.endpoints.orderbook.response.timestamp];
+    if (exc.rest.endpoints.orderbook.response.timestamp_in_micro)
+      timestamp /= 1e3;
+    else if (exc.rest.endpoints.orderbook.response.timestamp_in_seconds)
+      timestamp *= 1e3;
+
     orderbook = {
       asks: Object.fromEntries(init_orderbook[exc.rest.endpoints.orderbook.response.asks]),
       bids: Object.fromEntries(init_orderbook[exc.rest.endpoints.orderbook.response.bids]),
-      timestamp: init_orderbook?.[exc.rest.endpoints.orderbook.response.timestamp],
+      timestamp,
       last_update_nonce: init_orderbook?.[exc.rest.endpoints.orderbook.response.last_update_nonce]
     };
-
-    // Apply cached orderbook updates.
-    while (orderbook_upd_cache.length > 0) {
-      apply_orderbook_upd(orderbook_upd_cache[0]);
-      orderbook_upd_cache.shift();
-    }
   }
 }
 
@@ -1198,7 +1266,7 @@ syncronizer()
     });
 
     // If did not received a new orderbook update do not wait until a new update comes in to update 'delayed_orderbook'.
-    if (orderbook.timestamp < (second - 1) * 1e3 && delayed_orderbook.timestamp != orderbook.timestamp) {
+    if (orderbook != null && orderbook.timestamp < (second - 1) * 1e3 && (delayed_orderbook == null || delayed_orderbook.timestamp != orderbook.timestamp)) {
       delayed_orderbook = {
         asks: Object.entries(orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 25),
         bids: Object.entries(orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 25),
@@ -1207,9 +1275,9 @@ syncronizer()
       orderbooks.unshift(delayed_orderbook);
     }
 
-    const orderbook_to_post = orderbooks.find(ob => ob.timestamp < data_time * 1e3);
+    const orderbook_to_post = orderbooks.find(ob => ob.timestamp < data_time * 1e3) || delayed_orderbook;
   
-    // Log everything. (Just for debuging...)
+    // Log everything. (Just for debug purposes...)
     if (orderbook_to_post != null) 
       console.log({
         asks: orderbook_to_post.asks.slice(0, 5),
@@ -1219,6 +1287,8 @@ syncronizer()
         second: data_time,
         timestamp
       });
+    else 
+      console.log('orderbook_to_post:',orderbook_to_post);
   
     // // A simpliflied version of orderbook, w/ 25 depth.
     // _orderbook = {
