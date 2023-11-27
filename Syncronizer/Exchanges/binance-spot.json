@@ -66,8 +66,8 @@
           "asks": "a",
           "bids": "b",
           "pl": {
-            "price": 0,
-            "amount": 1
+            "price": "0",
+            "amount": "1"
           },
           "timestamp": "E",
           "first_upd_nonce_key": "U",

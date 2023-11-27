@@ -28,3 +28,6 @@ Utilizaremos o seguintes modulos NPM:
   
   nodemailer: 
     Para notificações via email a respeito do sistema.
+
+  node-gzip:
+    Para decriptografar mensagens 'GZIP' de algumas corretoras que transmitem dados encriptografados.

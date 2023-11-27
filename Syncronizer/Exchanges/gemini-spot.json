@@ -12,9 +12,7 @@
     "endpoints": {
       "available_pairs": {
         "path": "/v1/symbols",
-        "response": {
-          
-        }
+        "response": {}
       },
       "trades": {
         "path": "/v1/trades/<market>?limit_trades=500&timestamp=<since>",

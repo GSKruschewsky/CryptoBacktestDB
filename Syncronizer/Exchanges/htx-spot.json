@@ -1,0 +1,122 @@
+{
+  "separator": "",
+  "is_market_upper": false,
+  "rest": {
+    "url": "https://api.huobi.pro",
+    "timeout": 15000,
+    "error": {
+      "key": "status",
+      "value_not": "ok"
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/v2/settings/common/symbols",
+        "response": {
+          "data_inside": "data",
+          "symbol": "sc",
+          "status_key": "state",
+          "status_active": "online"
+        }
+      },
+      "trades": {
+        "path": "/market/history/trade?symbol=<market>&size=2000",
+        "response": {
+          "data_inside": "data",
+          "foreach_concat_inside": "data",
+          "trade_id_key": "trade-id",
+          "newer_first": true,
+          "timestamp": "ts",
+          "is_buy_key": "direction",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "amount"
+        }
+      },
+      "orderbook": {
+        "path": "/market/depth?symbol=<market>&type=step0&depth=20",
+        "response": {
+          "data_inside": "tick",
+          "asks": "asks",
+          "bids": "bids",
+          "timestamp": "ts",
+          "last_update_nonce": "version"
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://api.huobi.pro/feed",
+    "timeout": 15000,
+    "gzip_encrypted": true,
+    "not_handle_trades": true,
+    "error": {
+      "key": "status",
+      "value_not": "ok"
+    },
+    "subcriptions": {
+      "orderbook": {
+        "request": "{\"sub\":\"market.<market>.mbp.20\",\"id\":\"<ws_req_id>\"}",
+        "response": {
+          "id": "id",
+          "channel_id_key": "subbed"
+        },
+        "update": {
+          "channel_id_key": "ch",
+          "updates_inside": "tick",
+          "asks": "asks",
+          "bids": "bids",
+          "pl": {
+            "price": "0",
+            "amount": "1"
+          },
+          "timestamp": "ts",
+          "last_upd_nonce_key": "version"
+        }
+      }
+    },
+    "other_updates": {
+      "ping": {
+        "identifier_key": "ping",
+        "replace_and_respond": true,
+        "to_replace": "ping",
+        "replace_with": "pong"
+      }
+    }
+  },
+  "ws2": {
+    "url": "wss://api.huobi.pro/ws",
+    "timeout": 15000,
+    "gzip_encrypted": true,
+    "not_handle_orderbook": true,
+    "error": {
+      "key": "status",
+      "value_not": "ok"
+    },
+    "subcriptions": {
+      "trades": {
+        "request": "{\"sub\":\"market.<market>.trade.detail\",\"id\":\"<ws_req_id>\"}",
+        "response": {
+          "id": "id",
+          "channel_id_key": "subbed"
+        },
+        "update": {
+          "channel_id_key": "ch",
+          "data_inside": "tick.data",
+          "timestamp": "ts",
+          "is_buy_key": "direction",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "amount"
+        }
+      }
+    },
+    "other_updates": {
+      "ping": {
+        "identifier_key": "ping",
+        "replace_and_respond": true,
+        "to_replace": "ping",
+        "replace_with": "pong"
+      }
+    }
+  }
+}

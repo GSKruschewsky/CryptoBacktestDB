@@ -1,10 +1,14 @@
 import WebSocket from 'ws';
 import Big from 'big.js';
 import fetch from 'node-fetch';
-import crypto from "crypto";
+import crypto from 'crypto';
 import exchanges from './Exchanges/index.js';
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
 dotenv.config();
+
+// Commonjs importing 
+import pkg from 'node-gzip';
+const { ungzip } = pkg;
 
 let args = process.argv.slice(2); // Get command-line arguments, starting from index 2
 
@@ -30,7 +34,7 @@ if (args.length !== 4) {
 
 // [*] binance-spot
 // [*] okx-spot
-// [ ] htx-spot (huobi)
+// [*] htx-spot (huobi)
 // [ ] mexc-spot
 // [ ] bybit-spot
 
@@ -40,6 +44,7 @@ let quote = args[2];
 const delay_time_in_seconds = args[3];
 
 let markets = null;
+let info = { }; // Will store orderbook and trades websocket information.
 
 let orderbook = null;
 let orderbook_upd_cache = [];
@@ -101,7 +106,7 @@ function apply_orderbook_upd (upd) {
   orderbook.last_update_nonce = upd.last_update_nonce;
 }
 
-function handle_orderbook_msg (msg, info, _prom) {
+function handle_orderbook_msg (msg, _prom, _ws) {
   // console.log('Book update:',msg);
 
   if (msg.is_snapshot) {
@@ -122,7 +127,8 @@ function handle_orderbook_msg (msg, info, _prom) {
       info.orderbook.is_subscribed = true;
 
       // Se também já estiver incrito a 'trades' resolve a promessa.
-      if (info.trades.is_subscribed && _prom) _prom.resolve();
+      if (_ws.not_handle_trades === true || (info.trades?.is_subscribed && _prom)) 
+        _prom.resolve();
     }
 
   } else {
@@ -145,7 +151,7 @@ function handle_trades_msg (msg) {
   }
 }
 
-function format_orderbook_msg (msg) {
+function format_orderbook_msg (msg, _ws) {
   // Essa função deve receber a mensagem de 'orderbook' e formatar para o padrão abaixo.
   // {
   //   asks: [ [ price, amount ], ... ],
@@ -156,7 +162,7 @@ function format_orderbook_msg (msg) {
   //   last_update_nonce: <upd nonce here>, *only if required.
   // }
   // console.log('Book msg:',msg);
-  const _orderbook = exc.ws.subcriptions.orderbook;
+  const _orderbook = _ws.subcriptions.orderbook;
 
   // Define if this orderbook message is an updade or a snapshot.
   let is_snapshot = false;
@@ -240,16 +246,18 @@ function format_orderbook_msg (msg) {
 
   // Set first and last update_nonces if required.
   if (_orderbook.update.first_upd_nonce_key)
-    formatted.first_update_nonce = msg[_orderbook.update.first_upd_nonce_key];
+    formatted.first_update_nonce = (msg[_orderbook.update.first_upd_nonce_key] || updates[_orderbook.update.first_upd_nonce_key]);
+  else if (_orderbook.update.prev_upd_nonce_key)
+    formatted.first_update_nonce = (msg[_orderbook.update.prev_upd_nonce_key] || updates[_orderbook.update.prev_upd_nonce_key]) * 1 + 1;
   
   if (_orderbook.update.last_upd_nonce_key)
-    formatted.last_update_nonce = msg[_orderbook.update.last_upd_nonce_key];
+    formatted.last_update_nonce = (msg[_orderbook.update.last_upd_nonce_key] || updates[_orderbook.update.last_upd_nonce_key]);
 
   // Retorna a mensagem formatada.
   return formatted;
 }
 
-function format_trades_msg (msg) {
+function format_trades_msg (msg, _ws) {
   // Essa função deve receber a mensagem de 'trades' e formatar para o padrão abaixo.
   // (O array deve estar formatado em ordem crescente ordenado pelo 'timestamp')
   // [
@@ -264,12 +272,12 @@ function format_trades_msg (msg) {
   // console.log('Trades msg:',msg);
   
   // Se recebe cada trade como um objeto unico, insere esse trade dentro de um array.
-  if (exc.ws.subcriptions.trades.update.receive_separately_trades_as_obj) 
+  if (_ws.subcriptions.trades.update.receive_separately_trades_as_obj) 
     msg = [ msg ];
 
   // Retorna trades formatados.
-  return (msg?.[exc.ws.subcriptions.trades.update.trades_inside] || msg).map(t => {
-    let timestamp = (t[exc.ws.subcriptions.trades.update.timestamp] || msg[exc.ws.subcriptions.trades.update.timestamp]);
+  return (msg?.[_ws.subcriptions.trades.update.trades_inside] || msg).map(t => {
+    let timestamp = (t[_ws.subcriptions.trades.update.timestamp] || msg[_ws.subcriptions.trades.update.timestamp]);
   
     if (exc.timestamp_in_seconds)
       timestamp *= 1e3;
@@ -278,13 +286,13 @@ function format_trades_msg (msg) {
     
     let obj = {
       timestamp,
-      is_buy: (t[exc.ws.subcriptions.trades.update.is_buy_key] == exc.ws.subcriptions.trades.update.is_buy_value),
-      price: t[exc.ws.subcriptions.trades.update.price],
-      amount: t[exc.ws.subcriptions.trades.update.amount]
+      is_buy: (t[_ws.subcriptions.trades.update.is_buy_key] == _ws.subcriptions.trades.update.is_buy_value),
+      price: t[_ws.subcriptions.trades.update.price],
+      amount: t[_ws.subcriptions.trades.update.amount]
     };
 
-    if (exc.ws.subcriptions.trades.update.trade_id_key != undefined)
-      obj.trade_id = t[exc.ws.subcriptions.trades.update.trade_id_key];
+    if (_ws.subcriptions.trades.update.trade_id_key != undefined)
+      obj.trade_id = t[_ws.subcriptions.trades.update.trade_id_key];
 
     if (exc.trades_custom_id)
       obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
@@ -293,80 +301,89 @@ function format_trades_msg (msg) {
   });
 }
 
-function make_subscriptions (info, ws) {
+function make_subscriptions (info, ws, _ws) {
   // Envia pedido de subscriçao de orderbook.
-  let orderbook_sub_req = null;
-  if (exc.ws.subcriptions.orderbook.request) {
-    orderbook_sub_req = exc.ws.subcriptions.orderbook.request
-    .replace('<market>', market.ws)
-    .replace('<ws_req_id>', ++ws_req_nonce);
-  
-    // Autentica requisição de subscrição do orderbook se necessario.
-    if (exc.ws.subcriptions.orderbook.require_auth) {
-      const { signature, sign_nonce } = authenticate();
-      
-      orderbook_sub_req = orderbook_sub_req
-      .replace('<api_key>', api.key)
-      .replace('<api_pass>', api.pass)
-      .replace('<sign_nonce>', sign_nonce)
-      .replace('<signature>', signature);
-    }
-
-    ws.send(orderbook_sub_req);
-    info.orderbook.req_id = exc.ws.subcriptions.orderbook.response.id_value || ws_req_nonce;
-  }
-
   // Envia pedido de subscrição de trades.
-  let trades_sub_req = null;
-  if (exc.ws.subcriptions.trades.request) {
-    trades_sub_req = exc.ws.subcriptions.trades.request
-    .replace('<market>', market.ws)
-    .replace('<ws_req_id>', ++ws_req_nonce);
-
-    ws.send(trades_sub_req);
-    info.trades.req_id = exc.ws.subcriptions.trades.response.id_value || ws_req_nonce;
-  }
-
-  // Se não temos um 'trades.response', devemos asumir que 'info.trades.is_subscribed' é true apartir daqui.
-  if (!exc.ws.subcriptions.trades.response) {
-    info.trades.is_subscribed = true;
-    console.log('[!] Successfully subscribed to trades updates.');
-    // Se também já estiver incrito a 'orderbook' resolve a promessa.
-    if (info.orderbook.is_subscribed && _prom) _prom.resolve();
-  }
-
-  // Se não temos um 'orderbook.response', devemos asumir que 'info.orderbook.is_upds_subscribed' é true apartir daqui.
-  if (!exc.ws.subcriptions.orderbook.response) {
-    info.orderbook.is_upds_subscribed = true;
-    if (exc.rest.endpoints.orderbook != undefined) {
-      info.orderbook.is_subscribed = true;
-      // Se também já estiver incrito a 'trades' resolve a promessa.
-      if (info.trades.is_subscribed && _prom) _prom.resolve();
+  if (_ws.not_handle_trades !== true) {
+    let trades_sub_req = null;
+    if (_ws.subcriptions.trades.request) {
+      trades_sub_req = _ws.subcriptions.trades.request
+      .replace('<market>', market.ws)
+      .replace('<ws_req_id>', ++ws_req_nonce);
+  
+      ws.send(trades_sub_req);
+      info.trades.req_id = _ws.subcriptions.trades.response.id_value || ws_req_nonce;
     }
-    console.log('[!] Successfully subscribed to orderbook updates.');
+    // Se não temos um 'trades.response', devemos asumir que 'info.trades.is_subscribed' é true apartir daqui.
+    if (!_ws.subcriptions.trades.response) {
+      info.trades.is_subscribed = true;
+      console.log('[!] Successfully subscribed to trades updates.');
+      // Se também já estiver incrito a 'orderbook' resolve a promessa.
+      if (_ws.not_handle_orderbook === true || (info.orderbook?.is_subscribed && _prom)) 
+        _prom.resolve();
+    }
+  }
+  
+  if (_ws.not_handle_orderbook !== true) {
+    let orderbook_sub_req = null;
+    if (_ws.subcriptions.orderbook.request) {
+      orderbook_sub_req = _ws.subcriptions.orderbook.request
+      .replace('<market>', market.ws)
+      .replace('<ws_req_id>', ++ws_req_nonce);
+    
+      // Autentica requisição de subscrição do orderbook se necessario.
+      if (_ws.subcriptions.orderbook.require_auth) {
+        const { signature, sign_nonce } = authenticate();
+        
+        orderbook_sub_req = orderbook_sub_req
+        .replace('<api_key>', api.key)
+        .replace('<api_pass>', api.pass)
+        .replace('<sign_nonce>', sign_nonce)
+        .replace('<signature>', signature);
+      }
+  
+      ws.send(orderbook_sub_req);
+      info.orderbook.req_id = _ws.subcriptions.orderbook.response.id_value || ws_req_nonce;
+    }
+    // Se não temos um 'orderbook.response', devemos asumir que 'info.orderbook.is_upds_subscribed' é true apartir daqui.
+    if (!_ws.subcriptions.orderbook.response) {
+      info.orderbook.is_upds_subscribed = true;
+      if (exc.rest.endpoints.orderbook != undefined) {
+        info.orderbook.is_subscribed = true;
+        // Se também já estiver incrito a 'trades' resolve a promessa.
+        if (_ws.not_handle_trades === true || (info.trades?.is_subscribed && _prom)) 
+          _prom.resolve();
+      }
+      console.log('[!] Successfully subscribed to orderbook updates.');
+    }
   }
 }
 
-function connect () {
+function connect (_ws) {
   console.log('Connecting to '+exchange+' '+market.ws+'...');
 
   // Reseta as variaveis.
-  orderbook = null;
-  orderbook_upd_cache = [];
-  trades = null;
-  trades_upd_cache = [];
+  if (_ws.not_handle_orderbook !== true) {
+    orderbook = null;
+    orderbook_upd_cache = [];
+  }
+  if (_ws.not_handle_trades !== true) {
+    trades = null;
+    trades_upd_cache = [];
+  }
 
   // Cria objeto para armazenar informações a respeito de 'orderbook' e 'trades'.
-  let info = { orderbook: {}, trades: {} };
+  if (_ws.not_handle_trades !== true) info.trades = {};
+  if (_ws.not_handle_orderbook !== true) info.orderbook = {};
 
   // Se não temos um 'orderbook.response', 'info.orderbook.channel_id' deve ser definido aqui.
-  if (!exc.ws.subcriptions.orderbook.response) 
-    info.orderbook.channel_id = exc.ws.subcriptions.orderbook.update.channel_id
+  if (_ws.not_handle_orderbook !== true && (!_ws.subcriptions.orderbook.response)) 
+    info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id
       .replace('<market>', market.ws);
 
   // Se não temos um 'trades.response', 'info.trades.channel_id' deve ser definido aqui.
-  if (!exc.ws.subcriptions.trades.response) 
-    info.trades.channel_id = exc.ws.subcriptions.trades.update.channel_id
+  if (_ws.not_handle_trades !== true && (!_ws.subcriptions.trades.response)) 
+    info.trades.channel_id = _ws.subcriptions.trades.update.channel_id
       .replace('<market>', market.ws);
 
   // Cria uma variaveis de controle para 'ping loop'.
@@ -379,11 +396,11 @@ function connect () {
   .finally(() => _prom = null); // Ao finalizar a promesa '_prom' volta ser NULL.
 
   // Cria um timeout para rejeitar a promessa caso a mesma não resolva logo.
-  setTimeout(_prom.reject, (exc.ws.timeout || 5000), "TIMEOUT.");
+  setTimeout(_prom.reject, (_ws.timeout || 5000), "TIMEOUT.");
 
   // Cria uma conexão com o websocket da exchange.
   const ws = new WebSocket(
-    exc.ws.url
+    _ws.url
     .replace('<market>', market.ws)
   );
 
@@ -396,13 +413,17 @@ function connect () {
   // Quando perdemos a conexão iremos tentar nos conectar novamente.
   ws.on('close', () => {
     // Reseta as variaveis.
-    orderbook = null;
-    orderbook_upd_cache = [];
-    trades = null;
-    trades_upd_cache = [];
+    if (_ws.not_handle_orderbook !== true) {
+      orderbook = null;
+      orderbook_upd_cache = [];
+    }
+    if (_ws.not_handle_trades !== true) {
+      trades = null;
+      trades_upd_cache = [];
+    }
 
     clearInterval(ping_loop_interval);
-    connect();
+    connect(_ws);
   });
 
   // Quando recebermos um erro do WebSocket, iremos logar o erro e encerrar o processo.
@@ -419,18 +440,18 @@ function connect () {
     // Inicia 'ping loop'.
     ping_loop_interval = setInterval(() => {
       if (!keep_alive) {
-        console.log('[E] O servior não responseu ao nosso ping em até '+((exc.ws.timeout || 5000) / 1e3)+' segundos.');
+        console.log('[E] O servior não responseu ao nosso ping em até '+((_ws.timeout || 5000) / 1e3)+' segundos.');
         ws.terminate();
       }
       keep_alive = false;
       ws.ping();
-    }, (exc.ws.timeout || 5000));
+    }, (_ws.timeout || 5000));
 
-    if (exc.ws.login != undefined) {
+    if (_ws.login != undefined) {
       // Sends login request.
       const { signature, sign_nonce } = authenticate();
       ws.send(
-        exc.ws.login.request
+        _ws.login.request
         .replace('<api_key>', api.key)
         .replace('<api_pass>', api.pass)
         .replace('<sign_nonce>', sign_nonce)
@@ -438,37 +459,41 @@ function connect () {
       );
 
     } else {
-      make_subscriptions(info, ws);
+      make_subscriptions(info, ws, _ws);
     }
   });
 
   // Finalmente, aqui processaremos os dados recebidos do servidor.
-  ws.on('message', msg => {
+  ws.on('message', async msg => {
+    // Decript message if needed
+    if (_ws.gzip_encrypted) msg = await ungzip(msg);
+
     // Try to parse mesage as a JSON.
     try { msg = JSON.parse(msg); } catch (e) { msg = msg.toString(); }
 
     // console.log('WebSocket message:',msg);
 
     // Checks if msg is an error.
-    if (msg?.[exc.ws.error.key] != undefined && 
-    (exc.ws.error.value == undefined || msg[exc.ws.error.key] == exc.ws.error.value)) {
+    if (msg?.[_ws.error.key] != undefined && 
+    (_ws.error.value == undefined || msg[_ws.error.key] == _ws.error.value) &&
+    (_ws.error.value_not == undefined || msg[_ws.error.key] != _ws.error.value_not)) {
       console.log('[E] ('+exchange+' '+market.ws+') WebSocket API Error:',msg);
       ws.terminate();
       return;
     }
 
     // If 'login', check if its a login response.
-    if (exc.ws.login != undefined && 
-    msg[exc.ws.login.response.id_key] != undefined && 
-    (exc.ws.login.response.id_value == null || msg[exc.ws.login.response.id_key] == exc.ws.login.response.id_value)) {
-      if (exc.ws.login.response.success_key == undefined || (
-        msg[exc.ws.login.response.success_key] != undefined && (
-          exc.ws.login.response.success_value == undefined || 
-          msg[exc.ws.login.response.success_key] == exc.ws.login.response.success_value
+    if (_ws.login != undefined && 
+    msg[_ws.login.response.id_key] != undefined && 
+    (_ws.login.response.id_value == null || msg[_ws.login.response.id_key] == _ws.login.response.id_value)) {
+      if (_ws.login.response.success_key == undefined || (
+        msg[_ws.login.response.success_key] != undefined && (
+          _ws.login.response.success_value == undefined || 
+          msg[_ws.login.response.success_key] == _ws.login.response.success_value
         )
       )) {
         console.log('[!] Logado com sucesso.');
-        make_subscriptions(info, ws);
+        make_subscriptions(info, ws, _ws);
 
       } else {
         console.log('[E] Falha ao fazer login:',msg);
@@ -482,86 +507,91 @@ function connect () {
     }
 
     // Handle 'trades' subscription response.
-    if ((!info.trades.is_subscribed) && exc.ws.subcriptions.trades.request != undefined) {
+    if (_ws.not_handle_trades !== true && (!info.trades.is_subscribed) && _ws.subcriptions.trades.request != undefined) {
       let this_is_trades_subscription_response = false;
 
-      if (exc.ws.subcriptions.trades.response.is_object) {
-        if (msg[exc.ws.subcriptions.trades.response.object_id_key] == exc.ws.subcriptions.trades.response.object_id_value &&
-        exc.ws.subcriptions.trades.response.id.split('.').reduce((f, k) => f = f?.[k], msg) == info.trades.req_id)
+      if (_ws.subcriptions.trades.response.is_object) {
+        if (msg[_ws.subcriptions.trades.response.object_id_key] == _ws.subcriptions.trades.response.object_id_value &&
+        _ws.subcriptions.trades.response.id.split('.').reduce((f, k) => f = f?.[k], msg) == info.trades.req_id)
           this_is_trades_subscription_response = true;
 
-      } else if (exc.ws.subcriptions.trades.response.acum_list) {
-        if (msg[exc.ws.subcriptions.trades.response.list_id_key] == exc.ws.subcriptions.trades.response.list_id_value &&
-        (msg[exc.ws.subcriptions.trades.response.list_inside] || msg).some(
-          x => x[exc.ws.subcriptions.trades.response.id] == exc.ws.subcriptions.trades.response.id_value
+      } else if (_ws.subcriptions.trades.response.acum_list) {
+        if (msg[_ws.subcriptions.trades.response.list_id_key] == _ws.subcriptions.trades.response.list_id_value &&
+        (msg[_ws.subcriptions.trades.response.list_inside] || msg).some(
+          x => x[_ws.subcriptions.trades.response.id] == _ws.subcriptions.trades.response.id_value
         ))
           this_is_trades_subscription_response = true;
 
-      } else if (exc.ws.subcriptions.trades.response.id.split('.').reduce((f, k) => f = f?.[k], msg) == info.trades.req_id) {
+      } else if (_ws.subcriptions.trades.response.id.split('.').reduce((f, k) => f = f?.[k], msg) == info.trades.req_id) {
         this_is_trades_subscription_response = true;
       }
 
       if (this_is_trades_subscription_response) {
         info.trades.is_subscribed = true;
     
-        if (exc.ws.subcriptions.trades?.response?.channel_id_key)
-          info.trades.channel_id = msg[exc.ws.subcriptions.trades.response.channel_id_key];
-        else if (exc.ws.subcriptions.trades.update.channel_id)
-          info.trades.channel_id = exc.ws.subcriptions.trades.update.channel_id.replace('<market>', market.ws);
+        if (_ws.subcriptions.trades?.response?.channel_id_key)
+          info.trades.channel_id = msg[_ws.subcriptions.trades.response.channel_id_key];
+        else if (_ws.subcriptions.trades.update.channel_id)
+          info.trades.channel_id = _ws.subcriptions.trades.update.channel_id.replace('<market>', market.ws);
         else
           throw "Neither 'trades.response.channel_id_key' or 'trades.update.channel_id' are defined.";
-        
-        // Se também já estiver incrito a 'orderbook' resolve a promessa.
-        if (info.orderbook.is_subscribed && _prom) _prom.resolve();
+
+        info.trades.is_subscribed = true;
+        console.log('[!] Successfully subscribed to trades updates.');
+
+        // Se também já estiver inscrito a 'orderbook' resolve a promessa.
+        if (_ws.not_handle_orderbook === true || (info.orderbook?.is_subscribed && _prom)) 
+          _prom.resolve();
   
-        return console.log('[!] Successfully subscribed to trades updates.');
+        return
       }
     }
 
     // Handle 'orderbook' subscription response.
-    if ((!info.orderbook.is_upds_subscribed) && exc.ws.subcriptions.orderbook.request != undefined) {
+    if (_ws.not_handle_orderbook !== true && (!info.orderbook.is_upds_subscribed) && _ws.subcriptions.orderbook.request != undefined) {
       let this_is_orderbook_subscription_response = false;
-      let resp_id_value = exc.ws.subcriptions.orderbook.response.id.split('.').reduce((f, k) => f = f?.[k], msg);
+      let resp_id_value = _ws.subcriptions.orderbook.response.id.split('.').reduce((f, k) => f = f?.[k], msg);
 
-      if (exc.ws.subcriptions.orderbook.response.is_object) {
-        if (msg[exc.ws.subcriptions.orderbook.response.object_id_key] == exc.ws.subcriptions.orderbook.response.object_id_value &&
-        resp_id_value != undefined && (exc.ws.subcriptions.orderbook.response.id_value === null || resp_id_value == info.orderbook.req_id))
+      if (_ws.subcriptions.orderbook.response.is_object) {
+        if (msg[_ws.subcriptions.orderbook.response.object_id_key] == _ws.subcriptions.orderbook.response.object_id_value &&
+        resp_id_value != undefined && (_ws.subcriptions.orderbook.response.id_value === null || resp_id_value == info.orderbook.req_id))
           this_is_orderbook_subscription_response = true;
 
-      } else if (exc.ws.subcriptions.orderbook.response.acum_list) {
-        if (msg[exc.ws.subcriptions.orderbook.response.list_id_key] == exc.ws.subcriptions.orderbook.response.list_id_value &&
-        (msg[exc.ws.subcriptions.orderbook.response.list_inside] || msg).some(
-          x => x[exc.ws.subcriptions.orderbook.response.id] == exc.ws.subcriptions.orderbook.response.id_value
+      } else if (_ws.subcriptions.orderbook.response.acum_list) {
+        if (msg[_ws.subcriptions.orderbook.response.list_id_key] == _ws.subcriptions.orderbook.response.list_id_value &&
+        (msg[_ws.subcriptions.orderbook.response.list_inside] || msg).some(
+          x => x[_ws.subcriptions.orderbook.response.id] == _ws.subcriptions.orderbook.response.id_value
         ))
           this_is_orderbook_subscription_response = true;
       
       } else if (resp_id_value != undefined && 
-      (exc.ws.subcriptions.orderbook.response.id_value === null || resp_id_value == info.orderbook.req_id)) {
+      (_ws.subcriptions.orderbook.response.id_value === null || resp_id_value == info.orderbook.req_id)) {
         this_is_orderbook_subscription_response = true;
       }
 
       if (this_is_orderbook_subscription_response) {
         // Confere se resposta também inclui a incrição de 'trades'.
-        if (exc.ws.subcriptions.orderbook.response.include_trades) {
+        if (_ws.not_handle_trades !== true && _ws.subcriptions.orderbook.response.include_trades) {
           info.trades.is_subscribed = true;
       
-          if (exc.ws.subcriptions.trades?.response?.channel_id_key)
-            info.trades.channel_id = msg[exc.ws.subcriptions.trades.response.channel_id_key];
-          else if (exc.ws.subcriptions.trades.update.channel_id)
-            info.trades.channel_id = exc.ws.subcriptions.trades.update.channel_id.replace('<market>', market.ws);
+          if (_ws.subcriptions.trades?.response?.channel_id_key)
+            info.trades.channel_id = msg[_ws.subcriptions.trades.response.channel_id_key];
+          else if (_ws.subcriptions.trades.update.channel_id)
+            info.trades.channel_id = _ws.subcriptions.trades.update.channel_id.replace('<market>', market.ws);
           else
             throw "Neither 'trades.response.channel_id_key' or 'trades.update.channel_id' are defined.";
           
           // Se também já estiver incrito a 'orderbook' resolve a promessa.
-          if (info.orderbook.is_subscribed && _prom) _prom.resolve();
+          if (_ws.not_handle_orderbook === true || (info.orderbook?.is_subscribed && _prom)) 
+            _prom.resolve();
     
           console.log('[!] Successfully subscribed to trades updates.');
         }
 
-        if (exc.ws.subcriptions.orderbook.response.channel_id_key)
-          info.orderbook.channel_id = msg[exc.ws.subcriptions.orderbook.response.channel_id_key];
-        else if (exc.ws.subcriptions.orderbook.update.channel_id)
-          info.orderbook.channel_id = exc.ws.subcriptions.orderbook.update.channel_id.replace('<market>', market.ws);
+        if (_ws.subcriptions.orderbook.response.channel_id_key)
+          info.orderbook.channel_id = msg[_ws.subcriptions.orderbook.response.channel_id_key];
+        else if (_ws.subcriptions.orderbook.update.channel_id)
+          info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id.replace('<market>', market.ws);
         else
           throw "Neither 'orderbook.response.channel_id_key' or 'orderbook.update.channel_id' are defined.";
 
@@ -570,78 +600,108 @@ function connect () {
         if (exc.rest.endpoints.orderbook != undefined) {
           info.orderbook.is_subscribed = true;
           // Se também já estiver incrito a 'trades' resolve a promessa.
-          if (info.trades.is_subscribed && _prom) _prom.resolve();
+          if (_ws.not_handle_trades === true || (info.trades?.is_subscribed && _prom)) 
+            _prom.resolve();
         }
 
-        if (!exc.ws.subcriptions.orderbook.response.include_snapshot) return; // Otherwise, this message got be handled as an 'orderbook message'.
+        if (!_ws.subcriptions.orderbook.response.include_snapshot) return; // Otherwise, this message got be handled as an 'orderbook message'.
       }
     }
 
     // Handle orderbook message.
-    let _channel_id = null;
-    if (!isNaN(exc.ws.subcriptions.orderbook.update.channel_id_key)) {
-      if (Big(exc.ws.subcriptions.orderbook.update.channel_id_key).abs().gt(msg.length || -1))
-        _channel_id = undefined
-      else
-        _channel_id = msg.slice(exc.ws.subcriptions.orderbook.update.channel_id_key)[0]
-    } else {
-      _channel_id = exc.ws.subcriptions.orderbook.update.channel_id_key.split('.').reduce((f, k) => f = f?.[k], msg);
-    }
-    if ((info.orderbook.channel_id || exc.ws.subcriptions.orderbook.update.channel_id) && (
-      _channel_id == info.orderbook.channel_id || 
-      (exc.ws.subcriptions.orderbook.update.channel_id != undefined && // In some cases the orderbook subscription response will carry the snapshot in it, and we need to be able to parse an update (send it to 'orderbook_upd_cache') before receiving the orderbook subscription response.
-      _channel_id == exc.ws.subcriptions.orderbook.update.channel_id.replace('<market>', market.ws)) || 
-      (exc.ws.subcriptions.orderbook?.snapshot?.channel_id != undefined &&
-      _channel_id == exc.ws.subcriptions.orderbook.snapshot.channel_id)
-    )) {
-      if (exc.ws.subcriptions.orderbook.update.data_inside?.includes(',')) {
-        msg
-        .slice(...exc.ws.subcriptions.orderbook.update.data_inside.split(','))
-        .forEach(x => handle_orderbook_msg(format_orderbook_msg(x), info, _prom));
-        return;
-
-      } else if (exc.ws.subcriptions.orderbook.update.data_inside_arr && 
-      exc.ws.subcriptions.orderbook.update.data_inside_arr_inside) {
-        let _base_upd = Object.keys(msg)
-        .reduce((s, k) => {
-          if (k != exc.ws.subcriptions.orderbook.update.data_inside_arr_inside)
-            s[k] = msg[k];
-          return s;
-        }, {});
-        
-        msg[exc.ws.subcriptions.orderbook.update.data_inside_arr_inside]
-        .forEach(upd => {
-          handle_orderbook_msg(format_orderbook_msg({ ..._base_upd, ...upd }), info, _prom);
-        });
-
-        return;
+    if (_ws.not_handle_orderbook !== true) {
+      let _channel_id = null;
+      if (!isNaN(_ws.subcriptions.orderbook.update.channel_id_key)) {
+        if (Big(_ws.subcriptions.orderbook.update.channel_id_key).abs().gt(msg.length || -1))
+          _channel_id = undefined
+        else
+          _channel_id = msg.slice(_ws.subcriptions.orderbook.update.channel_id_key)[0]
+      } else {
+        _channel_id = _ws.subcriptions.orderbook.update.channel_id_key.split('.').reduce((f, k) => f = f?.[k], msg);
       }
-
-      return handle_orderbook_msg(
-        format_orderbook_msg(msg?.[exc.ws.subcriptions.orderbook.update.data_inside] || msg),
-        info,
-        _prom
-      );
+      if ((info.orderbook.channel_id || _ws.subcriptions.orderbook.update.channel_id) && (
+        _channel_id == info.orderbook.channel_id || 
+        (_ws.subcriptions.orderbook.update.channel_id != undefined && // In some cases the orderbook subscription response will carry the snapshot in it, and we need to be able to parse an update (send it to 'orderbook_upd_cache') before receiving the orderbook subscription response.
+        _channel_id == _ws.subcriptions.orderbook.update.channel_id.replace('<market>', market.ws)) || 
+        (_ws.subcriptions.orderbook?.snapshot?.channel_id != undefined &&
+        _channel_id == _ws.subcriptions.orderbook.snapshot.channel_id)
+      )) {
+        if (_ws.subcriptions.orderbook.update.data_inside?.includes(',')) {
+          msg
+          .slice(..._ws.subcriptions.orderbook.update.data_inside.split(','))
+          .forEach(x => handle_orderbook_msg(format_orderbook_msg(x, _ws), _prom, _ws));
+          return;
+  
+        } else if (_ws.subcriptions.orderbook.update.data_inside_arr && 
+        _ws.subcriptions.orderbook.update.data_inside_arr_inside) {
+          let _base_upd = Object.keys(msg)
+          .reduce((s, k) => {
+            if (k != _ws.subcriptions.orderbook.update.data_inside_arr_inside)
+              s[k] = msg[k];
+            return s;
+          }, {});
+          
+          msg[_ws.subcriptions.orderbook.update.data_inside_arr_inside]
+          .forEach(upd => {
+            handle_orderbook_msg(format_orderbook_msg({ ..._base_upd, ...upd }, _ws), _prom, _ws);
+          });
+  
+          return;
+        }
+  
+        return handle_orderbook_msg(
+          format_orderbook_msg(msg?.[_ws.subcriptions.orderbook.update.data_inside] || msg, _ws),
+          _prom, 
+          _ws
+        );
+      }
     }
     
     // Handle trades message.
-    _channel_id = null;
-    if (!isNaN(exc.ws.subcriptions.trades.update.channel_id_key)) {
-      if (Big(exc.ws.subcriptions.trades.update.channel_id_key).abs().gt(msg.length || -1))
-        _channel_id = undefined
-      else
-        _channel_id = msg.slice(exc.ws.subcriptions.trades.update.channel_id_key)[0]
-    } else {
-      _channel_id = exc.ws.subcriptions.trades.update.channel_id_key.split('.').reduce((f, k) => f = f?.[k], msg);
+    if (_ws.not_handle_trades !== true) {
+      let _channel_id = null;
+      if (!isNaN(_ws.subcriptions.trades.update.channel_id_key)) {
+        if (Big(_ws.subcriptions.trades.update.channel_id_key).abs().gt(msg.length || -1))
+          _channel_id = undefined
+        else
+          _channel_id = msg.slice(_ws.subcriptions.trades.update.channel_id_key)[0]
+      } else {
+        _channel_id = _ws.subcriptions.trades.update.channel_id_key.split('.').reduce((f, k) => f = f?.[k], msg);
+      }
+      if (info.trades.channel_id && _channel_id == info.trades.channel_id) 
+        return handle_trades_msg(
+          format_trades_msg(
+            _ws.subcriptions.trades.update.data_inside != undefined ? 
+              _ws.subcriptions.trades.update.data_inside.split('.').reduce((f, k) => f = f?.[k], msg) : 
+                msg,
+            _ws
+          )
+        );
     }
-    if (info.trades.channel_id && _channel_id == info.trades.channel_id) 
-      return handle_trades_msg(
-        format_trades_msg(msg?.[exc.ws.subcriptions.trades.update.data_inside] || msg)
-      );
     
+    // Handle other updates:
+    if (_ws.other_updates != undefined) {
+      const updts = Object.values(_ws.other_updates);
+      for (const upd of updts) {
+        if (msg[upd.identifier_key] != undefined && 
+        (upd.identifier_value == undefined || msg[upd.identifier_key] == upd.identifier_value)) {
+          // Handle the update.
+
+          if (upd.replace_and_respond) {
+            let msg_to_respond = JSON.stringify(msg)
+            .replace(upd.to_replace, upd.replace_with);
+            ws.send(msg_to_respond);
+            return;
+          }
+
+          break;
+        }
+      }
+    }
+
     // WebSocket messages to ignore.
-    if (exc.ws.msgs_to_ignore != undefined &&
-    exc.ws.msgs_to_ignore.some(([ key, value ]) => msg[key] && (value == undefined || msg[key] == value)))
+    if (_ws.msgs_to_ignore != undefined &&
+    _ws.msgs_to_ignore.some(([ key, value ]) => msg[key] && (value == undefined || msg[key] == value)))
       return;
 
     // Recebemos uma mensagem inesperada do servidor, devemos logar e finalizar o processo.
@@ -772,7 +832,8 @@ async function syncronizer () {
     throw 'Mercado selecionado é inválido ou não esta ativo no momento.';
 
   // Tenta se conectar e se inscrever as atualizações da exchange.
-  try { await connect(); } 
+  let _conn_prom = (exc.ws2 != undefined ? Promise.all([ connect(exc.ws), connect(exc.ws2) ]) : connect(exc.ws));
+  try { await _conn_prom } 
   catch (err) {
     console.log('[E] Connecting:',err);
     throw 'Connection failed.'
@@ -810,10 +871,15 @@ async function syncronizer () {
       }
         
       // console.log('init_trades response:',r);
-      r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
-
       if (exc.rest.endpoints.trades.response.get_first_value)
         r = Object.values(r)[0];
+      else
+        r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
+
+      if (exc.rest.endpoints.trades.response.foreach_concat_inside != undefined) {
+        const ck = exc.rest.endpoints.trades.response.foreach_concat_inside; // concat key
+        r = r.reduce((s, v) => [ ...s, ...v[ck]], []);
+      }
 
       init_trades = r;
     })
@@ -842,7 +908,7 @@ async function syncronizer () {
           if (really_an_error) throw { endpoint: 'available_pairs', error: r };
         }
 
-        r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
+        r = (r?.[exc.rest.endpoints.orderbook.response.data_inside] || r);
 
         init_orderbook = r;
       })
@@ -1060,11 +1126,12 @@ async function syncronizer () {
   }
 
   // Evita trades repetidos.
+  let _t_ws = exc.ws2 != undefined && exc.ws2.subcriptions.trades ? exc.ws2 : exc.ws;
   trades_upd_cache = trades_upd_cache.filter(t => { 
-    if (exc.ws.subcriptions.trades.update.id_should_be_higher)
+    if (_t_ws.subcriptions.trades.update.id_should_be_higher)
       return t.trade_id > trades[trades.length-1].trade_id;
 
-    const _key = exc.ws.subcriptions.trades.update.trade_id_key != undefined ? 'trade_id' : 'custom_id';
+    const _key = _t_ws.subcriptions.trades.update.trade_id_key != undefined ? 'trade_id' : 'custom_id';
     return trades.every(rt => rt[_key] != t[_key]);
   });
 
@@ -1123,6 +1190,10 @@ syncronizer()
     .map(t => {
       delete t.trade_id;
       delete t.custom_id;
+
+      // Remove any key started with "_".
+      Object.keys(t).forEach(k => { if (k[0] == '_') delete t[k]; });
+
       return t;
     });
 
