@@ -16,6 +16,17 @@
           "status_active": "Enabled"
         }
       },
+      "orderbook": {
+        "path": "/api/v2/order_book/<market>/",
+        "response": {
+          "data_inside": "tick",
+          "timestamp_in_micro": true,
+          "asks": "asks",
+          "bids": "bids",
+          "timestamp": "microtimestamp",
+          "last_update_nonce": "microtimestamp"
+        }
+      },
       "trades": {
         "path": "/api/v2/transactions/<market>/?time=minute",
         "response": {
@@ -38,28 +49,6 @@
       
     },
     "subcriptions": {
-      "orderbook_snap": {
-        "request": "{\"event\":\"bts:subscribe\",\"data\":{\"channel\":\"order_book_<market>\"}}",
-        "response": {
-          "id": "event",
-          "id_value": "bts:subscription_succeeded",
-          "channel_id_key": "channel",
-          "channel_id_val": "order_book_<market>"
-        },
-        "update": {
-          "channel_id_key": "channel",
-          "data_inside": "data",
-          "asks": "asks",
-          "bids": "bids",
-          "pl": {
-            "price": "0",
-            "amount": "1"
-          },
-          "timestamp": "microtimestamp",
-          "timestamp_in_micro": true,
-          "last_upd_nonce_key": "microtimestamp"
-        }
-      },
       "orderbook": {
         "request": "{\"event\":\"bts:subscribe\",\"data\":{\"channel\":\"diff_order_book_<market>\"}}",
         "response": {
