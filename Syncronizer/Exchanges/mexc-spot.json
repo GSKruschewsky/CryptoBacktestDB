@@ -1,0 +1,97 @@
+{
+  "separator": "",
+  "is_market_upper": true,
+  "trades_custom_id": true,
+  "rest": {
+    "url": "https://api.mexc.com",
+    "timeout": 15000,
+    "error": {
+      "key": "code",
+      "value_not": 200
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/api/v3/exchangeInfo",
+        "response": {
+          "data_inside": "symbols",
+          "symbol": "symbol",
+          "status_key": "status",
+          "status_active": "ENABLED"
+        }
+      },
+      "trades": {
+        "path": "/api/v3/trades?symbol=<market>&limit=1000",
+        "response": {
+          "newer_first": true,
+          "timestamp": "time",
+          "is_buy_key": "isBuyerMaker",
+          "is_buy_value": false,
+          "price": "price",
+          "amount": "qty"
+        }
+      },
+      "orderbook": {
+        "path": "/api/v3/depth?symbol=<market>&limit=5000",
+        "response": {
+          "asks": "asks",
+          "bids": "bids",
+          "timestamp": "timestamp",
+          "last_update_nonce": "lastUpdateId"
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://wbs.mexc.com/ws",
+    "timeout": 15000,
+    "error": {
+      "key": "error"
+    },
+    "ping": {
+      "request": "{\"method\":\"PING\"}",
+      "response": {
+        "id": "msg",
+        "id_value": "PONG"
+      }
+    },
+    "subcriptions": {
+      "orderbook": {
+        "request": "{\"method\":\"SUBSCRIPTION\",\"params\":[\"spot@public.increase.depth.v3.api@<market>\"]}",
+        "response": {
+          "id": "msg",
+          "id_value": "spot@public.increase.depth.v3.api@<market>",
+          "channel_id_key": "msg"
+        },
+        "update": {
+          "channel_id_key": "c",
+          "updates_inside": "d",
+          "asks": "asks",
+          "bids": "bids",
+          "pl": {
+            "price": "p",
+            "amount": "v"
+          },
+          "timestamp": "t",
+          "last_upd_nonce_key": "r"
+        }
+      },
+      "trades": {
+        "request": "{\"method\":\"SUBSCRIPTION\",\"params\":[\"spot@public.deals.v3.api@<market>\"]}",
+        "response": {
+          "id": "msg",
+          "id_value": "spot@public.deals.v3.api@<market>",
+          "channel_id_key": "msg"
+        },
+        "update": {
+          "channel_id_key": "c",
+          "data_inside": "d.deals",
+          "timestamp": "t",
+          "is_buy_key": "S",
+          "is_buy_value": "1",
+          "price": "p",
+          "amount": "v"
+        }
+      }
+    }
+  }
+}

@@ -28,6 +28,8 @@ if (args.length !== 4) {
 // [*] Let the user set how much delayed post data should be. (Set default to 3 seconds)
 // [*] Better orderbook sync mechanism and better validation of orderbooks update.
 // [ ] Re-sync mechanism (for both orderbook and trades) in case of a disconnect from the server.
+// [ ] Sempre que possível se inscrever no canal 'book_snap' além de 'book_diff' ???
+// [ ] Set the default delay to 1 second, so if we disconnect we can reconnect we get trades snapshot in the last second and don't lose any second to post.
 
 // Exchanges to add:
 // [*] kraken-spot
@@ -39,7 +41,7 @@ if (args.length !== 4) {
 // [*] binance-spot
 // [*] okx-spot
 // [*] htx-spot (huobi)
-// [ ] mexc-spot
+// [*] mexc-spot
 // [ ] bybit-spot
 
 let exchange = args[0];
@@ -360,34 +362,43 @@ function format_trades_msg (msg, _ws) {
 }
 
 function make_subscriptions (info, ws, _ws) {
-  // Envia pedido de subscriçao de orderbook.
   // Envia pedido de subscrição de trades.
   if (_ws.not_handle_trades !== true) {
     let trades_sub_req = null;
-    if (_ws.subcriptions.trades.request) {
+    if (_ws.subcriptions.trades.request != undefined) {
       trades_sub_req = _ws.subcriptions.trades.request
       .replace('<market>', market.ws)
       .replace('<ws_req_id>', ++ws_req_nonce);
-  
-      ws.send(trades_sub_req);
+
       info.trades.req_id = _ws.subcriptions.trades.response.id_value || ws_req_nonce;
-    }
-    // Se não temos um 'trades.response', devemos asumir que 'info.trades.is_subscribed' é true apartir daqui.
-    if (!_ws.subcriptions.trades.response) {
-      info.trades.is_subscribed = true;
-      console.log('[!] Successfully subscribed to trades updates.');
-      // Se também já estiver incrito a 'orderbook' resolve a promessa.
-      if (_ws.not_handle_orderbook === true || (info.orderbook?.is_subscribed && _prom)) 
-        _prom.resolve();
+      if (isNaN(info.trades.req_id))
+        info.trades.req_id = info.trades.req_id.replace('<market>', market.ws);
+  
+      // console.log('Sending trades subscription request:\n',trades_sub_req);
+      ws.send(trades_sub_req);
+
+      // Se não temos um 'trades.response', devemos asumir que 'info.trades.is_subscribed' é true apartir daqui.
+      if (!_ws.subcriptions.trades.response) {
+        info.trades.is_subscribed = true;
+        console.log('[!] Successfully subscribed to trades updates.');
+        // Se também já estiver incrito a 'orderbook' resolve a promessa.
+        if (_ws.not_handle_orderbook === true || (info.orderbook?.is_subscribed && _prom)) 
+          _prom.resolve();
+      }
     }
   }
   
+  // Envia pedido de subscriçao de orderbook.
   if (_ws.not_handle_orderbook !== true) {
     let orderbook_sub_req = null;
-    if (_ws.subcriptions.orderbook.request) {
+    if (_ws.subcriptions.orderbook.request != undefined) {
       orderbook_sub_req = _ws.subcriptions.orderbook.request
       .replace('<market>', market.ws)
       .replace('<ws_req_id>', ++ws_req_nonce);
+
+      info.orderbook.req_id = _ws.subcriptions.orderbook.response.id_value || ws_req_nonce;
+      if (isNaN(info.orderbook.req_id))
+        info.orderbook.req_id = info.orderbook.req_id.replace('<market>', market.ws);
     
       // Autentica requisição de subscrição do orderbook se necessario.
       if (_ws.subcriptions.orderbook.require_auth) {
@@ -399,35 +410,40 @@ function make_subscriptions (info, ws, _ws) {
         .replace('<sign_nonce>', sign_nonce)
         .replace('<signature>', signature);
       }
-  
+      
+      // console.log('Sending orderbook subscription request:\n',orderbook_sub_req);
       ws.send(orderbook_sub_req);
-      info.orderbook.req_id = _ws.subcriptions.orderbook.response.id_value || ws_req_nonce;
-    }
-    // Se não temos um 'orderbook.response', devemos asumir que 'info.orderbook.is_upds_subscribed' é true apartir daqui.
-    if (!_ws.subcriptions.orderbook.response) {
-      info.orderbook.is_upds_subscribed = true;
-      if (exc.rest.endpoints.orderbook != undefined) {
-        info.orderbook.is_subscribed = true;
-        // Se também já estiver incrito a 'trades' resolve a promessa.
-        if (_ws.not_handle_trades === true || (info.trades?.is_subscribed && _prom))
-          _prom.resolve();
+      
+      // Se não temos um 'orderbook.response', devemos asumir que 'info.orderbook.is_upds_subscribed' é true apartir daqui.
+      if (!_ws.subcriptions.orderbook.response) {
+        info.orderbook.is_upds_subscribed = true;
+        if (exc.rest.endpoints.orderbook != undefined) {
+          info.orderbook.is_subscribed = true;
+          // Se também já estiver incrito a 'trades' resolve a promessa.
+          if (_ws.not_handle_trades === true || (info.trades?.is_subscribed && _prom))
+            _prom.resolve();
+        }
+        console.log('[!] Successfully subscribed to orderbook updates.');
       }
-      console.log('[!] Successfully subscribed to orderbook updates.');
     }
 
+    // Envia pedido de subscriçao de orderbook snapshot.
     let orderbook_snap_sub_req = null;
-    if (_ws.subcriptions.orderbook_snap.request) {
+    if (_ws.subcriptions.orderbook_snap?.request != undefined) {
       orderbook_snap_sub_req = _ws.subcriptions.orderbook_snap.request
       .replace('<market>', market.ws)
       .replace('<ws_req_id>', ++ws_req_nonce);
   
-      ws.send(orderbook_snap_sub_req);
       info.orderbook_snap.req_id = _ws.subcriptions.orderbook_snap.response.id_value || ws_req_nonce;
-    }
-    // Se não temos um 'orderbook_snap.response', devemos asumir que 'info.orderbook_snap.is_subscribed' é true apartir daqui.
-    if (!_ws.subcriptions.orderbook_snap.response) {
-      info.orderbook_snap.is_subscribed = true;
-      console.log('[!] Successfully subscribed to orderbook snapshot updates.');
+      
+      // console.log('Sending orderbook snapshot subscription request:\n',orderbook_snap_sub_req);
+      ws.send(orderbook_snap_sub_req);
+
+      // Se não temos um 'orderbook_snap.response', devemos asumir que 'info.orderbook_snap.is_subscribed' é true apartir daqui.
+      if (_ws.subcriptions.orderbook_snap?.response == undefined) {
+        info.orderbook_snap.is_subscribed = true;
+        console.log('[!] Successfully subscribed to orderbook snapshot updates.');
+      }
     }
   }
 }
@@ -485,6 +501,10 @@ function connect (_ws) {
   let ping_loop_interval;
   let keep_alive = true;
 
+  // Cria uma variaveis de controle para 'ws ping loop'.
+  let ws_ping_loop_interval;
+  let ws_keep_alive = true;
+
   // Cria uma promessa 'prom' e uma variavél '_prom' para futuramente resolver ou rejeitar a promessa.
   let _prom = null;
   let prom = new Promise((resolve, reject) => _prom = { resolve, reject })
@@ -521,6 +541,7 @@ function connect (_ws) {
     }
 
     clearInterval(ping_loop_interval);
+    clearInterval(ws_ping_loop_interval);
     connect(_ws);
   });
 
@@ -538,12 +559,29 @@ function connect (_ws) {
     // Inicia 'ping loop'.
     ping_loop_interval = setInterval(() => {
       if (!keep_alive) {
-        console.log('[E] O servior não responseu ao nosso ping em até '+((_ws.timeout || 5000) / 1e3)+' segundos.');
+        console.log('[E] ping_loop: O servior não responseu ao nosso ping em até '+((_ws.timeout || 5000) / 1e3)+' segundos, encerrando conexão...');
         ws.terminate();
       }
       keep_alive = false;
       ws.ping();
+
+      if (_ws.ping?.request != undefined && _ws.ping.response == undefined) // Just ping and do not wait for response.
+        ws.send(_ws.ping.request);
+
     }, (_ws.timeout || 5000));
+
+    // Inicia 'ws ping loop', se definido corretamente.
+    if (_ws.ping?.request != undefined && _ws.ping.response != undefined) {
+      ws_ping_loop_interval = setInterval(() => {
+        if (!ws_keep_alive) {
+          console.log('[E] ws_ping_loop: O servior não responseu ao nosso ping em até '+((_ws.ping.interval || _ws.timeout || 5000) / 1e3)+' segundos, encerrando conexão...');
+          ws.terminate();
+        }
+        ws_keep_alive = false;
+        ws.send(_ws.ping.request);
+
+      }, (_ws.ping.interval || _ws.timeout || 5000));
+    }
 
     if (_ws.login != undefined) {
       // Sends login request.
@@ -604,6 +642,16 @@ function connect (_ws) {
       return;
     }
 
+    // Hanlde 'ws ping' response.
+    if (_ws.ping?.response != undefined) {
+      let _id_value = _ws.ping.response.id.split('.').reduce((f, k) => f = f?.[k], msg);
+      if (_id_value != undefined && 
+      (_ws.ping.response.id_value == undefined || _id_value == _ws.ping.response.id_value)) {
+        ws_keep_alive = true;
+        return;
+      }
+    }
+
     // Handle 'trades' subscription response.
     if (_ws.not_handle_trades !== true && (!info.trades.is_subscribed) && _ws.subcriptions.trades.request != undefined) {
       let this_is_trades_subscription_response = false;
@@ -624,7 +672,7 @@ function connect (_ws) {
         this_is_trades_subscription_response = true;
       }
 
-      if (this_is_trades_subscription_response)
+      if (this_is_trades_subscription_response) 
         return handle_trades_sub_resp(msg, _ws, market, info, _prom);
     }
 
@@ -678,7 +726,7 @@ function connect (_ws) {
     }
 
     // Handle 'orderbook_snap' subscription response.
-    if (_ws.not_handle_orderbook !== true && (!info.orderbook_snap.is_subscribed) && _ws.subcriptions.orderbook_snap.request != undefined) {
+    if (_ws.not_handle_orderbook !== true && (!info.orderbook_snap?.is_subscribed) && _ws.subcriptions.orderbook_snap?.request != undefined) {
       let this_is_orderbook_snap_subscription_response = false;
       let resp_id_value = _ws.subcriptions.orderbook_snap.response.id.split('.').reduce((f, k) => f = f?.[k], msg);
 
@@ -770,7 +818,7 @@ function connect (_ws) {
     }
 
     // Handle 'orderbook_snap' message.
-    if (_ws.not_handle_orderbook !== true) {
+    if (_ws.not_handle_orderbook !== true && _ws.subcriptions.orderbook_snap != undefined) {
       let _channel_id = null;
       if (!isNaN(_ws.subcriptions.orderbook_snap.update.channel_id_key)) {
         if (Big(_ws.subcriptions.orderbook_snap.update.channel_id_key).abs().gt(msg.length || -1))
