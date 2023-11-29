@@ -32,17 +32,21 @@ if (args.length !== 4) {
 // [ ] Set the default delay to 1 second, so if we disconnect we can reconnect we get trades snapshot in the last second and don't lose any second to post.
 
 // Exchanges to add:
+// (USD)
 // [*] kraken-spot
 // [*] coinbase-spot
 // [*] gemini-spot
 // [*] bitstamp-spot
-// [ ] lmax_digital-spot
+// [*] bitfinex-spot
+// [ ] cryptodotcom-spot
 
+// (USDT)
 // [*] binance-spot
 // [*] okx-spot
 // [*] htx-spot (huobi)
 // [*] mexc-spot
 // [ ] bybit-spot
+// [ ] kucoin-spot
 
 let exchange = args[0];
 let base = args[1];
@@ -125,6 +129,7 @@ function apply_orderbook_upd (upd, ws, just_ignore_lower_nonce_upd = (info.order
 
 function handle_orderbook_msg (msg, _prom, _ws, ws) {
   // console.log('Book update:',msg);
+
   if (msg.is_snapshot) {
     if (orderbook == null || (
       orderbook.last_update_nonce == undefined ||
@@ -188,13 +193,29 @@ function handle_orderbook_msg (msg, _prom, _ws, ws) {
   }
 }
 
-function handle_trades_msg (msg) {
+function handle_trades_msg (msg, _ws) {
+  if (msg == null) return; // Ignore.
+  const _t_upd = _ws.subcriptions.trades.update;
   // console.log('Trades update:',msg);
+
   if (trades == null || trades_upd_cache.length > 0) {
-    // console.log('cached.');
+    // Avoid chaching trades already cached.
+    if (_t_upd.id_should_be_higher === true && 
+    _t_upd.trade_id_key != undefined) {
+      msg = msg.filter(trade => trades_upd_cache.every(t => t.trade_id != trade.trade_id));
+      if (msg.length < 1) return;
+    }
+
     trades_upd_cache = [ ...trades_upd_cache, ...msg ];
+
   } else {
-    // console.log('added.');
+    // Avoid adding trades already added.
+    if (_t_upd.id_should_be_higher === true && 
+    _t_upd.trade_id_key != undefined) {
+      msg = msg.filter(trade => trades.every(t => t.trade_id != trade.trade_id));
+      if (msg.length < 1) return;
+    }
+
     trades = [ ...trades, ...msg ];
   }
 }
@@ -216,6 +237,13 @@ function format_orderbook_msg (msg, _ws, is_orderbook_snap = false) {
 
   // Define if this orderbook message is an updade or a snapshot.
   let is_snapshot = is_orderbook_snap;
+
+  // 'its_first_update'
+  if (info.orderbook._received_first_update !== true && 
+  _orderbook.snapshot?.its_first_update === true) {
+    info.orderbook._received_first_update = true;
+    is_snapshot = true;
+  }
 
   if (!is_orderbook_snap) {
     let identifier_key_value = null;
@@ -240,10 +268,29 @@ function format_orderbook_msg (msg, _ws, is_orderbook_snap = false) {
     ((!is_snapshot) && _orderbook.update.asks_and_bids_together)
   ) {
     updates.forEach(x => {
-      if (x[_orderbook.update.pl.is_bids_key] == _orderbook.update.pl.is_bids_value)
-        bids.push([ x[_orderbook.update.pl.price], x[_orderbook.update.pl.amount] ]);
+      const _pl =  is_snapshot ? (_orderbook.snapshot?.pl || _orderbook.update.pl) : _orderbook.update.pl;
+
+      let price = x[ _pl.price ];
+      let amount = x[ _pl.amount ];
+      let is_bids = undefined;
+
+      if (_orderbook.update.is_bids_positive_amount) {
+        is_bids = Big(x[_pl.amount]).gt(0);
+        amount = Big(amount).abs().toFixed();
+      } else {
+        is_bids = (x[_pl.is_bids_key] == _pl.is_bids_value);
+      }
+
+      if (_pl.to_remove_key != undefined && 
+      x[_pl.to_remove_key] != undefined && 
+      (_pl.to_remove_value == undefined || 
+      x[_pl.to_remove_key] == _pl.to_remove_value))
+        amount = 0;
+      
+      if (is_bids)
+        bids.push([ price, amount ]);
       else
-        asks.push([ x[_orderbook.update.pl.price], x[_orderbook.update.pl.amount] ]);
+        asks.push([ price, amount ]);
     });
   } else {
     asks = (updates[(is_snapshot && _orderbook.snapshot?.asks) || _orderbook.update.asks] || [])
@@ -328,6 +375,15 @@ function format_trades_msg (msg, _ws) {
   //   ...
   // ]
   // console.log('Trades msg:',msg);
+
+  const _t_upd = _ws.subcriptions.trades.update;
+
+  if (_t_upd.ignore_first_update === true) {
+    if (info.trades.received_first_update !== true) {
+      info.trades.received_first_update = true;
+      return null;
+    }
+  }
   
   // Se recebe cada trade como um objeto unico, insere esse trade dentro de um array.
   if (_ws.subcriptions.trades.update.receive_separately_trades_as_obj) 
@@ -346,10 +402,21 @@ function format_trades_msg (msg, _ws) {
     
     let obj = {
       timestamp,
-      is_buy: (t[_ws.subcriptions.trades.update.is_buy_key] == _ws.subcriptions.trades.update.is_buy_value),
-      price: t[_ws.subcriptions.trades.update.price],
-      amount: t[_ws.subcriptions.trades.update.amount]
+      is_buy: undefined,
+      price: t[_t_upd.price],
+      amount: t[_t_upd.amount]
     };
+
+    if (_t_upd.is_buy_key != undefined) {
+      obj.is_buy = (t[_t_upd.is_buy_key] == _t_upd.is_buy_value);
+
+    } else if (_t_upd.is_buy_positive_amount === true) {
+      obj.is_buy = Big(obj.amount).gt(0);
+      obj.amount = Big(obj.amount).abs().toFixed();
+
+    } else {
+      throw "[E] Parsing trades update: Can not determine trade side."
+    }
 
     if (_ws.subcriptions.trades.update.trade_id_key != undefined)
       obj.trade_id = t[_ws.subcriptions.trades.update.trade_id_key];
@@ -362,17 +429,23 @@ function format_trades_msg (msg, _ws) {
 }
 
 function make_subscriptions (info, ws, _ws) {
+  // Envia 'to_send_before_subcriptions'.
+  if (_ws.to_send_before_subcriptions != undefined) {
+    for (const data of _ws.to_send_before_subcriptions)
+      ws.send(data);
+  }
+
   // Envia pedido de subscrição de trades.
   if (_ws.not_handle_trades !== true) {
     let trades_sub_req = null;
-    if (_ws.subcriptions.trades.request != undefined) {
+    if (_ws.subcriptions.trades?.request != undefined) {
       trades_sub_req = _ws.subcriptions.trades.request
-      .replace('<market>', market.ws)
+      .replaceAll('<market>', market.ws)
       .replace('<ws_req_id>', ++ws_req_nonce);
 
       info.trades.req_id = _ws.subcriptions.trades.response.id_value || ws_req_nonce;
       if (isNaN(info.trades.req_id))
-        info.trades.req_id = info.trades.req_id.replace('<market>', market.ws);
+        info.trades.req_id = info.trades.req_id.replaceAll('<market>', market.ws);
   
       // console.log('Sending trades subscription request:\n',trades_sub_req);
       ws.send(trades_sub_req);
@@ -391,14 +464,14 @@ function make_subscriptions (info, ws, _ws) {
   // Envia pedido de subscriçao de orderbook.
   if (_ws.not_handle_orderbook !== true) {
     let orderbook_sub_req = null;
-    if (_ws.subcriptions.orderbook.request != undefined) {
+    if (_ws.subcriptions.orderbook?.request != undefined) {
       orderbook_sub_req = _ws.subcriptions.orderbook.request
-      .replace('<market>', market.ws)
+      .replaceAll('<market>', market.ws)
       .replace('<ws_req_id>', ++ws_req_nonce);
 
       info.orderbook.req_id = _ws.subcriptions.orderbook.response.id_value || ws_req_nonce;
       if (isNaN(info.orderbook.req_id))
-        info.orderbook.req_id = info.orderbook.req_id.replace('<market>', market.ws);
+        info.orderbook.req_id = info.orderbook.req_id.replaceAll('<market>', market.ws);
     
       // Autentica requisição de subscrição do orderbook se necessario.
       if (_ws.subcriptions.orderbook.require_auth) {
@@ -431,7 +504,7 @@ function make_subscriptions (info, ws, _ws) {
     let orderbook_snap_sub_req = null;
     if (_ws.subcriptions.orderbook_snap?.request != undefined) {
       orderbook_snap_sub_req = _ws.subcriptions.orderbook_snap.request
-      .replace('<market>', market.ws)
+      .replaceAll('<market>', market.ws)
       .replace('<ws_req_id>', ++ws_req_nonce);
   
       info.orderbook_snap.req_id = _ws.subcriptions.orderbook_snap.response.id_value || ws_req_nonce;
@@ -453,10 +526,10 @@ function handle_trades_sub_resp (msg, _ws, market, info, _prom) {
     
   if (_ws.subcriptions.trades?.response?.channel_id_key && 
   (_ws.subcriptions.trades.response.channel_id_val == undefined ||
-  msg[_ws.subcriptions.trades.response.channel_id_key] == _ws.subcriptions.trades.response.channel_id_val.replace('<market>', market.ws)))
+  msg[_ws.subcriptions.trades.response.channel_id_key] == _ws.subcriptions.trades.response.channel_id_val.replaceAll('<market>', market.ws)))
     info.trades.channel_id = msg[_ws.subcriptions.trades.response.channel_id_key];
   else if (_ws.subcriptions.trades.update.channel_id)
-    info.trades.channel_id = _ws.subcriptions.trades.update.channel_id.replace('<market>', market.ws);
+    info.trades.channel_id = _ws.subcriptions.trades.update.channel_id.replaceAll('<market>', market.ws);
   else
     throw "Neither 'trades.response.channel_id_key' or 'trades.update.channel_id' are defined.";
 
@@ -488,14 +561,14 @@ function connect (_ws) {
   }
 
   // Se não temos um 'orderbook.response', 'info.orderbook.channel_id' deve ser definido aqui.
-  if (_ws.not_handle_orderbook !== true && (!_ws.subcriptions.orderbook.response)) 
+  if (_ws.not_handle_orderbook !== true && _ws.subcriptions?.orderbook?.response == undefined) 
     info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id
-      .replace('<market>', market.ws);
+      .replaceAll('<market>', market.ws);
 
   // Se não temos um 'trades.response', 'info.trades.channel_id' deve ser definido aqui.
-  if (_ws.not_handle_trades !== true && (!_ws.subcriptions.trades.response)) 
-    info.trades.channel_id = _ws.subcriptions.trades.update.channel_id
-      .replace('<market>', market.ws);
+  if (_ws.not_handle_trades !== true && _ws.subcriptions.trades?.response == undefined) 
+    info.trades.channel_id = _ws.subcriptions.trades?.update?.channel_id
+      .replaceAll('<market>', market.ws);
 
   // Cria uma variaveis de controle para 'ping loop'.
   let ping_loop_interval;
@@ -516,7 +589,7 @@ function connect (_ws) {
   // Cria uma conexão com o websocket da exchange.
   const ws = new WebSocket(
     _ws.url
-    .replace('<market>', market.ws)
+    .replaceAll('<market>', market.ws)
   );
 
   // Quando recebermos um ping, enviaremos um pong.
@@ -653,7 +726,7 @@ function connect (_ws) {
     }
 
     // Handle 'trades' subscription response.
-    if (_ws.not_handle_trades !== true && (!info.trades.is_subscribed) && _ws.subcriptions.trades.request != undefined) {
+    if (_ws.not_handle_trades !== true && (!info.trades.is_subscribed) && _ws.subcriptions.trades?.request != undefined) {
       let this_is_trades_subscription_response = false;
 
       if (_ws.subcriptions.trades.response.is_object) {
@@ -677,7 +750,7 @@ function connect (_ws) {
     }
 
     // Handle 'orderbook' subscription response.
-    if (_ws.not_handle_orderbook !== true && (!info.orderbook.is_upds_subscribed) && _ws.subcriptions.orderbook.request != undefined) {
+    if (_ws.not_handle_orderbook !== true && (!info.orderbook.is_upds_subscribed) && _ws.subcriptions.orderbook?.request != undefined) {
       let this_is_orderbook_subscription_response = false;
       let resp_id_value = _ws.subcriptions.orderbook.response.id.split('.').reduce((f, k) => f = f?.[k], msg);
 
@@ -705,10 +778,10 @@ function connect (_ws) {
 
         if (_ws.subcriptions.orderbook.response.channel_id_key &&
         (_ws.subcriptions.orderbook.response.channel_id_val == undefined ||
-        msg[_ws.subcriptions.orderbook.response.channel_id_key] == _ws.subcriptions.orderbook.response.channel_id_val.replace('<market>', market.ws)))
+        msg[_ws.subcriptions.orderbook.response.channel_id_key] == _ws.subcriptions.orderbook.response.channel_id_val.replaceAll('<market>', market.ws)))
           info.orderbook.channel_id = msg[_ws.subcriptions.orderbook.response.channel_id_key];
         else if (_ws.subcriptions.orderbook.update.channel_id)
-          info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id.replace('<market>', market.ws);
+          info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id.replaceAll('<market>', market.ws);
         else
           throw "Neither 'orderbook.response.channel_id_key' or 'orderbook.update.channel_id' are defined.";
 
@@ -754,10 +827,10 @@ function connect (_ws) {
 
         if (_ws.subcriptions.orderbook_snap.response.channel_id_key &&
         (_ws.subcriptions.orderbook_snap.response.channel_id_val == undefined ||
-        msg[_ws.subcriptions.orderbook_snap.response.channel_id_key] == _ws.subcriptions.orderbook_snap.response.channel_id_val.replace('<market>', market.ws)))
+        msg[_ws.subcriptions.orderbook_snap.response.channel_id_key] == _ws.subcriptions.orderbook_snap.response.channel_id_val.replaceAll('<market>', market.ws)))
           info.orderbook_snap.channel_id = msg[_ws.subcriptions.orderbook_snap.response.channel_id_key];
         else if (_ws.subcriptions.orderbook_snap.update.channel_id)
-          info.orderbook_snap.channel_id = _ws.subcriptions.orderbook_snap.update.channel_id.replace('<market>', market.ws);
+          info.orderbook_snap.channel_id = _ws.subcriptions.orderbook_snap.update.channel_id.replaceAll('<market>', market.ws);
         else
           throw "Neither 'orderbook_snap.response.channel_id_key' or 'orderbook_snap.update.channel_id' are defined.";
 
@@ -769,9 +842,9 @@ function connect (_ws) {
     }
 
     // Handle 'orderbook' message.
-    if (_ws.not_handle_orderbook !== true) {
+    if (_ws.not_handle_orderbook !== true && _ws.subcriptions.orderbook != undefined) {
       let _channel_id = null;
-      if (!isNaN(_ws.subcriptions.orderbook.update.channel_id_key)) {
+      if ((!isNaN(_ws.subcriptions.orderbook.update.channel_id_key)) && _ws.subcriptions.orderbook.update.channel_id_key != "") {
         if (Big(_ws.subcriptions.orderbook.update.channel_id_key).abs().gt(msg.length || -1))
           _channel_id = undefined
         else
@@ -782,11 +855,18 @@ function connect (_ws) {
       if ((info.orderbook.channel_id || _ws.subcriptions.orderbook.update.channel_id) && (
         _channel_id == info.orderbook.channel_id || 
         (_ws.subcriptions.orderbook.update.channel_id != undefined && // In some cases the orderbook subscription response will carry the snapshot in it, and we need to be able to parse an update (send it to 'orderbook_upd_cache') before receiving the orderbook subscription response.
-        _channel_id == _ws.subcriptions.orderbook.update.channel_id.replace('<market>', market.ws)) || 
+        _channel_id == _ws.subcriptions.orderbook.update.channel_id.replaceAll('<market>', market.ws)) || 
         (_ws.subcriptions.orderbook?.snapshot?.channel_id != undefined &&
         _channel_id == _ws.subcriptions.orderbook.snapshot.channel_id)
       )) {
         if (_ws.subcriptions.orderbook.update.data_inside?.includes(',')) {
+          // Check if channel message should be ignored ('ignore_if').
+          if (_ws.subcriptions.orderbook.update.ignore_if != undefined) {
+            for (const [ key, value ] of _ws.subcriptions.orderbook.update.ignore_if) {
+              if (msg[key] === value) return;
+            }
+          }
+
           msg
           .slice(..._ws.subcriptions.orderbook.update.data_inside.split(','))
           .forEach(x => handle_orderbook_msg(format_orderbook_msg(x, _ws), _prom, _ws, ws));
@@ -794,6 +874,13 @@ function connect (_ws) {
   
         } else if (_ws.subcriptions.orderbook.update.data_inside_arr && 
         _ws.subcriptions.orderbook.update.data_inside_arr_inside) {
+          // Check if channel message should be ignored ('ignore_if').
+          if (_ws.subcriptions.orderbook.update.ignore_if != undefined) {
+            for (const [ key, value ] of _ws.subcriptions.orderbook.update.ignore_if) {
+              if (msg[key] === value) return;
+            }
+          }
+
           let _base_upd = Object.keys(msg)
           .reduce((s, k) => {
             if (k != _ws.subcriptions.orderbook.update.data_inside_arr_inside)
@@ -807,6 +894,13 @@ function connect (_ws) {
           });
   
           return;
+        }
+
+        // Check if channel message should be ignored ('ignore_if').
+        if (_ws.subcriptions.orderbook.update.ignore_if != undefined) {
+          for (const [ key, value ] of _ws.subcriptions.orderbook.update.ignore_if) {
+            if (msg[key] === value) return;
+          }
         }
   
         return handle_orderbook_msg(
@@ -831,7 +925,7 @@ function connect (_ws) {
       if ((info.orderbook_snap.channel_id || _ws.subcriptions.orderbook_snap.update.channel_id) && (
         _channel_id == info.orderbook_snap.channel_id || 
         (_ws.subcriptions.orderbook_snap.update.channel_id != undefined && // In some cases the orderbook_snap subscription response will carry the snapshot in it, and we need to be able to parse an update (send it to 'orderbook_upd_cache') before receiving the orderbook subscription response.
-        _channel_id == _ws.subcriptions.orderbook_snap.update.channel_id.replace('<market>', market.ws))
+        _channel_id == _ws.subcriptions.orderbook_snap.update.channel_id.replaceAll('<market>', market.ws))
       )) {
         if (_ws.subcriptions.orderbook_snap.update.data_inside?.includes(',')) {
           msg
@@ -865,9 +959,9 @@ function connect (_ws) {
     }
     
     // Handle 'trades' message.
-    if (_ws.not_handle_trades !== true) {
+    if (_ws.not_handle_trades !== true && _ws.subcriptions.trades != undefined) {
       let _channel_id = null;
-      if (!isNaN(_ws.subcriptions.trades.update.channel_id_key)) {
+      if (!isNaN(_ws.subcriptions.trades?.update?.channel_id_key)) {
         if (Big(_ws.subcriptions.trades.update.channel_id_key).abs().gt(msg.length || -1))
           _channel_id = undefined
         else
@@ -875,15 +969,25 @@ function connect (_ws) {
       } else {
         _channel_id = _ws.subcriptions.trades.update.channel_id_key.split('.').reduce((f, k) => f = f?.[k], msg);
       }
-      if (info.trades.channel_id && _channel_id == info.trades.channel_id) 
+      if (info.trades.channel_id && _channel_id == info.trades.channel_id) {
+        // Check if channel message should be ignored ('ignore_if').
+        if (_ws.subcriptions.trades.update.ignore_if != undefined) {
+          for (const [ key, value ] of _ws.subcriptions.trades.update.ignore_if) {
+            if (msg[key] === value) return;
+          }
+        }
+
+        // console.log('Raw trades message:',msg);
         return handle_trades_msg(
           format_trades_msg(
             _ws.subcriptions.trades.update.data_inside != undefined ? 
               _ws.subcriptions.trades.update.data_inside.split('.').reduce((f, k) => f = f?.[k], msg) : 
                 msg,
             _ws
-          )
+          ),
+          _ws
         );
+      }
     }
     
     // Handle other updates:
@@ -983,6 +1087,9 @@ async function syncronizer () {
   else
     market.ws = market.ws.toLowerCase();
 
+  market.ws = (exc.makert_prefix || "") + market.ws;
+  market.rest = (exc.makert_prefix || "") + market.rest;
+
   // console.log('market:',market);
 
   // Obtem os pares disponíveis da exchange.
@@ -992,7 +1099,7 @@ async function syncronizer () {
       new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000))),
       fetch(
         (exc.rest.url + exc.rest.endpoints.available_pairs.path)
-        .replace('<market>', market.rest)
+        .replaceAll('<market>', market.rest)
       )
       .then(r => r.json())
       .then(r => {
@@ -1055,278 +1162,295 @@ async function syncronizer () {
   if (!exc.timestamp_in_seconds) since *= 1e3;
 
   // Tenta fazer a requisição incial de trades com um TIMEOUT.
-  try {
-    await Promise.race([
-      new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000), "TIMEOUT.")),
-      fetch(
-        (exc.rest.url + exc.rest.endpoints.trades.path)
-        .replace('<market>', market.rest)
-        .replace('<since>', since)
-      )
-      .then(r => r.json())
-      .then(r => {
-        if (r?.[exc.rest.error.key] != undefined) {
-          let really_an_error = false;
-          
-          if (exc.rest.error.is_array) {
-            really_an_error = (r[exc.rest.error.key].length > 0);
-          } else if (exc.rest.error.value_not != undefined) {
-            really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
-          } else {
-            really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
+  if (exc.rest.endpoints?.trades != undefined) {
+    try {
+      await Promise.race([
+        new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000), "TIMEOUT.")),
+        fetch(
+          (exc.rest.url + exc.rest.endpoints.trades.path)
+          .replaceAll('<market>', market.rest)
+          .replace('<since>', since)
+        )
+        .then(r => r.json())
+        .then(r => {
+          if (r?.[exc.rest.error.key] != undefined) {
+            let really_an_error = false;
+            
+            if (exc.rest.error.is_array) {
+              really_an_error = (r[exc.rest.error.key].length > 0);
+            } else if (exc.rest.error.value_not != undefined) {
+              really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
+            } else {
+              really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
+            }
+    
+            if (really_an_error) throw { endpoint: 'available_pairs', error: r };
           }
-  
-          if (really_an_error) throw { endpoint: 'available_pairs', error: r };
-        }
-          
-        // console.log('init_trades response:',r);
-        if (exc.rest.endpoints.trades.response.get_first_value)
-          r = Object.values(r)[0];
-        else
-          r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
-  
-        if (exc.rest.endpoints.trades.response.foreach_concat_inside != undefined) {
-          const ck = exc.rest.endpoints.trades.response.foreach_concat_inside; // concat key
-          r = r.reduce((s, v) => [ ...s, ...v[ck]], []);
-        }
-  
-        init_trades = r;
-      })
-    ]);
-  } catch (err) {
-    console.log('[E] Initial trades snapshot request:',err);
-    throw 'Initial trades snapshot request failed.'
-  }
-  
-  // Set trades from initial snapshot.
-  trades = (exc.rest.endpoints.trades.response.newer_first ? init_trades.reverse() : init_trades)
-  .map(t => {
-    let timestamp = t[exc.rest.endpoints.trades.response.timestamp];
-
-    if (exc.timestamp_ISO_format || exc.rest.endpoints.trades.response.timestamp_ISO_format)
-      timestamp = new Date(timestamp).getTime();
-    else if (exc.timestamp_in_seconds || exc.rest.endpoints.trades.response.timestamp_in_seconds)
-      timestamp *= 1e3;
-    else if (exc.timestamp_in_micro || exc.rest.endpoints.trades.response.timestamp_in_micro)
-      timestamp /= 1e3;
-
-    let obj = {
-      timestamp,
-      is_buy: (t[exc.rest.endpoints.trades.response.is_buy_key] == exc.rest.endpoints.trades.response.is_buy_value),
-      price: t[exc.rest.endpoints.trades.response.price],
-      amount: t[exc.rest.endpoints.trades.response.amount]
-    };
-
-    if (exc.rest.endpoints.trades.response.trade_id_key != undefined)
-      obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
-
-    if (exc.trades_custom_id)
-      obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
-
-    const _pagination = exc.rest.endpoints.trades.response.pagination;
-    if (_pagination?.page_id != undefined)
-      obj['_'+_pagination.page_id] = t[_pagination.page_id];
-
-    return obj;
-  });
-
-  // Do the trades pagination if needed.
-  if (exc.rest.endpoints.trades.response.pagination != undefined) {
-    const _pagination = exc.rest.endpoints.trades.response.pagination; 
-
-    console.log('Trades pagination...');
-
-    if (_pagination.check_for_newer) {
-      // Check for newer trades (usualy when using 'since' parameter)
-      console.log('_pagination.max_arr_size:',_pagination.max_arr_size);
-      let trades_resp_arr_size = init_trades.length;
-      while (trades_resp_arr_size == _pagination.max_arr_size) {
-        console.log('trades_resp_arr_size:',trades_resp_arr_size);
-
-        let raw_trades = null;
-        try {
-          raw_trades = await Promise.race([
-            new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000), "TIMEOUT.")),
-            fetch(
-              (exc.rest.url + exc.rest.endpoints.trades.path + _pagination.to_add_url)
-              .replace(_pagination.to_del_url, '')
-              .replace('<market>', market.rest)
-              .replace('<since>', since)
-              .replace('<page_id>', trades[trades.length-1]['_'+_pagination.page_id]) // Newer trade id.
-            )
-            .then(r => r.json())
-            .then(r => {
-              if (r?.[exc.rest.error.key] != undefined) {
-                let really_an_error = false;
-                
-                if (exc.rest.error.is_array) {
-                  really_an_error = (r[exc.rest.error.key].length > 0);
-                } else if (exc.rest.error.value_not != undefined) {
-                  really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
-                } else {
-                  really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
-                }
-        
-                if (really_an_error) throw { endpoint: 'trades (at pagination)', error: r };
-              }
-                
-              r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
-        
-              if (exc.rest.endpoints.trades.response.get_first_value)
-                r = Object.values(r)[0];
-        
-              return r;
-            })
-          ]);
-        } catch (err) {
-          console.log('[E] At trades pagination loop:',err);
-          throw "Failed to get all necessary trades.";
-        }
-
-        let newer_trades = raw_trades.map(t => {
-          let obj = {
-            timestamp: exc.timestamp_ISO_format ? new Date(t[exc.rest.endpoints.trades.response.timestamp]).getTime() : t[exc.rest.endpoints.trades.response.timestamp],
-            is_buy: (t[exc.rest.endpoints.trades.response.is_buy_key] == exc.rest.endpoints.trades.response.is_buy_value),
-            price: t[exc.rest.endpoints.trades.response.price],
-            amount: t[exc.rest.endpoints.trades.response.amount]
-          };
-
-          if (exc.rest.endpoints.trades.response.trade_id_key != undefined)
-            obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
-      
-          if (exc.trades_custom_id)
-            obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
-      
-          const _pagination = exc.rest.endpoints.trades.response.pagination;
-          if (_pagination?.page_id != undefined)
-            obj['_'+_pagination.page_id] = t[_pagination.page_id];
-      
-          return obj;
+            
+          // console.log('init_trades response:',r);
+          if (exc.rest.endpoints.trades.response.get_first_value)
+            r = Object.values(r)[0];
+          else
+            r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
+    
+          if (exc.rest.endpoints.trades.response.foreach_concat_inside != undefined) {
+            const ck = exc.rest.endpoints.trades.response.foreach_concat_inside; // concat key
+            r = r.reduce((s, v) => [ ...s, ...v[ck]], []);
+          }
+    
+          init_trades = r;
         })
-        .filter(t => { // Evita trades repetidos.
-          const _key = exc.rest.endpoints.trades.response.trade_id_key != undefined ? 'trade_id' : 'custom_id';
-          return trades.every(rt => rt[_key] != t[_key]);
-        });
-        
-        if (exc.rest.endpoints.trades.response.newer_first) {
-          trades = [ ...trades, ...newer_trades.reverse() ];
-          trades_resp_arr_size = newer_trades.length;
-        } else {
-          trades = [ ...trades, ...newer_trades ];
-          trades_resp_arr_size = newer_trades.length;
-        }
-      }
-
-      console.log('[!] Got all necessary trades: trades_resp_arr_size=',trades_resp_arr_size);
-
-    } else {
-      // Check for oler trades
-      console.log('since=',since);
-      console.log('(since - 1e3)=',since - 1e3);
-      let older_trade = trades[0];
-
-      while (older_trade.timestamp > since - 1e3) {
-        console.log('older_trade.timestamp=',older_trade.timestamp);
-        
-        let raw_trades = null;
-        try {
-          raw_trades = await Promise.race([
-            new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000), "TIMEOUT.")),
-            fetch(
-              (exc.rest.url + exc.rest.endpoints.trades.path + exc.rest.endpoints.trades.response.pagination.to_add_url)
-              .replace('<market>', market.rest)
-              .replace('<since>', since)
-              .replace('<page_id>', older_trade['_'+_pagination.page_id])
-            )
-            .then(r => r.json())
-            .then(r => {
-              if (r?.[exc.rest.error.key] != undefined) {
-                let really_an_error = false;
-                
-                if (exc.rest.error.is_array) {
-                  really_an_error = (r[exc.rest.error.key].length > 0);
-                } else if (exc.rest.error.value_not != undefined) {
-                  really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
-                } else {
-                  really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
-                }
-        
-                if (really_an_error) throw { endpoint: 'trades (at pagination)', error: r };
-              }
-                
-              r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
-        
-              if (exc.rest.endpoints.trades.response.get_first_value)
-                r = Object.values(r)[0];
-        
-              return r;
-            })
-          ]);
-        } catch (err) {
-          console.log('[E] At trades pagination loop:',err);
-          throw "Failed to get all necessary trades.";
-        }
-
-        let older_trades = raw_trades.map(t => {
-          let obj = {
-            timestamp: exc.timestamp_ISO_format ? new Date(t[exc.rest.endpoints.trades.response.timestamp]).getTime() : t[exc.rest.endpoints.trades.response.timestamp],
-            is_buy: (t[exc.rest.endpoints.trades.response.is_buy_key] == exc.rest.endpoints.trades.response.is_buy_value),
-            price: t[exc.rest.endpoints.trades.response.price],
-            amount: t[exc.rest.endpoints.trades.response.amount]
-          };
-
-          if (exc.rest.endpoints.trades.response.trade_id_key != undefined)
-            obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
-      
-          if (exc.trades_custom_id)
-            obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
-      
-          const _pagination = exc.rest.endpoints.trades.response.pagination;
-          if (_pagination?.page_id != undefined)
-            obj['_'+_pagination.page_id] = t[_pagination.page_id];
-      
-          return obj;
-        })
-        .filter(t => { // Evita trades repetidos.
-          const _key = exc.rest.endpoints.trades.response.trade_id_key != undefined ? 'trade_id' : 'custom_id';
-          return trades.every(rt => rt[_key] != t[_key]);
-        });
-
-        if (exc.rest.endpoints.trades.response.newer_first) {
-          trades = [ ...older_trades.reverse(), ...trades ]; // Newer at last.
-          older_trade = trades[0];
-        } else {
-          trades = [ ...older_trades, ...trades ]; // Newer at last.
-          older_trade = trades[0];
-        }
-      }
-
-      console.log('[!] Got all necessary trades: since=',since,'older_trade.timestmap=',older_trade.timestamp);
+      ]);
+    } catch (err) {
+      console.log('[E] Initial trades snapshot request:',err);
+      throw 'Initial trades snapshot request failed.'
     }
+    
+    // Set trades from initial snapshot.
+    trades = (exc.rest.endpoints.trades.response.newer_first ? init_trades.reverse() : init_trades)
+    .map(t => {
+      let timestamp = t[exc.rest.endpoints.trades.response.timestamp];
+
+      if (exc.timestamp_ISO_format || exc.rest.endpoints.trades.response.timestamp_ISO_format)
+        timestamp = new Date(timestamp).getTime();
+      else if (exc.timestamp_in_seconds || exc.rest.endpoints.trades.response.timestamp_in_seconds)
+        timestamp *= 1e3;
+      else if (exc.timestamp_in_micro || exc.rest.endpoints.trades.response.timestamp_in_micro)
+        timestamp /= 1e3;
+
+      const _t_resp = exc.rest.endpoints.trades.response;
+
+      let obj = {
+        timestamp,
+        is_buy: undefined,
+        price: t[_t_resp.price],
+        amount: t[_t_resp.amount]
+      };
+
+      if (_t_resp.is_buy_key != undefined) {
+        obj.is_buy = (t[_t_resp.is_buy_key] != undefined && (_t_resp.is_buy_value == undefined || t[_t_resp.is_buy_key] == _t_resp.is_buy_value));
+      
+      } else if (_t_resp.is_buy_positive_amount === true) {
+        obj.is_buy = Big(obj.amount).gt(0);
+        obj.amount = Big(obj.amount).abs().toFixed();
+
+      } else {
+        throw "[E] Parsing trades response: Can not determine trade side."
+      }
+
+      if (exc.rest.endpoints.trades.response.trade_id_key != undefined)
+        obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
+
+      if (exc.trades_custom_id)
+        obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
+
+      const _pagination = exc.rest.endpoints.trades.response.pagination;
+      if (_pagination?.page_id != undefined)
+        obj['_'+_pagination.page_id] = t[_pagination.page_id];
+
+      return obj;
+    });
+
+    // Do the trades pagination if needed.
+    if (exc.rest.endpoints.trades.response.pagination != undefined) {
+      const _pagination = exc.rest.endpoints.trades.response.pagination; 
+
+      console.log('Trades pagination...');
+
+      if (_pagination.check_for_newer) {
+        // Check for newer trades (usualy when using 'since' parameter)
+        console.log('_pagination.max_arr_size:',_pagination.max_arr_size);
+        let trades_resp_arr_size = init_trades.length;
+        while (trades_resp_arr_size == _pagination.max_arr_size) {
+          console.log('trades_resp_arr_size:',trades_resp_arr_size);
+
+          let raw_trades = null;
+          try {
+            raw_trades = await Promise.race([
+              new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000), "TIMEOUT.")),
+              fetch(
+                (exc.rest.url + exc.rest.endpoints.trades.path + _pagination.to_add_url)
+                .replace(_pagination.to_del_url, '')
+                .replaceAll('<market>', market.rest)
+                .replace('<since>', since)
+                .replace('<page_id>', trades[trades.length-1]['_'+_pagination.page_id]) // Newer trade id.
+              )
+              .then(r => r.json())
+              .then(r => {
+                if (r?.[exc.rest.error.key] != undefined) {
+                  let really_an_error = false;
+                  
+                  if (exc.rest.error.is_array) {
+                    really_an_error = (r[exc.rest.error.key].length > 0);
+                  } else if (exc.rest.error.value_not != undefined) {
+                    really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
+                  } else {
+                    really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
+                  }
+          
+                  if (really_an_error) throw { endpoint: 'trades (at pagination)', error: r };
+                }
+                  
+                r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
+          
+                if (exc.rest.endpoints.trades.response.get_first_value)
+                  r = Object.values(r)[0];
+          
+                return r;
+              })
+            ]);
+          } catch (err) {
+            console.log('[E] At trades pagination loop:',err);
+            throw "Failed to get all necessary trades.";
+          }
+
+          let newer_trades = raw_trades.map(t => {
+            let obj = {
+              timestamp: exc.timestamp_ISO_format ? new Date(t[exc.rest.endpoints.trades.response.timestamp]).getTime() : t[exc.rest.endpoints.trades.response.timestamp],
+              is_buy: (t[exc.rest.endpoints.trades.response.is_buy_key] == exc.rest.endpoints.trades.response.is_buy_value),
+              price: t[exc.rest.endpoints.trades.response.price],
+              amount: t[exc.rest.endpoints.trades.response.amount]
+            };
+
+            if (exc.rest.endpoints.trades.response.trade_id_key != undefined)
+              obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
+        
+            if (exc.trades_custom_id)
+              obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
+        
+            const _pagination = exc.rest.endpoints.trades.response.pagination;
+            if (_pagination?.page_id != undefined)
+              obj['_'+_pagination.page_id] = t[_pagination.page_id];
+        
+            return obj;
+          })
+          .filter(t => { // Evita trades repetidos.
+            const _key = exc.rest.endpoints.trades.response.trade_id_key != undefined ? 'trade_id' : 'custom_id';
+            return trades.every(rt => rt[_key] != t[_key]);
+          });
+          
+          if (exc.rest.endpoints.trades.response.newer_first) {
+            trades = [ ...trades, ...newer_trades.reverse() ];
+            trades_resp_arr_size = newer_trades.length;
+          } else {
+            trades = [ ...trades, ...newer_trades ];
+            trades_resp_arr_size = newer_trades.length;
+          }
+        }
+
+        console.log('[!] Got all necessary trades: trades_resp_arr_size=',trades_resp_arr_size);
+
+      } else {
+        // Check for oler trades
+        console.log('since=',since);
+        console.log('(since - 1e3)=',since - 1e3);
+        let older_trade = trades[0];
+
+        while (older_trade.timestamp > since - 1e3) {
+          console.log('older_trade.timestamp=',older_trade.timestamp);
+          
+          let raw_trades = null;
+          try {
+            raw_trades = await Promise.race([
+              new Promise((resolve, reject) => setTimeout(reject, (exc.rest.timeout || 5000), "TIMEOUT.")),
+              fetch(
+                (exc.rest.url + exc.rest.endpoints.trades.path + exc.rest.endpoints.trades.response.pagination.to_add_url)
+                .replaceAll('<market>', market.rest)
+                .replace('<since>', since)
+                .replace('<page_id>', older_trade['_'+_pagination.page_id])
+              )
+              .then(r => r.json())
+              .then(r => {
+                if (r?.[exc.rest.error.key] != undefined) {
+                  let really_an_error = false;
+                  
+                  if (exc.rest.error.is_array) {
+                    really_an_error = (r[exc.rest.error.key].length > 0);
+                  } else if (exc.rest.error.value_not != undefined) {
+                    really_an_error = (r[exc.rest.error.key] != exc.rest.error.value_not);
+                  } else {
+                    really_an_error = (exc.rest.error.value == undefined || r[exc.rest.error.key] == exc.rest.error.value);
+                  }
+          
+                  if (really_an_error) throw { endpoint: 'trades (at pagination)', error: r };
+                }
+                  
+                r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
+          
+                if (exc.rest.endpoints.trades.response.get_first_value)
+                  r = Object.values(r)[0];
+          
+                return r;
+              })
+            ]);
+          } catch (err) {
+            console.log('[E] At trades pagination loop:',err);
+            throw "Failed to get all necessary trades.";
+          }
+
+          let older_trades = raw_trades.map(t => {
+            let obj = {
+              timestamp: exc.timestamp_ISO_format ? new Date(t[exc.rest.endpoints.trades.response.timestamp]).getTime() : t[exc.rest.endpoints.trades.response.timestamp],
+              is_buy: (t[exc.rest.endpoints.trades.response.is_buy_key] == exc.rest.endpoints.trades.response.is_buy_value),
+              price: t[exc.rest.endpoints.trades.response.price],
+              amount: t[exc.rest.endpoints.trades.response.amount]
+            };
+
+            if (exc.rest.endpoints.trades.response.trade_id_key != undefined)
+              obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
+        
+            if (exc.trades_custom_id)
+              obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
+        
+            const _pagination = exc.rest.endpoints.trades.response.pagination;
+            if (_pagination?.page_id != undefined)
+              obj['_'+_pagination.page_id] = t[_pagination.page_id];
+        
+            return obj;
+          })
+          .filter(t => { // Evita trades repetidos.
+            const _key = exc.rest.endpoints.trades.response.trade_id_key != undefined ? 'trade_id' : 'custom_id';
+            return trades.every(rt => rt[_key] != t[_key]);
+          });
+
+          if (exc.rest.endpoints.trades.response.newer_first) {
+            trades = [ ...older_trades.reverse(), ...trades ]; // Newer at last.
+            older_trade = trades[0];
+          } else {
+            trades = [ ...older_trades, ...trades ]; // Newer at last.
+            older_trade = trades[0];
+          }
+        }
+
+        console.log('[!] Got all necessary trades: since=',since,'older_trade.timestmap=',older_trade.timestamp);
+      }
+    }
+
+    // Evita trades repetidos, removendo os trades obtidos na requisição acima dos trades em cache.
+    let _t_ws = exc.ws2 != undefined && exc.ws2.subcriptions.trades ? exc.ws2 : exc.ws;
+    trades_upd_cache = trades_upd_cache.filter(t => { 
+      if (_t_ws.subcriptions.trades.update.id_should_be_higher)
+        return trades.length == 0 || t.trade_id > trades[trades.length-1].trade_id;
+
+      const _key = _t_ws.subcriptions.trades.update.trade_id_key != undefined ? 'trade_id' : 'custom_id';
+      return trades.every(rt => rt[_key] != t[_key]);
+    });
+
+    console.log('cached trades:',trades_upd_cache);
+    console.log('trades from init_trades:',trades);
+
+    // Apply cached trades updates.
+    if (trades_upd_cache.length > 0) {
+      trades = [
+        ...(exc.rest.endpoints.trades.response.newer_first ? trades.reverse() : trades), 
+        ...trades_upd_cache
+      ];
+      trades_upd_cache = [];
+    }
+    
+  } else {
+    trades = [];
   }
-
-  // Evita trades repetidos, removendo os trades obtidos na requisição acima dos trades em cache.
-  let _t_ws = exc.ws2 != undefined && exc.ws2.subcriptions.trades ? exc.ws2 : exc.ws;
-  trades_upd_cache = trades_upd_cache.filter(t => { 
-    if (_t_ws.subcriptions.trades.update.id_should_be_higher)
-      return trades.length == 0 || t.trade_id > trades[trades.length-1].trade_id;
-
-    const _key = _t_ws.subcriptions.trades.update.trade_id_key != undefined ? 'trade_id' : 'custom_id';
-    return trades.every(rt => rt[_key] != t[_key]);
-  });
-
-  console.log('cached trades:',trades_upd_cache);
-  console.log('trades from init_trades:',trades);
-
-  // Apply cached trades updates.
-  if (trades_upd_cache.length > 0) {
-    trades = [
-      ...(exc.rest.endpoints.trades.response.newer_first ? trades.reverse() : trades), 
-      ...trades_upd_cache
-    ];
-    trades_upd_cache = [];
-  }
-  console.log('[!] Trades synced.');
 
   // Tenta fazer requisição inicial do orderbook, se necessario.
   if (exc.rest.endpoints.orderbook) {
@@ -1341,7 +1465,7 @@ async function syncronizer () {
           new Promise((resolve, reject) => setTimeout(reject, exc.rest.timeout, "TIMEDOUT.")),
           fetch(
             (exc.rest.url + exc.rest.endpoints.orderbook.path)
-            .replace('<market>', market.rest)
+            .replaceAll('<market>', market.rest)
           )
           .then(r => r.json())
           .then(r => {
@@ -1418,8 +1542,8 @@ syncronizer()
     // Trades that ocurred in the last second.
     const trades_to_post = trades
     .filter(t => 
-      t.timestamp >= (data_time - 1) * 1e3 &&
-      t.timestamp < data_time * 1e3
+      t.timestamp > (data_time - 1) * 1e3 &&
+      t.timestamp <= data_time * 1e3
     )
     .map(t => {
       delete t.trade_id;
@@ -1441,7 +1565,7 @@ syncronizer()
       orderbooks.unshift(delayed_orderbook);
     }
 
-    const orderbook_to_post = orderbooks.find(ob => ob.timestamp < data_time * 1e3) || delayed_orderbook;
+    const orderbook_to_post = orderbooks.find(ob => ob.timestamp <= data_time * 1e3) || delayed_orderbook;
   
     // Log everything. (Just for debug purposes...)
     if (orderbook_to_post != null) 

@@ -1,0 +1,177 @@
+{
+  "separator": "",
+  "makert_prefix": null,
+  "is_market_upper": null,
+  "timestamp_in_micro": null,
+  "timestamp_in_seconds": null,
+  "timestamp_ISO_format": null,
+  "rest": {
+    "url": "",
+    "timeout": 15000,
+    "error": {
+      "key": null,
+      "value": null
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "",
+        "response": {
+          "data_inside": "",
+          "symbol": "",
+          "status_key": "",
+          "status_active": ""
+        }
+      },
+      "orderbook": {
+        "path": "",
+        "response": {
+          "asks": "",
+          "bids": "",
+          "timestamp": "",
+          "last_update_nonce": ""
+        }
+      },
+      "trades": {
+        "path": "",
+        "response": {
+          "newer_first": false,
+          "trade_id_key": "",
+          "timestamp": "",
+          "is_buy_key": "",
+          "is_buy_value": "",
+          "price": "",
+          "amount": "",
+          "pagination": {
+            "check_for_newer": ,
+            "max_arr_size": ,
+            "to_del_url": "",
+            "to_add_url": "",
+            "page_id": ""
+          }
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "",
+    "timeout": 15000,
+    "error": {
+      "key": null,
+      "value": null
+    },
+    "ping": {
+      "request": "",
+      "response": {
+        "id": "",
+        "id_value": ""
+      }
+    },
+    "to_send_before_subcriptions": null,
+    "subcriptions": {
+      "orderbook_snap": {
+        "request": "",
+        "response": {
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "",
+          "id_value": "",
+          "channel_id_key": "",
+          "channel_id_val": ""
+        },
+        "update": {
+          "channel_id_key": "",
+          "data_inside": "",
+          "updates_inside": "",
+          "asks": "",
+          "bids": "",
+          "pl": {
+            "price": "",
+            "amount": ""
+          },
+          "timestamp": "",
+          "last_upd_nonce_key": ""
+        }
+      },
+      "orderbook": {
+        "request": "",
+        "response": {
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "",
+          "id_value": "",
+          "channel_id_key": "",
+          "channel_id_val": ""
+        },
+        "snapshot": {
+          "its_first_update": null,
+          "identifier_key": null,
+          "identifier_value": null,
+          "asks_and_bids_together": null
+        },
+        "update": {
+          "ignore_if": null,
+          "channel_id_key": "",
+          "channel_id": "",
+          "data_inside": "",
+          "updates_inside": "",
+          "asks_and_bids_together": null,
+          "is_bids_positive_amount": null,
+          "asks": "",
+          "bids": "",
+          "pl": {
+            "price": "",
+            "amount": "",
+            "is_bids_key": null,
+            "is_bids_value": null,
+            "to_remove_key": null,
+            "to_remove_value": null
+          },
+          "timestamp": "",
+          "first_upd_nonce_key": "",
+          "last_upd_nonce_key": ""
+        }
+      },
+      "trades": {
+        "request": "",
+        "response": {
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "",
+          "id_value": "",
+          "channel_id_key": "",
+          "channel_id_val": ""
+        },
+        "update": {
+          "ignore_if": null,
+          "ignore_first_update": null,
+          "receive_separately_trades_as_obj": false,
+          "id_should_be_higher": false,
+          "channel_id_key": "",
+          "channel_id": "",
+          "data_inside": "",
+          "updates_inside": "",
+          "trade_id_key": "",
+          "timestamp": "",
+          "is_buy_key": "",
+          "is_buy_value": ,
+          "price": "",
+          "amount": ""
+        }
+      }
+    },
+    "other_updates": {
+      "ping": {
+        "identifier_key": "",
+        "replace_and_respond": false,
+        "to_replace": "",
+        "replace_with": ""
+      }
+    },
+    "msgs_to_ignore": [
+
+    ]
+  }
+}

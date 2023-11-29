@@ -1,0 +1,140 @@
+{
+  "separator": "",
+  "makert_prefix": "t",
+  "is_market_upper": true,
+  "timestamp_in_micro": null,
+  "timestamp_in_seconds": null,
+  "timestamp_ISO_format": null,
+  "rest": {
+    "url": "https://api-pub.bitfinex.com",
+    "timeout": 15000,
+    "error": {
+      
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/v2/tickers?symbols=ALL",
+        "response": {
+          "data_inside": null,
+          "symbol": "0",
+          "status_key": null,
+          "status_active": null
+        }
+      },
+      "orderbook": null,
+      "trades": {
+        "path": "/v2/trades/<market>/hist?limit=1000&sort=1&start=<since>",
+        "response": {
+          "newer_first": false,
+          "trade_id_key": "0",
+          "timestamp": "1",
+          "is_buy_positive_amount": true,
+          "is_buy_key": null,
+          "is_buy_value": null,
+          "price": "3",
+          "amount": "2",
+          "pagination": {
+            "check_for_newer": true,
+            "max_arr_size": 1000,
+            "to_del_url": null,
+            "to_add_url": null,
+            "page_id": "1"
+          }
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://api-pub.bitfinex.com/ws/2",
+    "timeout": 15000,
+    "error": {
+      "key": "event",
+      "value": "error"
+    },
+    "ping": {
+      "request": "{\"event\":\"ping\",\"cid\":1234}",
+      "response": {
+        "id": "event",
+        "id_value": "pong"
+      }
+    },
+    "to_send_before_subcriptions": [
+      "{\"event\":\"conf\",\"flags\":536969216}"
+    ],
+    "subcriptions": {
+      "orderbook_snap": null,
+      "orderbook": {
+        "request": "{\"event\":\"subscribe\",\"channel\":\"book\",\"symbol\":\"<market>\",\"prec\":\"P0\",\"freq\":\"F0\",\"len\":\"250\"}",
+        "response": {
+          "is_object": true,
+          "object_id_key": "event",
+          "object_id_value": "subscribed",
+          "id": "channel",
+          "id_value": "book",
+          "channel_id_key": "chanId",
+          "channel_id_val": null
+        },
+        "snapshot": {
+          "its_first_update": true,
+          "identifier_key": null,
+          "identifier_value": null,
+          "asks_and_bids_together": true
+        },
+        "update": {
+          "ignore_if": [ [ "1" , "hb"] ],
+          "channel_id_key": "0",
+          "channel_id": null,
+          "data_inside": null,
+          "updates_inside": "1",
+          "asks_and_bids_together": true,
+          "is_bids_positive_amount": true,
+          "asks": null,
+          "bids": null,
+          "pl": {
+            "price": "0",
+            "amount": "2",
+            "to_remove_key": "1",
+            "to_remove_value": 0
+          },
+          "timestamp": "3",
+          "first_upd_nonce_key": null,
+          "last_upd_nonce_key": "2"
+        }
+      },
+      "trades": {
+        "request": "{\"event\":\"subscribe\",\"channel\":\"trades\",\"symbol\":\"<market>\"}",
+        "response": {
+          "is_object": true,
+          "object_id_key": "event",
+          "object_id_value": "subscribed",
+          "id": "channel",
+          "id_value": "trades",
+          "channel_id_key": "chanId",
+          "channel_id_val": null
+        },
+        "update": {
+          "ignore_if": [ [ "1" , "hb"] ],
+          "ignore_first_update": true,
+          "receive_separately_trades_as_obj": true,
+          "id_should_be_higher": true,
+          "channel_id_key": "0",
+          "channel_id": null,
+          "data_inside": "2",
+          "updates_inside": null,
+          "trade_id_key": "0",
+          "timestamp": "1",
+          "is_buy_key": null,
+          "is_buy_value": null,
+          "is_buy_positive_amount": true,
+          "price": "3",
+          "amount": "2"
+        }
+      }
+    },
+    "other_updates": null,
+    "msgs_to_ignore": [
+      [ "version" ],
+      [ "event", "conf" ]
+    ]
+  }
+}
