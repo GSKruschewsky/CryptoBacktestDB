@@ -194,9 +194,9 @@ function handle_orderbook_msg (msg, _prom, _ws, ws) {
 }
 
 function handle_trades_msg (msg, _ws) {
+  // console.log('Trades update:',msg);
   if (msg == null) return; // Ignore.
   const _t_upd = _ws.subcriptions.trades.update;
-  // console.log('Trades update:',msg);
 
   if (trades == null || trades_upd_cache.length > 0) {
     // Avoid chaching trades already cached.
@@ -422,7 +422,8 @@ function format_trades_msg (msg, _ws) {
       obj.trade_id = t[_ws.subcriptions.trades.update.trade_id_key];
 
     if (exc.trades_custom_id)
-      obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
+      obj.custom_id = '' + obj.timestamp + obj.is_buy + obj.price + obj.amount;
+      // obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
 
     return obj;
   });
@@ -469,7 +470,7 @@ function make_subscriptions (info, ws, _ws) {
       .replaceAll('<market>', market.ws)
       .replace('<ws_req_id>', ++ws_req_nonce);
 
-      info.orderbook.req_id = _ws.subcriptions.orderbook.response.id_value || ws_req_nonce;
+      info.orderbook.req_id = _ws.subcriptions.orderbook.response?.id_value || ws_req_nonce;
       if (isNaN(info.orderbook.req_id))
         info.orderbook.req_id = info.orderbook.req_id.replaceAll('<market>', market.ws);
     
@@ -1103,6 +1104,7 @@ async function syncronizer () {
       )
       .then(r => r.json())
       .then(r => {
+        // console.log('Raw markets response:',r);
         if (r?.[exc.rest.error.key] != undefined) {
           let really_an_error = false;
           
@@ -1117,7 +1119,7 @@ async function syncronizer () {
           if (really_an_error) throw { endpoint: 'available_pairs', error: r };
         }
 
-        r = (r?.[exc.rest.endpoints.available_pairs.response.data_inside] || r);
+        r = (exc.rest.endpoints.available_pairs.response.data_inside.split('.').reduce((f, k) => f = f?.[k], r) || r);
 
         if (!Array.isArray(r)) 
           raw_markets = Object.keys(r).reduce((sum, k) => [ ...sum, { __key: k, ...r[k] } ], []);
@@ -1186,12 +1188,12 @@ async function syncronizer () {
     
             if (really_an_error) throw { endpoint: 'available_pairs', error: r };
           }
-            
-          // console.log('init_trades response:',r);
+          // console.log('Raw init_trades response:',r);
+
           if (exc.rest.endpoints.trades.response.get_first_value)
             r = Object.values(r)[0];
           else
-            r = (r?.[exc.rest.endpoints.trades.response.data_inside] || r);
+            r = (exc.rest.endpoints.trades.response.data_inside.split('.').reduce((f, k) => f = f?.[k], r) || r);
     
           if (exc.rest.endpoints.trades.response.foreach_concat_inside != undefined) {
             const ck = exc.rest.endpoints.trades.response.foreach_concat_inside; // concat key
@@ -1242,7 +1244,8 @@ async function syncronizer () {
         obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
 
       if (exc.trades_custom_id)
-        obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
+        obj.custom_id = '' + obj.timestamp + obj.is_buy + obj.price + obj.amount;
+        // obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
 
       const _pagination = exc.rest.endpoints.trades.response.pagination;
       if (_pagination?.page_id != undefined)
@@ -1316,7 +1319,8 @@ async function syncronizer () {
               obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
         
             if (exc.trades_custom_id)
-              obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
+              obj.custom_id = '' + obj.timestamp + obj.is_buy + obj.price + obj.amount;
+              // obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
         
             const _pagination = exc.rest.endpoints.trades.response.pagination;
             if (_pagination?.page_id != undefined)
@@ -1400,7 +1404,8 @@ async function syncronizer () {
               obj.trade_id = t[exc.rest.endpoints.trades.response.trade_id_key];
         
             if (exc.trades_custom_id)
-              obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
+              obj.custom_id = '' + obj.timestamp + obj.is_buy + obj.price + obj.amount;
+              // obj.custom_id = Object.values(t).filter(v => v != obj.trade_id).join('');
         
             const _pagination = exc.rest.endpoints.trades.response.pagination;
             if (_pagination?.page_id != undefined)
@@ -1436,8 +1441,8 @@ async function syncronizer () {
       return trades.every(rt => rt[_key] != t[_key]);
     });
 
-    console.log('cached trades:',trades_upd_cache);
     console.log('trades from init_trades:',trades);
+    console.log('cached trades:',trades_upd_cache);
 
     // Apply cached trades updates.
     if (trades_upd_cache.length > 0) {

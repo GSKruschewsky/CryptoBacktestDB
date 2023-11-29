@@ -1,0 +1,132 @@
+{
+  "separator": "",
+  "makert_prefix": null,
+  "is_market_upper": true,
+  "trades_custom_id": true,
+  "timestamp_in_micro": null,
+  "timestamp_in_seconds": null,
+  "timestamp_ISO_format": null,
+  "rest": {
+    "url": "https://api-testnet.bybit.com/",
+    "timeout": 15000,
+    "error": {
+      "key": "retCode",
+      "value_not": "0"
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/v5/market/instruments-info?category=spot",
+        "response": {
+          "data_inside": "result.list",
+          "symbol": "symbol",
+          "status_key": "status",
+          "status_active": "Trading"
+        }
+      },
+      "orderbook": null,
+      "trades": {
+        "path": "/v5/market/recent-trade?category=spot&symbol=<market>",
+        "response": {
+          "data_inside": "result.list",
+          "newer_first": true,
+          "trade_id_key": null,
+          "timestamp": "time",
+          "is_buy_key": "side",
+          "is_buy_value": "Buy",
+          "price": "price",
+          "amount": "size",
+          "pagination": null
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://stream.bybit.com/v5/public/spot",
+    "timeout": 15000,
+    "error": {
+      "key": "success",
+      "value_not": true
+    },
+    "ping": {
+      "request": "{\"op\":\"ping\"}",
+      "response": {
+        "id": "ret_msg",
+        "id_value": "pong"
+      }
+    },
+    "to_send_before_subcriptions": null,
+    "subcriptions": {
+      "orderbook_snap": null,
+      "orderbook": {
+        "request": "{\"req_id\":\"<ws_req_id>\",\"op\":\"subscribe\",\"args\":[\"orderbook.50.<market>\"]}",
+        "response": {
+          "is_object": false,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "ret_msg",
+          "id_value": "subscribe",
+          "channel_id_key": null,
+          "channel_id_val": null
+        },
+        "snapshot": {
+          "its_first_update": null,
+          "identifier_key": "type",
+          "identifier_value": "snapshot",
+          "asks_and_bids_together": null
+        },
+        "update": {
+          "ignore_if": null,
+          "channel_id_key": "topic",
+          "channel_id": "orderbook.50.<market>",
+          "data_inside": null,
+          "updates_inside": "data",
+          "asks_and_bids_together": null,
+          "is_bids_positive_amount": null,
+          "asks": "a",
+          "bids": "b",
+          "pl": {
+            "price": "0",
+            "amount": "1",
+            "is_bids_key": null,
+            "is_bids_value": null,
+            "to_remove_key": null,
+            "to_remove_value": null
+          },
+          "timestamp": "ts",
+          "first_upd_nonce_key": null,
+          "last_upd_nonce_key": "u"
+        }
+      },
+      "trades": {
+        "request": "{\"req_id\":\"<ws_req_id>\",\"op\":\"subscribe\",\"args\":[\"publicTrade.<market>\"]}",
+        "response": {
+          "is_object": false,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "ret_msg",
+          "id_value": "subscribe",
+          "channel_id_key": null,
+          "channel_id_val": null
+        },
+        "update": {
+          "ignore_if": null,
+          "ignore_first_update": null,
+          "receive_separately_trades_as_obj": false,
+          "id_should_be_higher": true,
+          "channel_id_key": "topic",
+          "channel_id": "publicTrade.<market>",
+          "data_inside": "data",
+          "updates_inside": null,
+          "trade_id_key": "i",
+          "timestamp": "T",
+          "is_buy_key": "S",
+          "is_buy_value": "Buy",
+          "price": "p",
+          "amount": "v"
+        }
+      }
+    },
+    "other_updates": null,
+    "msgs_to_ignore": null
+  }
+}

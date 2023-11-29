@@ -2,6 +2,7 @@
   "separator": "",
   "makert_prefix": null,
   "is_market_upper": null,
+  "trades_custom_id": null,
   "timestamp_in_micro": null,
   "timestamp_in_seconds": null,
   "timestamp_ISO_format": null,
@@ -35,6 +36,7 @@
         "path": "",
         "response": {
           "newer_first": false,
+          "data_inside": null,
           "trade_id_key": "",
           "timestamp": "",
           "is_buy_key": "",
