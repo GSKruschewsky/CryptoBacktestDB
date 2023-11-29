@@ -44,8 +44,8 @@
           "price": "",
           "amount": "",
           "pagination": {
-            "check_for_newer": ,
-            "max_arr_size": ,
+            "check_for_newer": null,
+            "max_arr_size": null,
             "to_del_url": "",
             "to_add_url": "",
             "page_id": ""
@@ -98,6 +98,7 @@
       "orderbook": {
         "request": "",
         "response": {
+          "include_snapshot": null,
           "is_object": null,
           "object_id_key": null,
           "object_id_value": null,
@@ -158,7 +159,7 @@
           "trade_id_key": "",
           "timestamp": "",
           "is_buy_key": "",
-          "is_buy_value": ,
+          "is_buy_value": null,
           "price": "",
           "amount": ""
         }
@@ -167,6 +168,8 @@
     "other_updates": {
       "ping": {
         "identifier_key": "",
+        "identifier_value": "",
+        "to_delete_from_object": [],
         "replace_and_respond": false,
         "to_replace": "",
         "replace_with": ""

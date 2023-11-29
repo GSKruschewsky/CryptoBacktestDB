@@ -1,0 +1,129 @@
+{
+  "separator": "_",
+  "makert_prefix": null,
+  "is_market_upper": true,
+  "trades_custom_id": null,
+  "timestamp_in_micro": null,
+  "timestamp_in_seconds": null,
+  "timestamp_ISO_format": null,
+  "rest": {
+    "url": "https://api.crypto.com",
+    "timeout": 15000,
+    "error": {
+      "key": "code",
+      "value_not": "0"
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/v2/public/get-instruments",
+        "response": {
+          "data_inside": "result.instruments",
+          "symbol": "instrument_name",
+          "status_key": null,
+          "status_active": null
+        }
+      },
+      "orderbook": null,
+      "trades": {
+        "path": "/exchange/v1/public/get-trades?instrument_name=BTC_USDT&count=1000",
+        "response": {
+          "newer_first": true,
+          "data_inside": "result.data",
+          "trade_id_key": "d",
+          "timestamp": "t",
+          "is_buy_key": "s",
+          "is_buy_value": "buy",
+          "price": "p",
+          "amount": "q",
+          "pagination": {
+            "check_for_newer": false,
+            "max_arr_size": 1000,
+            "to_del_url": null,
+            "to_add_url": "&end_ts=<page_id>",
+            "page_id": "t"
+          }
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://stream.crypto.com/v2/market",
+    "timeout": 15000,
+    "error": {
+      "key": "code",
+      "value_not": "0"
+    },
+    "ping": null,
+    "to_send_before_subcriptions": null,
+    "subcriptions": {
+      "orderbook_snap": {
+        "request": "{\"id\":<ws_req_id>,\"method\":\"subscribe\",\"params\":{\"channels\":[\"book.<market>\"]}}",
+        "response": {
+          "include_snapshot": false,
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": null,
+          "channel_id_val": null
+        },
+        "update": {
+          "channel_id_key": "result.channel",
+          "channel_id": "book",
+          "data_inside": "result.data.0",
+          "asks": "asks",
+          "bids": "bids",
+          "pl": {
+            "price": "0",
+            "amount": "1"
+          },
+          "timestamp": "tt",
+          "last_upd_nonce_key": "u"
+        }
+      },
+      "orderbook": null,
+      "trades": {
+        "request": "{\"id\":<ws_req_id>,\"method\":\"subscribe\",\"params\":{\"channels\":[\"trade.<market>\"]}}",
+        "response": {
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": null,
+          "channel_id_val": null
+        },
+        "update": {
+          "ignore_if": null,
+          "ignore_first_update": null,
+          "receive_separately_trades_as_obj": false,
+          "id_should_be_higher": false,
+          "channel_id_key": "result.channel",
+          "channel_id": "trade",
+          "data_inside": "result.data",
+          "updates_inside": null,
+          "trade_id_key": "d",
+          "timestamp": "t",
+          "is_buy_key": "s",
+          "is_buy_value": "BUY",
+          "price": "p",
+          "amount": "q"
+        }
+      }
+    },
+    "other_updates": {
+      "ping": {
+        "identifier_key": "method",
+        "identifier_value": "public/heartbeat",
+        "to_delete_from_object": [ "code" ],
+        "replace_and_respond": true,
+        "to_replace": "public/heartbeat",
+        "replace_with": "public/respond-heartbeat"
+      }
+    },
+    "msgs_to_ignore": [
+
+    ]
+  }
+}

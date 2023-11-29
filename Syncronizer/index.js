@@ -45,7 +45,7 @@ if (args.length !== 4) {
 // [*] okx-spot
 // [*] htx-spot (huobi)
 // [*] mexc-spot
-// [ ] bybit-spot
+// [*] bybit-spot
 // [ ] kucoin-spot
 
 let exchange = args[0];
@@ -195,6 +195,7 @@ function handle_orderbook_msg (msg, _prom, _ws, ws) {
 
 function handle_trades_msg (msg, _ws) {
   // console.log('Trades update:',msg);
+  
   if (msg == null) return; // Ignore.
   const _t_upd = _ws.subcriptions.trades.update;
 
@@ -562,7 +563,7 @@ function connect (_ws) {
   }
 
   // Se não temos um 'orderbook.response', 'info.orderbook.channel_id' deve ser definido aqui.
-  if (_ws.not_handle_orderbook !== true && _ws.subcriptions?.orderbook?.response == undefined) 
+  if (_ws.not_handle_orderbook !== true && _ws.subcriptions.orderbook != undefined && _ws.subcriptions.orderbook.response == undefined) 
     info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id
       .replaceAll('<market>', market.ws);
 
@@ -905,7 +906,7 @@ function connect (_ws) {
         }
   
         return handle_orderbook_msg(
-          format_orderbook_msg(msg?.[_ws.subcriptions.orderbook.update.data_inside] || msg, _ws),
+          format_orderbook_msg((_ws.subcriptions.orderbook.update.data_inside.split('.').reduce((f, k) => f?.[k], msg) || msg), _ws),
           _prom, 
           _ws
         );
@@ -952,7 +953,7 @@ function connect (_ws) {
         }
   
         return handle_orderbook_msg(
-          format_orderbook_msg(msg?.[_ws.subcriptions.orderbook_snap.update.data_inside] || msg, _ws, true),
+          format_orderbook_msg((_ws.subcriptions.orderbook_snap.update.data_inside.split('.').reduce((f, k) => f?.[k], msg) || msg), _ws, true),
           _prom, 
           _ws
         );
@@ -962,7 +963,7 @@ function connect (_ws) {
     // Handle 'trades' message.
     if (_ws.not_handle_trades !== true && _ws.subcriptions.trades != undefined) {
       let _channel_id = null;
-      if (!isNaN(_ws.subcriptions.trades?.update?.channel_id_key)) {
+      if ((!isNaN(_ws.subcriptions.trades?.update?.channel_id_key)) && _ws.subcriptions.trades?.update?.channel_id_key != "") {
         if (Big(_ws.subcriptions.trades.update.channel_id_key).abs().gt(msg.length || -1))
           _channel_id = undefined
         else
@@ -1000,8 +1001,14 @@ function connect (_ws) {
           // Handle the update.
 
           if (upd.replace_and_respond) {
-            let msg_to_respond = JSON.stringify(msg)
+            let msg_to_respond = JSON.parse(JSON.stringify(msg));
+
+            for (const key of (upd.to_delete_from_object || []))
+              delete msg_to_respond[key];
+
+            msg_to_respond = JSON.stringify(msg_to_respond)
             .replace(upd.to_replace, upd.replace_with);
+
             ws.send(msg_to_respond);
             return;
           }
@@ -1345,7 +1352,7 @@ async function syncronizer () {
         console.log('[!] Got all necessary trades: trades_resp_arr_size=',trades_resp_arr_size);
 
       } else {
-        // Check for oler trades
+        // Check for older trades
         console.log('since=',since);
         console.log('(since - 1e3)=',since - 1e3);
         let older_trade = trades[0];
