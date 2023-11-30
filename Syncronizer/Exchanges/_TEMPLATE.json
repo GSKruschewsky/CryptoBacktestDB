@@ -77,9 +77,9 @@
           "object_id_key": null,
           "object_id_value": null,
           "id": "",
-          "id_value": "",
-          "channel_id_key": "",
-          "channel_id_val": ""
+          "id_value": null,
+          "channel_id_key": null,
+          "channel_id_val": null
         },
         "update": {
           "channel_id_key": "",
@@ -99,13 +99,14 @@
         "request": "",
         "response": {
           "include_snapshot": null,
+          "acum_list": null,
           "is_object": null,
           "object_id_key": null,
           "object_id_value": null,
           "id": "",
-          "id_value": "",
-          "channel_id_key": "",
-          "channel_id_val": ""
+          "id_value": null,
+          "channel_id_key": null,
+          "channel_id_val": null
         },
         "snapshot": {
           "its_first_update": null,
@@ -139,13 +140,14 @@
       "trades": {
         "request": "",
         "response": {
+          "acum_list": null,
           "is_object": null,
           "object_id_key": null,
           "object_id_value": null,
           "id": "",
-          "id_value": "",
-          "channel_id_key": "",
-          "channel_id_val": ""
+          "id_value": null,
+          "channel_id_key": null,
+          "channel_id_val": null
         },
         "update": {
           "ignore_if": null,

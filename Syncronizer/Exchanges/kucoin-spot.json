@@ -1,0 +1,173 @@
+{
+  "separator": "-",
+  "makert_prefix": null,
+  "is_market_upper": true,
+  "trades_custom_id": null,
+  "timestamp_in_nano": null,
+  "timestamp_in_micro": null,
+  "timestamp_in_seconds": null,
+  "timestamp_ISO_format": null,
+  "rest": {
+    "url": "https://api.kucoin.com",
+    "timeout": 15000,
+    "error": {
+      "key": "code",
+      "value_not": "200000"
+    },
+    "auth": {
+      "nonce_to_eval": "Date.now()",
+      "algo": "sha256",
+      "message": "<nonce>GET<path><body>",
+      "digest_to": "base64",
+      "sign_pass": true,
+      "encode_sign_pass": true,
+      "is_nonce_header_str": true,
+      "headers": {
+        "signature": "KC-API-SIGN",
+        "nonce": "KC-API-TIMESTAMP",
+        "api_key": "KC-API-KEY",
+        "api_pass": "KC-API-PASSPHRASE",
+        "extras": [
+          [ "KC-API-KEY-VERSION", "2" ]
+        ]
+      }
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/api/v2/symbols",
+        "response": {
+          "data_inside": "data",
+          "symbol": "symbol",
+          "status_key": "enableTrading",
+          "status_active": true
+        }
+      },
+      "orderbook": {
+        "require_auth": true,
+        "path": "/api/v3/market/orderbook/level2?symbol=<market>",
+        "response": {
+          "data_inside": "data",
+          "asks": "asks",
+          "bids": "bids",
+          "timestamp": "time",
+          "last_update_nonce": "sequence"
+        }
+      },
+      "trades": {
+        "path": "/api/v1/market/histories?symbol=<market>",
+        "response": {
+          "newer_first": false,
+          "data_inside": "data",
+          "trade_id_key": "sequence",
+          "timestamp": "time",
+          "timestamp_in_nano": true,
+          "is_buy_key": "side",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "size",
+          "pagination": null
+        }
+      },
+      "prepare_for_ws": {
+        "method": "POST",
+        "path": "/api/v1/bullet-public",
+        "response": {
+          "data_inside": "data",
+          "ws_token_key": "token",
+          "ws_url_key": "instanceServers.0.endpoint",
+          "ws_ping_interval_key": "instanceServers.0.pingInterval"
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": null,
+    "timeout": 15000,
+    "error": {
+      "key": "type",
+      "value": "error"
+    },
+    "ping": {
+      "request": "{\"id\":\"<ws_req_id>\",\"type\":\"ping\"}",
+      "response": {
+        "id": "type",
+        "id_value": "pong"
+      }
+    },
+    "to_send_before_subcriptions": null,
+    "subcriptions": {
+      "orderbook_snap": null,
+      "orderbook": {
+        "request": "{\"id\":<ws_req_id>,\"type\":\"subscribe\",\"topic\":\"/market/level2:<market>\",\"response\":true}",
+        "response": {
+          "include_snapshot": null,
+          "acum_list": null,
+          "is_object": true,
+          "object_id_key": "type",
+          "object_id_value": "ack",
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": null,
+          "channel_id_val": null
+        },
+        "snapshot": null,
+        "update": {
+          "ignore_if": null,
+          "channel_id_key": "topic",
+          "channel_id": "/market/level2:<market>",
+          "data_inside": "data",
+          "updates_inside": "changes",
+          "asks_and_bids_together": null,
+          "is_bids_positive_amount": null,
+          "asks": "asks",
+          "bids": "bids",
+          "pl": {
+            "price": "0",
+            "amount": "1",
+            "is_bids_key": null,
+            "is_bids_value": null,
+            "to_remove_key": null,
+            "to_remove_value": null
+          },
+          "timestamp": "time",
+          "first_upd_nonce_key": "sequenceStart",
+          "last_upd_nonce_key": "sequenceEnd"
+        }
+      },
+      "trades": {
+        "request": "{\"id\":<ws_req_id>,\"type\":\"subscribe\",\"topic\":\"/market/match:<market>\",\"response\":true}",
+        "response": {
+          "acum_list": null,
+          "is_object": true,
+          "object_id_key": "type",
+          "object_id_value": "ack",
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": null,
+          "channel_id_val": null
+        },
+        "update": {
+          "ignore_if": null,
+          "ignore_first_update": null,
+          "receive_separately_trades_as_obj": true,
+          "id_should_be_higher": false,
+          "channel_id_key": "topic",
+          "channel_id": "/market/match:<market>",
+          "data_inside": "data",
+          "updates_inside": null,
+          "trade_id_key": "tradeId",
+          "timestamp": "time",
+          "timestamp_in_nano": true,
+          "is_buy_key": "side",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "size"
+        }
+      }
+    },
+    "other_updates": null,
+    "msgs_to_ignore": [
+      [ "type", "welcome" ]
+    ]
+  }
+}
