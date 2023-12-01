@@ -71,6 +71,7 @@
     "to_send_before_subcriptions": null,
     "subcriptions": {
       "orderbook_snap": {
+        "is_subscribed_from_scratch": null,
         "request": "",
         "response": {
           "is_object": null,
@@ -96,6 +97,7 @@
         }
       },
       "orderbook": {
+        "is_subscribed_from_scratch": null,
         "request": "",
         "response": {
           "include_snapshot": null,
@@ -138,6 +140,7 @@
         }
       },
       "trades": {
+        "is_subscribed_from_scratch": null,
         "request": "",
         "response": {
           "acum_list": null,

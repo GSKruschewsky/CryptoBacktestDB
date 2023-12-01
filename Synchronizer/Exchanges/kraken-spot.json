@@ -35,7 +35,6 @@
           "pagination": {
             "check_for_newer": true,
             "max_arr_size": 1000,
-            "newer_first": false,
             "to_del_url": "<since>",
             "to_add_url": "<page_id>",
             "page_id": "2"

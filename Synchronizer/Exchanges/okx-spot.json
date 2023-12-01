@@ -31,7 +31,6 @@
           "amount": "sz",
           "pagination": {
             "max_arr_size": 100,
-            "newer_first": true,
             "to_add_url": "&type=1&before=<page_id>",
             "page_id": "tradeId"
           }

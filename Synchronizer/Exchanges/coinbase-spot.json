@@ -29,7 +29,6 @@
           "price": "price",
           "amount": "size",
           "pagination": {
-            "newer_first": true,
             "to_add_url": "?after=<page_id>",
             "page_id": "trade_id"
           }

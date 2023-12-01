@@ -45,6 +45,7 @@
     },
     "subcriptions": {
       "orderbook": {
+        "is_subscribed_from_scratch": true,
         "snapshot": {
           "identifier_key": "events.0.reason",
           "identifier_value": "initial",
@@ -65,6 +66,7 @@
         }
       },
       "trades": {
+        "is_subscribed_from_scratch": true,
         "update": {
           "channel_id_key": "events.0.type",
           "channel_id": "trade",

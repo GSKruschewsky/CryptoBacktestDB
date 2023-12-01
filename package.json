@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "sync": "node --no-warnings Syncronizer/index.js"
+    "sync": "node --no-warnings Synchronizer/index.js"
   },
   "author": "",
   "license": "ISC",

@@ -14,7 +14,7 @@ Utilizaremos o seguintes modulos NPM:
   ws:
     Para estabelecer conexões através do WebSocket das exchanges.
 
-  Syncornizer: 
+  Synchronizer:
     Para sincronização dos dados de diferentes mercados em difertentes corretoras.
 
   big.js:
