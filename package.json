@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "sync": "node --no-warnings index.js",
-    "test": "node --no-warnings test_class.js"
+    "sync": "node --no-warnings index.js"
   },
   "author": "",
   "license": "ISC",
