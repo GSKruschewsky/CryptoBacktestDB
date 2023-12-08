@@ -19,8 +19,9 @@
         }
       },
       "trades": {
-        "path": "/market/history/trade?symbol=<market>&size=2000",
+        "path": "/market/history/trade?symbol=<market>&size=200",
         "response": {
+          "response_time": "ts",
           "data_inside": "data",
           "foreach_concat_inside": "data",
           "trade_id_key": "trade-id",
@@ -101,8 +102,11 @@
           "channel_id_key": "subbed"
         },
         "update": {
+          "id_should_be_higher": true,
+          "reiceve_array_w_newer_first": true,
           "channel_id_key": "ch",
           "data_inside": "tick.data",
+          "trade_id_key": "tradeId",
           "timestamp": "ts",
           "is_buy_key": "direction",
           "is_buy_value": "buy",

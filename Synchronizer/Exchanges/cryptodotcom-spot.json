@@ -25,10 +25,10 @@
       },
       "orderbook": null,
       "trades": {
-        "path": "/exchange/v1/public/get-trades?instrument_name=BTC_USDT&count=1000",
+        "path": "/exchange/v1/public/get-trades?instrument_name=<market>&count=1000",
         "response": {
-          "newer_first": true,
           "data_inside": "result.data",
+          "sort_key": "d",
           "trade_id_key": "d",
           "timestamp": "t",
           "is_buy_key": "s",
@@ -98,7 +98,7 @@
           "ignore_if": null,
           "ignore_first_update": null,
           "receive_separately_trades_as_obj": false,
-          "id_should_be_higher": false,
+          "id_should_be_higher": true,
           "channel_id_key": "result.channel",
           "channel_id": "trade",
           "data_inside": "result.data",

@@ -20,14 +20,21 @@
         }
       },
       "trades": {
-        "path": "/api/v3/trades?symbol=<market>&limit=1000",
+        "path": "/api/v3/aggTrades?symbol=<market>&limit=1000&endTime=<now>&startTime=<since>",
         "response": {
           "newer_first": true,
-          "timestamp": "time",
-          "is_buy_key": "isBuyerMaker",
+          "timestamp": "T",
+          "is_buy_key": "m",
           "is_buy_value": false,
-          "price": "price",
-          "amount": "qty"
+          "price": "p",
+          "amount": "q",
+          "pagination": {
+            "check_for_newer": true,
+            "max_arr_size": 1000,
+            "to_del_url": "<since>",
+            "to_add_url": "<page_id>",
+            "page_id": "T"
+          }
         }
       },
       "orderbook": {

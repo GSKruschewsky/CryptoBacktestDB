@@ -60,19 +60,19 @@
         },
         "snapshot": {
           "identifier_key": "bs",
-          "channel_id_key": 2,
+          "channel_id_key": "2",
           "asks": "as",
           "bids": "bs"
         },
         "update": {
           "data_inside": "1,-2",
-          "channel_id_key": -2,
+          "channel_id_key": "-2",
           "asks": "a",
           "bids": "b",
           "pl": {
-            "price": 0,
-            "amount": 1,
-            "timestamp": 2
+            "price": "0",
+            "amount": "1",
+            "timestamp": "2"
           }
         }
       },
@@ -84,6 +84,7 @@
         },
         "update": {
           "data_inside": "1",
+          "id_should_be_higher": true,
           "channel_id_key": "2",
           "timestamp": "2",
           "is_buy_key": "3",

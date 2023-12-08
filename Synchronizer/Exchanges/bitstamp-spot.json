@@ -2,7 +2,7 @@
   "separator": "",
   "is_market_upper": false,
   "rest": {
-    "url": "https://www.bitstamp.net/",
+    "url": "https://www.bitstamp.net",
     "timeout": 15000,
     "error": {
       "key": "response_code"
@@ -22,7 +22,7 @@
           "trade_id_key": "tid",
           "newer_first": true,
           "timestamp": "date",
-          "timestamp_in_seconds": "date",
+          "timestamp_in_seconds": true,
           "is_buy_key": "type",
           "is_buy_value": "0",
           "price": "price",
@@ -95,6 +95,7 @@
           "data_inside": "data",
           "receive_separately_trades_as_obj": true,
           "trade_id_key": "id",
+          "id_should_be_higher": true,
           "timestamp": "microtimestamp",
           "timestamp_in_micro": true,
           "is_buy_key": "type",

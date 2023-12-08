@@ -150,7 +150,7 @@
           "ignore_if": null,
           "ignore_first_update": null,
           "receive_separately_trades_as_obj": true,
-          "id_should_be_higher": false,
+          "id_should_be_higher": true,
           "channel_id_key": "topic",
           "channel_id": "/market/match:<market>",
           "data_inside": "data",

@@ -1,60 +1,72 @@
-// import { version, exchanges } from 'ccxt';
-// console.log(version, Object.keys(exchanges));
+import Big from 'big.js';
+import Syncronizer from "./Synchronizer/index.js";
 
-import { pro as ccxt } from 'ccxt';
-const { log } = console;
+let args = process.argv.slice(2); // Get command-line arguments, starting from index 2
 
-(async () => {
-  const [ _exchange, base, quote ] = process.argv.slice(2);
-  const exchange = _exchange.toLowerCase();
-  const market = (`${base}/${quote}`).toUpperCase();
+if (args.length !== 3 && args.length !== 4) {
+  console.log("Usage: npm sync <exchange> <base> <quote> <delay_time_in_seconds (optional, default= 1)>");
+  process.exit(1);
+}
 
-  try {
-    if (!ccxt.exchanges.includes(exchange))
-      throw new Error('Invalid exchange.', 400);
+let sync = new Syncronizer(...args);
 
-    const exc = new ccxt[exchange]({ newUpdates: true });
-    
-    if (!exc.has.ws)
-      throw new Error('Exchange implementation do not support websocket.', 500);
+sync.on('newSecond', function (data_time, not_first) {
+  /*
+  const trades_to_post = sync.trades
+    .filter(t => 
+      Big(t.timestamp).gt((data_time - 1) * 1e3) &&
+      Big(t.timestamp).lte(data_time * 1e3)
+    )
+    .map(t => {
+      delete t.trade_id;
+      delete t.custom_id;
+      return t;
+    });
 
-    if (!exc.has.watchTrades)
-      throw new Error('Exchange implementation do not support trades synchronization.', 500);
+  const orderbook_to_post = sync.orderbooks.find(ob => Big(ob.timestamp).lte(data_time * 1e3));
 
-    if (!exc.has.watchOrderBook)
-      throw new Error('Exchange implementation do not support orderbook synchronization.', 500);
-
-    const markets = await exc.loadMarkets();
-
-    if (!markets[market])
-      throw new Error('Invalid market.', 400);
-
-    const market_info = markets[market];
-
-    if (!market_info.active)
-      throw new Error('Market is not active.', 500);
-
-    // // Sync with the orderbook.
-    // const orderbook = await exc.watchOrderBook(market, 25);
-    // setInterval(() => {
-    //   console.log('orderbook:',orderbook);
-    // }, 1e3);
-
-    // Sync with trades
-    let trades = null, tradesLoopTimeout;
-    const tradesLoop = async () => {
-      const now = Date.now();
-      const ms = now % 1000;
-
-      tradesLoopTimeout = setTimeout(tradesLoop, 1000 - ms);
-      
-      trades = await exc.watchTrades(market, now - ms);
-      console.log(`${now} - (${trades.length}) trades.`);
-    };
-    tradesLoopTimeout = setTimeout(tradesLoop, 1000 - Date.now() % 1000);
-
-  } catch (err) {
-    log('[E] Starting data collector:',err);
+  if (orderbook_to_post) {
+    console.log({
+      asks: orderbook_to_post?.asks?.slice(0, 5),
+      bids: orderbook_to_post?.bids?.slice(0, 5),
+      book_timestamp: orderbook_to_post?.timestamp,
+      trades: trades_to_post,
+      second: data_time,
+      timestamp
+    });
   }
-})();
+  */
 
+  if (sync.orderbooks.length > 0) {
+    const first_book_time = sync.orderbooks.slice(-1)[0].timestamp;
+    const synced_trades_since = sync.info.trades.synced_since;
+
+    let first_sec_ready_to_post = Math.ceil(Math.min(first_book_time / 1e3, synced_trades_since / 1e3 + 1));
+    while (first_sec_ready_to_post < first_book_time / 1e3 || first_sec_ready_to_post < synced_trades_since / 1e3 + 1)
+      ++first_sec_ready_to_post;
+
+    console.log('Started sync at:',started_at,'\n');
+
+    console.log('First 5 orderbooks saved:',sync.orderbooks.slice(-5).map(ob => ob.timestamp),'\n');
+
+    console.log('First orderbook:',first_book_time);
+    console.log('Synced trades since:',synced_trades_since,'\n');
+
+    console.log('First sec to post:',first_sec_ready_to_post,'\n');
+
+    console.log('Took:',(first_sec_ready_to_post * 1e3 - started_at)+'ms','\n');
+
+    if (not_first && data_time - 1 != first_sec_ready_to_post) {
+      console.log('data_time:',data_time);
+      console.log('first_sec_ready_to_post:',first_sec_ready_to_post);
+      process.exit();
+    }
+  }
+});
+
+let started_at = Date.now();
+
+sync.initiate()
+  .catch(error => {
+    console.log('Error:',error);
+  });

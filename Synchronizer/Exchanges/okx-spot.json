@@ -31,7 +31,7 @@
           "amount": "sz",
           "pagination": {
             "max_arr_size": 100,
-            "to_add_url": "&type=1&before=<page_id>",
+            "to_add_url": "&type=1&after=<page_id>",
             "page_id": "tradeId"
           }
         }
@@ -100,9 +100,11 @@
           "id_value": "trades"
         },
         "update": {
-          "data_inside": "data",
+          "id_should_be_higher": true,
           "channel_id_key": "arg.channel",
           "channel_id": "trades",
+          "data_inside": "data",
+          "trade_id_key": "tradeId",
           "timestamp": "ts",
           "is_buy_key": "side",
           "is_buy_value": "buy",

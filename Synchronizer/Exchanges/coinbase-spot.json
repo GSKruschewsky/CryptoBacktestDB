@@ -92,6 +92,8 @@
         "request": "{\"type\":\"subscribe\",\"product_ids\":[\"<market>\"],\"channels\":[\"matches\"]}",
         "response": {
           "acum_list": true,
+          "list_id_key": "type",
+          "list_id_value": "subscriptions",
           "list_inside": "channels",
           "id": "name",
           "id_value": "matches"
@@ -99,6 +101,7 @@
         "update": {
           "trade_id_key": "trade_id",
           "receive_separately_trades_as_obj": true,
+          "id_should_be_higher": true,
           "channel_id_key": "type",
           "channel_id": "match",
           "timestamp": "time",

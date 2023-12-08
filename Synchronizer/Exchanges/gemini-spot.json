@@ -68,6 +68,7 @@
       "trades": {
         "is_subscribed_from_scratch": true,
         "update": {
+          "id_should_be_higher": true,
           "channel_id_key": "events.0.type",
           "channel_id": "trade",
           "trades_inside": "events",
