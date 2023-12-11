@@ -24,6 +24,7 @@
           "trade_id_key": "trade_id",
           "newer_first": true,
           "timestamp": "time",
+          "get_timestamp_us_from_iso": true,
           "is_buy_key": "side",
           "is_buy_value": "buy",
           "price": "price",
@@ -37,7 +38,7 @@
     }
   },
   "ws": {
-    "url": "wss://ws-feed.exchange.coinbase.com",
+    "url": [ "wss://ws-feed.exchange.coinbase.com", "wss://ws-direct.exchange.coinbase.com" ],
     "timeout": 15000,
     "error": {
       "key": "type",
@@ -69,6 +70,7 @@
           "identifier_value": "snapshot",
           "asks": "asks",
           "bids": "bids",
+          "get_timestamp_us_from_iso": true,
           "pl": {
             "price": "0",
             "amount": "1"
@@ -80,6 +82,7 @@
           "channel_id": "l2update",
           "asks_and_bids_together": true,
           "timestamp": "time",
+          "get_timestamp_us_from_iso": true,
           "pl": {
             "price": "1",
             "amount": "2",
@@ -89,7 +92,8 @@
         }
       },
       "trades": {
-        "request": "{\"type\":\"subscribe\",\"product_ids\":[\"<market>\"],\"channels\":[\"matches\"]}",
+        "request": "{\"type\":\"subscribe\",\"product_ids\":[\"<market>\"],\"channels\":[\"matches\"],\"signature\":\"<signature>\",\"key\":\"<api_key>\",\"passphrase\":\"<api_pass>\",\"timestamp\":\"<sign_nonce>\"}",
+        "require_auth": true,
         "response": {
           "acum_list": true,
           "list_id_key": "type",
@@ -105,6 +109,7 @@
           "channel_id_key": "type",
           "channel_id": "match",
           "timestamp": "time",
+          "get_timestamp_us_from_iso": true,
           "is_buy_key": "side",
           "is_buy_value": "buy",
           "price": "price",

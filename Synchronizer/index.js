@@ -15,37 +15,47 @@ class Synchronizer extends EventEmitter {
   constructor (exchange, base, quote, delay = 1) {
     super();
 
-    this.orderbook_depth = 20;      // Stores the max depth od the orderbook.
-    this.exchange = exchange;       // Stores the exchange name we will synchronize with.
-    this.base = base;               // Stores the 'base' of the market we will synchronize with.
-    this.quote = quote;             // Stores the 'quote' of the market we will synchronize with.
-    this.delay_in_sec = delay;      /* Sets the delay between now and the that we going to save. (Used to avoid network delay interfering w/ the data being posted)
+    this.orderbook_depth = 20;       // Stores the max depth od the orderbook.
+    this.exchange = exchange;        // Stores the exchange name we will synchronize with.
+    this.base = base;                // Stores the 'base' of the market we will synchronize with.
+    this.quote = quote;              // Stores the 'quote' of the market we will synchronize with.
+    this.delay_in_sec = delay;       /* Sets the delay between now and the that we going to save. (Used to avoid network delay interfering w/ the data being posted)
     Ex.: If 'delay_in_sec' is 1 at the timestmap 1701717880 we will post data from 1701717879, so are sure we have already received all updates of the data posted. */
     
-    this.completely_synced = false; // Stores the current STATE of the object. (Is it synchronized ?)
-    this.every_second_timeout;      // Control variable for the timeout of 'every_second()' function.
+    this.completely_synced = false;  // Stores the current STATE of the object. (Is it synchronized ?)
+    this.every_second_timeout;       // Control variable for the timeout of 'every_second()' function.
 
-    this.markets = null;            // Stores exchange available markets.
-    this.info = { };                // Stores websocket subscriptions information.
+    this.markets = null;             // Stores exchange available markets.
+    // conn.info = { };                // Stores websocket subscriptions information.
 
-    this.orderbook = null;          // Stores the current (real-time) orderbook.
-    this.orderbook_upd_cache = [];  // Store orderbook updates while the first orderbook snapshot is not defined.
+    this.orderbook = null;           // Stores the current (real-time) orderbook.
+    this.orderbook_upd_cache = [];   // Store orderbook updates while the first orderbook snapshot is not defined.
 
-    this.orderbooks = [];           // Stores the last orderbooks for each second since 'now - (delay_time_in_seconds + 2)'.
-    this.delayed_orderbook = null;  // Stores the lastest orderbook for 'now - delay_time_in_seconds'.
+    this.orderbooks = [];            // Stores the last orderbooks for each second since 'now - (delay_time_in_seconds + 2)'.
+    this.delayed_orderbook = null;   // Stores the lastest orderbook for 'now - delay_time_in_seconds'.
 
-    this.trades = null;             // Stores the last trades since 'now - (delay_time_in_seconds + 2)'.
-    this.trades_upd_cache = [];     // Stores new trades while the first trades snapshot is not defined.
+    this.trades = null;              // Stores the last trades since 'now - (delay_time_in_seconds + 2)'.
+    this.trades_upd_cache = [];      // Stores new trades while the first trades snapshot is not defined.
+    this.synced_trades_since = null; // Stores the timestamp since 'trades' are synchronized.
 
-    this.exc = null;                // Stores the exchange configuration JSON. 
-    this.api = {};                  // Stores the exchange credentials if needed.
-    this.market = {};               // Stores 2 variations (for WebScoket and REST) of the market name we will synchronize with.
-    this.ws_req_nonce = 0;          // Stores a nonce used as unique ID for request/response messaging with the WebScoket.
-    this.authenticate = null;       // Stores a function used to sign requests that require authentication.
-    this.get_auth_headers = null;   // Stores a function that returns all required authentication headers for REST requests that require authentication.
+    this.exc = null;                 // Stores the exchange configuration JSON. 
+    this.api = {};                   // Stores the exchange credentials if needed.
+    this.market = {};                // Stores 2 variations (for WebScoket and REST) of the market name we will synchronize with.
+    this.ws_req_nonce = 0;           // Stores a nonce used as unique ID for request/response messaging with the WebScoket.
+    this.authenticate = null;        // Stores a function used to sign requests that require authentication.
+    this.get_auth_headers = null;    // Stores a function that returns all required authentication headers for REST requests that require authentication.
 
-    this.ws = null;                 // Stores the primary WebSocket connection with the exchange.
-    this.ws2 = null;                // Stores the secondary WebSocket connection with the exchange if needed.
+    this.connections = [];           // Stores all WebSocket connections.
+    this.connections_num = 3;        // Sets the number of simultaneos connections it should open.
+    this.connection_tries = [];      // Stores the timestamp of the last attempts to connect to the server.
+    this.max_attemps_per_min = 3;    // Sets the maximuim connection attemps per minute to avoid flooding the server.
+    this.conn_attemp_delay = 20e3;   // Defines the minimum delay in milliseconds that we must wait to try a new connection to the server, if we have failed 'max_attemps_per_min' times.
+
+    // this.ws = null;                 // Stores the primary WebSocket connection with the exchange.
+    // this.ws2 = null;                // Stores the secondary WebSocket connection with the exchange if needed.
+
+    this.attemp_delay = {};          // Stores the attemp_delay promises.
+    this._url_nonce = 0;
   }
 
   async rest_request (endpoint, url_replaces = [], is_pagination = false) {
@@ -125,7 +135,7 @@ class Synchronizer extends EventEmitter {
     return ts;
   }
 
-  make_subscriptions (__ws, _ws, _prom) {
+  make_subscriptions (__ws, _ws, _prom, conn) {
     // Send some data before subscriptions if needed.
     if (_ws.to_send_before_subcriptions != undefined) {
       for (const data of _ws.to_send_before_subcriptions)
@@ -139,7 +149,18 @@ class Synchronizer extends EventEmitter {
           .replaceAll('<market>', this.market.ws)
           .replace('<ws_req_id>', ++this.ws_req_nonce);
         
-        this.info.trades.req_id = _ws.subcriptions.trades.response?.id_value?.replaceAll('<market>', this.market.ws) || this.ws_req_nonce;
+        conn.info.trades.req_id = _ws.subcriptions.trades.response?.id_value?.replaceAll('<market>', this.market.ws) || this.ws_req_nonce;
+
+        // If needed, authenticate the orderbook subscription request.
+        if (_ws.subcriptions.trades.require_auth) {
+          const { signature, sign_nonce } = this.authenticate();
+          
+          trades_sub_req = trades_sub_req
+          .replace('<api_key>', this.api.key)
+          .replace('<api_pass>', this.api.pass)
+          .replace('<sign_nonce>', sign_nonce)
+          .replace('<signature>', signature);
+        }
         
         __ws.send(trades_sub_req);
       }
@@ -149,13 +170,13 @@ class Synchronizer extends EventEmitter {
         _ws.subcriptions.trades?.request != undefined ||
         _ws.subcriptions.trades?.is_subscribed_from_scratch
       )) {
-        this.info.trades.is_subscribed = true;
-        console.log('[!] Successfully subscribed to trades updates.');
+        conn.info.trades.is_subscribed = true;
+        console.log('[!] ('+conn._idx+') Successfully subscribed to trades updates.');
 
         // Resolve the promise if 'not_handle_orderbook' or 'orderbook' is already successfuly subscribed.
         if (_prom && (
           _ws.not_handle_orderbook === true ||
-          this.info.orderbook?.is_subscribed === true
+          conn.info.orderbook?.is_subscribed === true
         ))
           _prom.resolve();
       }
@@ -168,7 +189,7 @@ class Synchronizer extends EventEmitter {
           .replaceAll('<market>', this.market.ws)
           .replace('<ws_req_id>', ++this.ws_req_nonce);
         
-        this.info.orderbook.req_id = _ws.subcriptions.orderbook.response?.id_value?.replaceAll('<market>', this.market.ws) || this.ws_req_nonce;
+        conn.info.orderbook.req_id = _ws.subcriptions.orderbook.response?.id_value?.replaceAll('<market>', this.market.ws) || this.ws_req_nonce;
 
         // If needed, authenticate the orderbook subscription request.
         if (_ws.subcriptions.orderbook.require_auth) {
@@ -189,19 +210,15 @@ class Synchronizer extends EventEmitter {
         _ws.subcriptions.orderbook?.request != undefined ||
         _ws.subcriptions.orderbook?.is_subscribed_from_scratch
       )) {
-        this.info.orderbook.is_upds_subscribed = true;
-        console.log('[!] Successfully subscribed to orderbook updates.');
-
-        if (this.exc.rest.endpoints.orderbook != undefined) {
-          this.info.orderbook.is_subscribed = true;
+        conn.info.orderbook.is_subscribed = true;
+        console.log('[!] ('+conn._idx+') Successfully subscribed to orderbook updates.');
           
-          // Resolve the promise if 'not_handle_trades' or 'trades' is already successfuly subscribed.
-          if (_prom && (
-            _ws.not_handle_trades === true ||
-            this.info.trades?.is_subscribed === true
-          ))
-            _prom.resolve();
-        }
+        // Resolve the promise if 'not_handle_trades' or 'trades' is already successfuly subscribed.
+        if (_prom && (
+          _ws.not_handle_trades === true ||
+          conn.info.trades?.is_subscribed === true
+        ))
+          _prom.resolve();
       }
 
       // Send 'orderbook_snap' subscription request.
@@ -210,7 +227,7 @@ class Synchronizer extends EventEmitter {
           .replaceAll('<market>', this.market.ws)
           .replace('<ws_req_id>', ++this.ws_req_nonce);
 
-        this.info.orderbook_snap.req_id = _ws.subcriptions.orderbook_snap.response?.id_value?.replaceAll('<market>', this.market.ws) || this.ws_req_nonce;
+        conn.info.orderbook_snap.req_id = _ws.subcriptions.orderbook_snap.response?.id_value?.replaceAll('<market>', this.market.ws) || this.ws_req_nonce;
         
         __ws.send(orderbook_snap_sub_req);
       }
@@ -220,23 +237,23 @@ class Synchronizer extends EventEmitter {
         _ws.subcriptions.orderbook_snap?.request != undefined ||
         _ws.subcriptions.orderbook_snap?.is_subscribed_from_scratch
       )) {
-        this.info.orderbook_snap.is_subscribed = true;
-        console.log('[!] Successfully subscribed to orderbook snapshot updates.');
+        conn.info.orderbook_snap.is_subscribed = true;
+        console.log('[!] ('+conn._idx+') Successfully subscribed to orderbook snapshot updates.');
       }
     }
   }
 
-  handle_trades_sub_resp (msg, _ws, __ws, _prom) {
+  handle_trades_sub_resp (msg, _ws, __ws, _prom, conn) {
     const _id_val = _ws.subcriptions.trades?.response?.channel_id_key?.split('.').reduce((f, k) => f?.[k], msg);
 
     if (_ws.subcriptions.trades.update.channel_id) {
-      this.info.trades.channel_id = _ws.subcriptions.trades.update.channel_id.replaceAll('<market>', this.market.ws);
+      conn.info.trades.channel_id = _ws.subcriptions.trades.update.channel_id.replaceAll('<market>', this.market.ws);
 
     } else if (_id_val != undefined && (
       _ws.subcriptions.trades.response.channel_id_val == undefined ||
       _id_val == _ws.subcriptions.trades.response.channel_id_val.replaceAll('<market>', this.market.ws)
     )) {
-      this.info.trades.channel_id = _id_val;
+      conn.info.trades.channel_id = _id_val;
       
     } else {
       if (_prom) {
@@ -255,20 +272,20 @@ class Synchronizer extends EventEmitter {
     }
 
     const now = Date.now();
-    this.info.trades.is_subscribed = true;
-    console.log('[!] Successfully subscribed to trades updates.');
-    if (this.info.trades.synced_since == null || Big(now).lt(this.info.trades.synced_since))
-      this.info.trades.synced_since = now;
+    conn.info.trades.is_subscribed = true;
+    console.log('[!] ('+conn._idx+') Successfully subscribed to trades updates.');
+    if (this.synced_trades_since == null || Big(now).lt(this.synced_trades_since))
+      this.synced_trades_since = now;
 
     // If 'not_handle_orderbook' or 'info.orderbook.is_subscribed' resolve the promise.
     if (_prom && (
       _ws.not_handle_orderbook === true || 
-      this.info.orderbook?.is_subscribed
+      conn.info.orderbook?.is_subscribed
     ))
       _prom.resolve();
   }
 
-  format_trades_msg (msg, _ws, __ws, _prom) {
+  format_trades_msg (msg, _ws, __ws, _prom, conn) {
     // This function must receive the 'trades' message and format it to the pattern below.
     // (The array must be formatted in ascending order ordered by 'timestamp')
     // [
@@ -285,8 +302,8 @@ class Synchronizer extends EventEmitter {
     const _t_upd = _ws.subcriptions.trades.update;
 
     // Checks if its the first update.
-    if (this.info.trades.received_first_update !== true) {
-      this.info.trades.received_first_update = true;
+    if (conn.info.trades.received_first_update !== true) {
+      conn.info.trades.received_first_update = true;
       
       // Ignore the first update if needed.
       if (_t_upd.ignore_first_update === true) return null;
@@ -300,7 +317,7 @@ class Synchronizer extends EventEmitter {
     // Handle 'data_inside'.
     msg = (_t_upd.data_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
 
-    // console.log('Trades msg:',msg); // carlos3
+    // console.log('Trades msg:',msg);
   
     // If receive each trade as a unique object, insert this trade into an array.
     if (_t_upd.receive_separately_trades_as_obj) msg = [ msg ];
@@ -312,15 +329,21 @@ class Synchronizer extends EventEmitter {
     // Return formated trades.
     let trades = [];
     for (const t of raw_trades) {
-      let timestamp = (_t_upd?.timestamp?.split('.')?.reduce((f, k) => f?.[k], t) || _t_upd?.timestamp?.split('.')?.reduce((f, k) => f?.[k], msg));
-      if (timestamp) timestamp = this.format_timestamp(timestamp, _t_upd);
+      const _ts = (_t_upd?.timestamp?.split('.')?.reduce((f, k) => f?.[k], t) || _t_upd?.timestamp?.split('.')?.reduce((f, k) => f?.[k], msg));
 
       let obj = {
-        timestamp,
+        timestamp: this.format_timestamp(_ts, _t_upd),
         is_buy: undefined,
         price: Big(_t_upd.price?.split('.')?.reduce((f, k) => f?.[k], t)).toFixed(),
         amount: Big(_t_upd.amount?.split('.')?.reduce((f, k) => f?.[k], t)).toFixed()
       };
+
+      // Try to define 'timestamp_us'.
+      if (_t_upd.get_timestamp_us_from_iso) {
+        obj.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+      } else if (this.exc.timestamp_in_micro || _t_upd.timestamp_in_micro) {
+        obj.timestamp_us = _ts;
+      }
 
       if (_t_upd.is_buy_key != undefined) {
         obj.is_buy = (t[_t_upd.is_buy_key] == _t_upd.is_buy_value);
@@ -362,29 +385,37 @@ class Synchronizer extends EventEmitter {
     if (this.trades == null || this.trades_upd_cache.length > 0) {
       // Add to 'trades_upd_cache' trades that not already in 'trades_upd_cache'.
 
+      const _last = this.trades_upd_cache?.slice(-1)?.[0];
+
       if (_id_key == 'trade_id' && _t_upd.id_should_be_higher)
-        update = update.filter(trade => this.trades_upd_cache.length == 0 || Big(trade[_id_key]).gt(this.trades_upd_cache.slice(-1)[0][_id_key]));
-      else
-        update = update.filter(trade => this.trades_upd_cache.every(t => t[_id_key] != trade[_id_key]));
+        update = update.filter(trade => this.trades_upd_cache.length == 0 || Big(trade[_id_key]).gt(_last[_id_key]));
+      else {
+        const _ts_key = ((this.exc.timestamp_in_micro || _t_upd.timestamp_in_micro || _t_upd.get_timestamp_us_from_iso) && _last?.timestamp_us) ? "timestamp_us" : "timestamp";
+        update = update.filter(trade => this.trades_upd_cache.length == 0 || (Big(trade[_ts_key]).gte(_last[_ts_key]) && this.trades_upd_cache.every(t => t[_id_key] != trade[_id_key])));
+      }
 
       this.trades_upd_cache = [ ...this.trades_upd_cache, ...update ];
 
     } else {
       // Add to 'trades' trades that not already in 'trades'.
+
+      const _last = this.trades?.slice(-1)?.[0];
                                                               /* Can be a trade coming from REST snapshot wo/ 'trade_id' or not. */
-      if (_id_key == 'trade_id' && _t_upd.id_should_be_higher && this.trades?.slice(-1)?.[0]?.trade_id != undefined)
-        update = update.filter(trade => this.trades.length == 0 || Big(trade[_id_key]).gt(this.trades.slice(-1)[0][_id_key]));
-      else
-        update = update.filter(trade => this.trades.every(t => t[_id_key] != trade[_id_key]));
+      if (_id_key == 'trade_id' && _t_upd.id_should_be_higher && _last?.trade_id != undefined)
+        update = update.filter(trade => this.trades.length == 0 || Big(trade[_id_key]).gt(_last[_id_key]));
+      else {
+        const _ts_key = ((this.exc.timestamp_in_micro || _t_upd.timestamp_in_micro || _t_upd.get_timestamp_us_from_iso) && _last?.timestamp_us) ? "timestamp_us" : "timestamp";
+        update = update.filter(trade => this.trades.length == 0 || (Big(trade[_ts_key]).gte(_last[_ts_key]) && this.trades.every(t => t[_id_key] != trade[_id_key])));
+      }
       
       this.trades = [ ...this.trades, ...update ];
     }
   }
 
-  handle_orderbook_sub_resp (msg, _ws, __ws, _prom, is_snap = false) {
+  handle_orderbook_sub_resp (msg, _ws, __ws, _prom, conn, is_snap = false) {
     const _ob = is_snap ? 'orderbook_snap' : 'orderbook';
     const _sub = _ws.subcriptions?.[_ob];
-    const _info = this.info[_ob];
+    const _info = conn.info[_ob];
     const _id_val = _sub?.response?.channel_id_key?.split('.').reduce((f, k) => f?.[k], msg);
 
     if (_sub?.update?.channel_id) {
@@ -413,27 +444,28 @@ class Synchronizer extends EventEmitter {
     }
 
     if (_ob == "orderbook") {
-      _info.is_upds_subscribed = true;
-      console.log('[!] Successfully subscribed to orderbook updates.');
+      _info.is_subscribed = true;
+      console.log('[!] ('+conn._idx+') Successfully subscribed to orderbook updates.');
 
-      if (this.exc.rest.endpoints.orderbook != undefined) {
-        _info.is_subscribed = true;
-
-        // If 'not_handle_trades' or 'info.trades.is_subscribed' resolve the promise.
-        if (_prom && (
-          _ws.not_handle_trades === true || 
-          this.info.trades?.is_subscribed
-        ))
-          _prom.resolve();
-      }
+      // If 'not_handle_trades' or 'info.trades.is_subscribed' resolve the promise.
+      if (_prom &&
+      (_ws.not_handle_trades === true || conn.info.trades?.is_subscribed) &&
+      (_ws.subcriptions.orderbook_snap == null || conn.info.orderbook_snap?.is_subscribed))
+        _prom.resolve();
 
     } else {
       _info.is_subscribed = true;
-      console.log('[!] Successfully subscribed to orderbook snapshot updates.');
+      console.log('[!] ('+conn._idx+') Successfully subscribed to orderbook snapshot updates.');
+
+      // If 'not_handle_trades' or 'info.trades.is_subscribed' resolve the promise.
+      if (_prom && 
+      (_ws.not_handle_trades === true || conn.info.trades?.is_subscribed) ||
+      (_ws.subcriptions.orderbook == null || conn.info.orderbook?.is_subscribed))
+        _prom.resolve();
     }
   }
 
-  format_orderbook_msg (msg, _ws, __ws, _prom, is_snap = false) {
+  format_orderbook_msg (msg, _ws, __ws, _prom, conn, is_snap = false) {
     // This function must receive the 'orderbook' message and format it to the pattern below.
     // {
     //   asks: [ [ price, amount ], ... ],
@@ -446,7 +478,7 @@ class Synchronizer extends EventEmitter {
     // console.log('Book msg:',msg);
 
     const _ob_sub = _ws.subcriptions[ is_snap ? 'orderbook_snap' : 'orderbook' ];
-    const _info = this.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
+    const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
 
     // Checks if its the first update.
     if (_info.received_first_update !== true) {
@@ -475,8 +507,8 @@ class Synchronizer extends EventEmitter {
     }
 
     // Checks if orderbook have already received first update.
-    if (this.info.orderbook._received_first_update !== true) {
-      this.info.orderbook._received_first_update = true;
+    if (conn.info.orderbook._received_first_update !== true) {
+      conn.info.orderbook._received_first_update = true;
       
       // Checks if the first update should be handled as snaphot and updates 'is_snapshot' acordly.
       if (_ob_sub.snapshot?.its_first_update === true)
@@ -487,7 +519,8 @@ class Synchronizer extends EventEmitter {
     let updates = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
     let asks = [];
     let bids = [];
-    let timestamps = [];
+    // let timestamps = [];
+    let higher_timestamp = null;
 
     if ((is_snapshot && _ob_sub.snapshot?.asks_and_bids_together) || 
     ((!is_snapshot) && _ob_sub.update?.asks_and_bids_together)) {
@@ -495,8 +528,11 @@ class Synchronizer extends EventEmitter {
         const _pl =  ((is_snapshot && _ob_sub.snapshot?.pl) || _ob_sub.update.pl);
         
         const _ts = _pl?.timestamp?.split('.')?.reduce((f, k) => f?.[k], upd);
-        if (_ts != undefined)
-          timestamps.push(this.format_timestamp(_ts, _ob_sub.update));
+        if (_ts != undefined) {
+          let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
+          if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
+            higher_timestamp = { formatted_ts, upd };
+        }
 
         let price = _pl.price?.split('.')?.reduce((f, k) => f?.[k], upd);
         let amount = _pl.amount?.split('.')?.reduce((f, k) => f?.[k], upd);
@@ -542,8 +578,11 @@ class Synchronizer extends EventEmitter {
       .map(upd => {
         const _key = (is_snapshot && _ob_sub.snapshot?.pl?.timestamp) || _ob_sub.update.pl?.timestamp;
         const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], upd);
-        if (_ts != undefined)
-          timestamps.push(this.format_timestamp(_ts, _ob_sub.update));
+        if (_ts != undefined) {
+          let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
+          if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
+            higher_timestamp = { formatted_ts, upd };
+        }
 
         return [ 
           Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.price) || _ob_sub.update.pl.price]).toFixed(), 
@@ -555,8 +594,11 @@ class Synchronizer extends EventEmitter {
       .map(upd => {
         const _key = (is_snapshot && _ob_sub.snapshot?.pl?.timestamp) || _ob_sub.update.pl?.timestamp;
         const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], upd);
-        if (_ts != undefined)
-          timestamps.push(this.format_timestamp(_ts, _ob_sub.update));
+        if (_ts != undefined) {
+          let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
+          if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
+            higher_timestamp = { formatted_ts, upd };
+        }
 
         return [ 
           Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.price) || _ob_sub.update.pl.price]).toFixed(), 
@@ -571,11 +613,42 @@ class Synchronizer extends EventEmitter {
     if (_ob_sub.update.timestamp || _ob_sub.snapshot?.timestamp) {
       const _key = (is_snapshot && _ob_sub.snapshot?.timestamp) || _ob_sub.update.timestamp;
       const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], msg);
-      if (_ts != undefined)
-        formatted.timestamp = this.format_timestamp(_ts, _ob_sub.update);
+      formatted.timestamp = this.format_timestamp(_ts, _ob_sub.update);
 
-    } else if (timestamps.length > 0) {
-      formatted.timestamp = Math.max(...timestamps);
+      // Try to define 'timestamp_us'.
+      if (is_snapshot) {
+        if (_ob_sub.snapshot?.get_timestamp_us_from_iso) {
+          formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+        } else if (this.exc.timestamp_in_micro || _ob_sub.snapshot?.timestamp_in_micro) {
+          formatted.timestamp_us = _ts;
+        }
+      } else {
+        if (_ob_sub.update?.get_timestamp_us_from_iso) {
+          formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+        } else if (this.exc.timestamp_in_micro || _ob_sub.update?.timestamp_in_micro) {
+          formatted.timestamp_us = _ts;
+        }
+      }
+
+    } else if (higher_timestamp != null) {
+      formatted.timestamp = higher_timestamp.formatted_ts;
+
+      // Try to define 'timestamp_us'.
+      const _pl =  ((is_snapshot && _ob_sub.snapshot?.pl) || _ob_sub.update.pl);
+      const _ts = _pl?.timestamp?.split('.')?.reduce((f, k) => f?.[k], higher_timestamp.upd);
+      if (is_snapshot) {
+        if (_ob_sub.snapshot?.get_timestamp_us_from_iso) {
+          formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+        } else if (this.exc.timestamp_in_micro || _ob_sub.snapshot?.timestamp_in_micro) {
+          formatted.timestamp_us = _ts;
+        }
+      } else {
+        if (_ob_sub.update?.get_timestamp_us_from_iso) {
+          formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+        } else if (this.exc.timestamp_in_micro || _ob_sub.update?.timestamp_in_micro) {
+          formatted.timestamp_us = _ts;
+        }
+      }
 
     } else {
       // Neighter 'update/snapshot.timestamp' or 'update/snapshot.pl.timestmap' defined.
@@ -610,63 +683,10 @@ class Synchronizer extends EventEmitter {
 
   handle_orderbook_msg (update, _ws, __ws, _prom) {
     if (update == null) return; // Ignore.
-    // console.log('Book update:',update);
 
     if (update.is_snapshot) {
-      if (this.orderbook == null || (
-        this.orderbook.last_update_nonce == undefined ||
-        update.last_update_nonce == undefined || 
-        Big(update.last_update_nonce).gt(this.orderbook.last_update_nonce)
-      )) {
-        // Updates 'delayed_orderbook' if its the case.
-        if (this.orderbook != null && (
-          this.delayed_orderbook == null || 
-          Math.floor(this.orderbook.timestamp / 1e3) != Math.floor(update.timestamp / 1e3)
-        )) {
-          const save_it = (this.delayed_orderbook != null);
+      this.apply_orderbook_snap(update, __ws, _prom);
 
-          if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 
-          Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3))
-            this.orderbooks.unshift(this.delayed_orderbook);
-
-          this.delayed_orderbook = {
-            asks: Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth),
-            bids: Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth),
-            timestamp: this.orderbook.timestamp,
-            first: !save_it
-          };
-
-          if (save_it) 
-            this.orderbooks.unshift(this.delayed_orderbook);
-        }
-
-        if (!this.orderbook)
-          console.log('[!!] Got first orderbook snapshot from',((this.exc.rest?.endpoints?.orderbook != null) ? "REST" : "WS"),'at',update.timestamp);
-
-        this.orderbook = {
-          asks: Object.fromEntries(update.asks),
-          bids: Object.fromEntries(update.bids),
-          timestamp: update.timestamp,
-          last_update_nonce: update.last_update_nonce
-        };
-
-        // Apply cached orderbook updates.
-        while (this.orderbook_upd_cache.length > 0) {
-          this.apply_orderbook_upd(this.orderbook_upd_cache[0], __ws, _prom, true);
-          this.orderbook_upd_cache.shift();
-        }
-
-        if ((!this.info.orderbook.is_subscribed) && this.exc.rest.endpoints.orderbook == undefined) {
-          this.info.orderbook.is_subscribed = true;
-
-          // If 'not_handle_trades' or 'info.trades.is_subscribed' resolve the promise.
-          if (_prom && (
-            _ws.not_handle_trades === true || 
-            this.info.trades?.is_subscribed
-          ))
-            _prom.resolve();
-        }
-      }
     } else {
       if (this.orderbook == null) {
         // Just cache update.
@@ -677,11 +697,6 @@ class Synchronizer extends EventEmitter {
         this.orderbook_upd_cache.push(update);
   
       } else {
-        // Apply all cached orderbook updates.
-        while (this.orderbook_upd_cache.length > 0) {
-          this.apply_orderbook_upd(this.orderbook_upd_cache[0], __ws, _prom, true);
-          this.orderbook_upd_cache.shift();
-        }
         
         // Just apply update.
         this.apply_orderbook_upd(update, __ws, _prom);
@@ -689,22 +704,67 @@ class Synchronizer extends EventEmitter {
     }
   }
 
-  apply_orderbook_upd (upd, __ws, _prom, _ignore_lower_nonce_upd = (this.info.orderbook_snap?.is_subscribed === true)) {
-    // Validate updates.
-    if (upd.last_update_nonce && upd.last_update_nonce <= this.orderbook.last_update_nonce) {
-      if (!_ignore_lower_nonce_upd) {
-        const _at = 'apply_orderbook_upd:';
-        const _error = 'upd.last_update_nonce ('+upd.last_update_nonce+') <= orderbook.last_update_nonce ('+this.orderbook.last_update_nonce+').';
+  apply_orderbook_snap (update, __ws, _prom) {
+    // Validate snapshot update.
+    // console.log('snap upd:',(update.last_update_nonce || update.timestamp_us || update.timestamp), (update.last_update_nonce && "last_update_nonce") || (update.timestamp_us && "timestamp_us") || (update.timestamp && "timestamp"));
+    if (this.orderbook != null && (
+      (this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce)) ||
+      (this.orderbook.timestamp_us && update.timestamp_us && Big(update.timestamp_us).lt(this.orderbook.timestamp_us)) ||
+      (this.orderbook.timestamp && update.timestamp && Big(update.timestamp).lt(this.orderbook.timestamp))
+    ))
+      return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
 
-        if (_prom) {
-          _prom.reject({ At: _at, error: _error });
-        } else {
-          console.log('[E]',_at,_error,'\n\nEnding connection...');
-          __ws.terminate();
-        }
-      }
-      return;
+    // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
+
+    // Updates 'delayed_orderbook' if its the case.
+    if (this.orderbook != null && (
+      this.delayed_orderbook == null || 
+      Math.floor(this.orderbook.timestamp / 1e3) != Math.floor(update.timestamp / 1e3)
+    )) {
+      const save_it = (this.delayed_orderbook != null);
+
+      if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 
+      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3))
+        this.orderbooks.unshift(this.delayed_orderbook);
+
+      this.delayed_orderbook = {
+        asks: Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth),
+        bids: Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth),
+        timestamp: this.orderbook.timestamp,
+        first: !save_it
+      };
+
+      if (save_it && this.delayed_orderbook.timestamp != undefined) 
+        this.orderbooks.unshift(this.delayed_orderbook);
     }
+
+    if (!this.orderbook) 
+      console.log('[!!] Got first orderbook snapshot from',((this.exc.rest?.endpoints?.orderbook != null) ? "REST" : "WS"),'at',update.timestamp);
+
+    this.orderbook = {
+      asks: Object.fromEntries(update.asks),
+      bids: Object.fromEntries(update.bids),
+      timestamp: update.timestamp,
+      timestamp_us: update.timestamp_us,
+      last_update_nonce: update.last_update_nonce
+    };
+
+    // Apply cached orderbook updates.
+    while (this.orderbook_upd_cache.length > 0) {
+      this.apply_orderbook_upd(this.orderbook_upd_cache[0], __ws, _prom, true);
+      this.orderbook_upd_cache.shift();
+    }
+  }
+
+  apply_orderbook_upd (upd, __ws, _prom) {
+    // Validate updates.
+    // console.log('Book upd:',upd);
+    if ((this.orderbook.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce)) ||
+    (this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
+    (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
+      return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
+
+    // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
 
     if (upd.first_update_nonce) {
       if (this.orderbook.received_first_update) {
@@ -754,7 +814,7 @@ class Synchronizer extends EventEmitter {
         first: !save_it
       };
 
-      if (save_it) 
+      if (save_it && this.delayed_orderbook.timestamp != undefined) 
         this.orderbooks.unshift(this.delayed_orderbook);
     }
 
@@ -772,14 +832,26 @@ class Synchronizer extends EventEmitter {
     // Update orderbook vars.
     this.orderbook.received_first_update = true;
     this.orderbook.timestamp = upd.timestamp;
+    this.orderbook.timestamp_us = upd.timestamp_us;
     this.orderbook.last_update_nonce = upd.last_update_nonce;
   }
 
-  async connect (initiated_at) {
-    console.log('Connecting to '+this.exchange+' '+this.base+'/'+this.quote+'...');
+  async _connect (conn_idx) {
+    // If connection not null returns the connection promise.
+    if (this.connections[conn_idx]) return this.connections[conn_idx].main_prom;
     
-    let conn_proms = []; // Store the connections promises.
+    this.connections[conn_idx] = { info: {} };  // Create the connection object.
+    let conn = this.connections[conn_idx];      // Create a reference to the connection object.
+    conn._idx = conn_idx;
 
+    // Create the connection main promise and a control variable to it.
+    let main_prom_funcs;
+    conn.main_prom = new Promise((resolve, reject) => main_prom_funcs = { resolve, reject }).finally(() => main_prom_funcs = null);
+    
+    // If there is an 'attemp delay' to this connection waits the delay.
+    if (this.attemp_delay[conn_idx]) await this.attemp_delay[conn_idx];
+
+    let _min_promises = [];
     for (const __idx in (this.exc.ws2 ? [ this.exc.ws, this.exc.ws2 ] : [ this.exc.ws ])) {
       const is_secondary = (__idx == '1');
       const _ws = is_secondary ? this.exc.ws2 : this.exc.ws;
@@ -787,28 +859,27 @@ class Synchronizer extends EventEmitter {
 
       // Check if this connection will handle orderbook updates.
       if (_ws.not_handle_orderbook !== true) {
-        // Reset initial orderbook vars.
-        this.orderbook = null;
-        this.orderbook_upd_cache = [];
-        this.info.orderbook = {};
-        this.info.orderbook_snap = {};
+        // // Reset initial orderbook vars.
+        // this.orderbook = null;
+        // this.orderbook_upd_cache = [];
+        conn.info.orderbook = {};
+        conn.info.orderbook_snap = {};
         
         // If no 'orderbook.response', 'info.orderbook.channel_id' should be defined here.
         if (_ws.subcriptions?.orderbook != undefined && _ws.subcriptions.orderbook?.response == undefined) 
-          this.info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id.replaceAll('<market>', this.market.ws);
+          conn.info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id.replaceAll('<market>', this.market.ws);
       }
       
       // Check if this connection will handle trades updates.
       if (_ws.not_handle_trades !== true) { 
-        // Reset initial trades vars.
-        this.trades = null;
-        this.trades_upd_cache = [];
-        this.info.trades = {};
-        
+        // // Reset initial trades vars.
+        // this.trades = null;
+        // this.trades_upd_cache = [];
+        conn.info.trades = {};
         
         // If no 'trades.response', 'info.trades.channel_id' should be defined here.
         if (_ws.subcriptions?.trades != undefined && _ws.subcriptions.trades?.response == undefined) 
-          this.info.trades.channel_id = _ws.subcriptions.trades?.update?.channel_id.replaceAll('<market>', this.market.ws);
+          conn.info.trades.channel_id = _ws.subcriptions.trades?.update?.channel_id.replaceAll('<market>', this.market.ws);
       }
       
       // Create control vars for a 'ping loop'.
@@ -821,7 +892,12 @@ class Synchronizer extends EventEmitter {
       
       // Create an control var and a promise to indicate if we have succeed on the websocket connection.
       let _prom = null;
-      conn_proms.push(new Promise((resolve, reject) => _prom = { resolve, reject }).finally(() => _prom = null));
+      _min_promises.push(
+        Promise.race([
+          new Promise((resolve, reject) => setTimeout(reject, _ws.timeout || 15000, "TIMEOUT.")),
+          new Promise((resolve, reject) => _prom = { resolve, reject }).finally(() => _prom = null)
+        ])
+      );
 
       // Checks if websocket conection require any preparation before connection.
       if (this.exc.rest.endpoints?.prepare_for_ws != undefined) {
@@ -842,15 +918,18 @@ class Synchronizer extends EventEmitter {
         }
       }
 
+      // Define the endpoint to use, if more than 1.
+      let _ws_conn_url = Array.isArray(_ws.url) ? _ws.url[this._url_nonce++ % _ws.url.length] : _ws.url;
+      console.log('Connecting to the "'+_ws_conn_url+'" endpoint...');
+
       // Creates the WebSocket connection.
-      // console.log('Connecting to',_ws.url.replaceAll('<market>', this.market.ws).replace('<ws_token>', _ws.token),'...');
-      console.log('until here 2 -',Date.now() - initiated_at,'ms');
-      this[_ws_type == "primary" ? "ws" : "ws2"] = new WebSocket(
-        _ws.url
+      this.connection_tries.push(Date.now());
+      conn[_ws_type == "primary" ? "ws" : "ws2"] = new WebSocket(
+        _ws_conn_url
         .replaceAll('<market>', this.market.ws)
         .replace('<ws_token>', _ws.token)
       );
-      const __ws = this[_ws_type == "primary" ? "ws" : "ws2"];
+      const __ws = conn[_ws_type == "primary" ? "ws" : "ws2"];
 
       // When receive a ping, pong back.
       __ws.on('ping', __ws.pong);
@@ -860,36 +939,56 @@ class Synchronizer extends EventEmitter {
 
       // On disconnection reset vars.
       __ws.on('close', () => {
-        console.log('[!] WebSocket '+_ws_type+' connection is closed.');
+        console.log('[!] WebSocket '+_ws_type+' connection '+conn_idx+' is closed.');
+        this.connections[conn_idx] = null;
 
-        if (_ws.not_handle_orderbook !== true) {
+        if (this.connections.every(conn => !conn)) {
+          // All connections are closed.
+          this.completely_synced = false;
+
+          // Reset global variables.
+          clearTimeout(this.every_second_timeout);
+          this.markets = null;
           this.orderbook = null;
           this.orderbook_upd_cache = [];
-          this.info.orderbook = {};
-          if (_ws.subcriptions.orderbook_snap) this.info.orderbook_snap = {};
-        }
-
-        if (_ws.not_handle_trades !== true) {
+          this.orderbooks = [];
+          this.delayed_orderbook = null;
           this.trades = null;
           this.trades_upd_cache = [];
-          this.info.trades = {};
+          this.synced_trades_since = null;
+          this.ws_req_nonce = 0;
+
+        } else {
+          // Only this connection has ended, try reconnection respecting the established attempt limits.
+          
+          // Filter 'connection_tries' to only tries that happened on the last minute.
+          this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
+
+          // Checks if the number of connetion attemps in the last minute is greater then 'max_attemps_per_min'.
+          if (this.connection_tries.length > this.max_attemps_per_min) {
+            // In this case we should wait 'conn_attemp_delay' before the connection.
+            this.attemp_delay[conn_idx] = (async () => {
+              await new Promise(r => setTimeout(r, this.conn_attemp_delay));
+              delete this.attemp_delay[conn_idx];
+            })();
+          }
+
+          this.connect(conn_idx);
         }
 
         clearInterval(ping_loop_interval);
         clearInterval(ws_ping_loop_interval);
-        
-        this.completely_synced = false;
       });
 
       // On WebSocket error, we log the error and then diconnect.
       __ws.on('error', error => {
-        console.log('[E] '+_ws_type+' WebSocket connection error:',error);
+        console.log('[E] WebSocket '+_ws_type+' connection error:',error);
         __ws.terminate();
       });
 
       // On connection, initiate 'ping loops', login and then make subscriptions.
       __ws.on('open', () => {
-        console.log('[!] Connected to '+_ws_type+' WebSocket.');
+        console.log('[!] ('+conn._idx+') Connected to '+_ws_type+' WebSocket.');
 
         // Initiate 'ping loop'.
         ping_loop_interval = setInterval(() => {
@@ -922,7 +1021,6 @@ class Synchronizer extends EventEmitter {
         if (_ws.login != undefined) {
           // Send a login request.
           const { signature, sign_nonce } = this.authenticate();
-          console.log('until here 3A -',Date.now() - initiated_at,'ms');
           __ws.send(
             _ws.login.request
             .replace('<api_key>', this.api.key)
@@ -933,8 +1031,7 @@ class Synchronizer extends EventEmitter {
 
         } else {
           // If no login is required we can make subscriptions now.
-          console.log('until here 3B -',Date.now() - initiated_at,'ms');
-          this.make_subscriptions(__ws, _ws, _prom);
+          this.make_subscriptions(__ws, _ws, _prom, conn);
         }
       });
 
@@ -946,16 +1043,16 @@ class Synchronizer extends EventEmitter {
         // Try to JSON parse the mesage.
         try { msg = JSON.parse(msg); } catch (e) { msg = msg.toString(); }
 
-        // console.log('WebSocket '+_ws_type+' message:',msg);
+        // console.log('('+conn._idx+') WebSocket '+_ws_type+' message:',msg);
 
         // Checks if message is an error.
         if (msg?.[_ws.error.key] != undefined && 
         (_ws.error.value == undefined || msg[_ws.error.key] == _ws.error.value) &&
         (_ws.error.value_not == undefined || msg[_ws.error.key] != _ws.error.value_not)) {
           if (_prom) {
-            _prom.reject({ At: '[E] '+_ws_type+' WebSocket error message:', error: msg });
+            _prom.reject({ At: '[E] ('+conn._idx+') WebSocket '+_ws_type+' error message:', error: msg });
           } else {
-            console.log('[E] '+_ws_type+' WebSocket error message:',msg,'\n\nEnding connection...');
+            console.log('[E] ('+conn._idx+') WebSocket '+_ws_type+' error message:',msg,'\n\nEnding connection...');
             __ws.terminate();
           }
           
@@ -974,8 +1071,7 @@ class Synchronizer extends EventEmitter {
             )
           )) {
             console.log('[!] '+_ws_type+' WebSocket successfully logged in.');
-            console.log('until here 3B -',Date.now() - initiated_at,'ms');
-            this.make_subscriptions(__ws, _ws, _prom);
+            this.make_subscriptions(__ws, _ws, _prom, conn);
 
           } else {
             if (_prom) {
@@ -1002,7 +1098,7 @@ class Synchronizer extends EventEmitter {
         // Checks if WebSocket handles 'trades' updates. (If so, handle 'trades' subscription response and updates)
         if (_ws.not_handle_trades !== true && _ws.subcriptions.trades != undefined) {
           // Checks if message is a 'trades' subscription response.
-          if ((!this.info.trades.is_subscribed) && _ws.subcriptions.trades?.request != undefined) {
+          if ((!conn.info.trades.is_subscribed) && _ws.subcriptions.trades?.request != undefined) {
             let is_trades_subs_resp = false;
 
             // Checks for the type of response the server should to send.
@@ -1021,17 +1117,17 @@ class Synchronizer extends EventEmitter {
               let id_val = _ws.subcriptions.trades.response.id?.split('.')?.reduce((f, k) => f = f?.[k], msg);
               let object_id_val = _ws.subcriptions.trades.response.object_id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
-              if (id_val != undefined && id_val == this.info.trades.req_id &&
+              if (id_val != undefined && id_val == conn.info.trades.req_id &&
               _ws.subcriptions.trades.response.is_object !== true || (
                 object_id_val != undefined && (
                   _ws.subcriptions.trades.response.object_id_value == undefined || 
-                  object_id_val == _ws.subcriptions.trades.response.object_id_value
+                  object_id_val == _ws.subcriptions.trades.response.object_id_value.replaceAll('<market>', this.market.ws)
                 )
               ))
                 is_trades_subs_resp = true;
             }
 
-            if (is_trades_subs_resp) return this.handle_trades_sub_resp(msg, _ws, __ws, _prom);
+            if (is_trades_subs_resp) return this.handle_trades_sub_resp(msg, _ws, __ws, _prom, conn);
           }
     
           // Checks if message is a 'trades' update message.
@@ -1040,9 +1136,9 @@ class Synchronizer extends EventEmitter {
             (Array.isArray(msg) ? msg.slice(_id_key)[0] : undefined) : 
             _id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
-          if (_channel_id != undefined && _channel_id == this.info.trades.channel_id) {
+          if (_channel_id != undefined && _channel_id == conn.info.trades.channel_id) {
             // Format and handle data.
-            return this.handle_trades_msg(this.format_trades_msg(msg, _ws, __ws, _prom), _ws);
+            return this.handle_trades_msg(this.format_trades_msg(msg, _ws, __ws, _prom, conn), _ws);
           
           }
         }
@@ -1051,7 +1147,7 @@ class Synchronizer extends EventEmitter {
         if (_ws.not_handle_orderbook !== true) {
           if (_ws.subcriptions.orderbook != undefined) {
             // Checks if message is a 'orderbook' subscription response.
-            if ((!this.info.orderbook.is_upds_subscribed) && _ws.subcriptions.orderbook?.request != undefined) {
+            if ((!conn.info.orderbook.is_upds_subscribed) && _ws.subcriptions.orderbook?.request != undefined) {
               let is_book_subs_resp = false;
               
               // Checks for the type of response the server should to send.
@@ -1070,13 +1166,13 @@ class Synchronizer extends EventEmitter {
                 let id_val = _ws.subcriptions.orderbook.response.id?.split('.')?.reduce((f, k) => f = f?.[k], msg);
                 let object_id_val = _ws.subcriptions.orderbook.response.object_id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
-                if (id_val != undefined && id_val == this.info.orderbook.req_id &&
-                _ws.subcriptions.orderbook.response.is_object !== true || (
+                if (id_val != undefined && id_val == conn.info.orderbook.req_id &&
+                (_ws.subcriptions.orderbook.response.is_object !== true || (
                   object_id_val != undefined && (
                     _ws.subcriptions.orderbook.response.object_id_value == undefined || 
-                    object_id_val == _ws.subcriptions.orderbook.response.object_id_value
+                    object_id_val == _ws.subcriptions.orderbook.response.object_id_value.replaceAll('<market>', this.market.ws)
                   )
-                ))
+                )))
                   is_book_subs_resp = true;
               }
 
@@ -1084,9 +1180,9 @@ class Synchronizer extends EventEmitter {
               if (is_book_subs_resp) {
                 // Checks if this response also is the response for 'trades' subcription.
                 if (_ws.not_handle_trades !== true && _ws.subcriptions.orderbook.response.include_trades)
-                  this.handle_trades_sub_resp(msg, _ws, __ws, _prom);
+                  this.handle_trades_sub_resp(msg, _ws, __ws, _prom, conn);
 
-                this.handle_orderbook_sub_resp(msg, _ws, __ws, _prom);
+                this.handle_orderbook_sub_resp(msg, _ws, __ws, _prom, conn);
 
                 // Retuns if messade do not include snapshot, otherwise this message will be further handled as an 'orderbook message'.
                 if (!_ws.subcriptions.orderbook.response.include_snapshot) return; 
@@ -1100,7 +1196,7 @@ class Synchronizer extends EventEmitter {
               _id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
             if (_channel_id != undefined && (
-              _channel_id == this.info.orderbook.channel_id ||
+              _channel_id == conn.info.orderbook.channel_id ||
               _channel_id == _ws.subcriptions?.orderbook?.update?.channel_id?.replaceAll('<market>', this.market.ws) || // In some cases need to parse an update before the orderbook subscription response.
               _channel_id == _ws.subcriptions?.orderbook?.snapshot?.channel_id?.replaceAll('<market>', this.market.ws)
             )) {
@@ -1110,7 +1206,7 @@ class Synchronizer extends EventEmitter {
               if (_ob_sub.update.data_inside?.includes(',')) {
                 msg
                 .slice(..._ob_sub.update.data_inside.split(','))
-                .forEach(upd_msg => this.handle_orderbook_msg(this.format_orderbook_msg(upd_msg, _ws, __ws, _prom), _ws, __ws, _prom));
+                .forEach(upd_msg => this.handle_orderbook_msg(this.format_orderbook_msg(upd_msg, _ws, __ws, _prom, conn), _ws, __ws, conn));
                 return;
               }
               
@@ -1123,18 +1219,18 @@ class Synchronizer extends EventEmitter {
 
                 msg[_ws.subcriptions.orderbook.update.data_inside_arr_inside]
                 .forEach(upd_msg => {
-                  this.handle_orderbook_msg(this.format_orderbook_msg({ ...base_upd, ...upd_msg }, _ws, __ws, _prom), _ws, __ws, _prom);
+                  this.handle_orderbook_msg(this.format_orderbook_msg({ ...base_upd, ...upd_msg }, _ws, __ws, _prom, conn), _ws, __ws, conn);
                 });
                 return;
               }
 
-              return this.handle_orderbook_msg(this.format_orderbook_msg(msg, _ws, __ws, _prom), _ws, __ws, _prom);
+              return this.handle_orderbook_msg(this.format_orderbook_msg(msg, _ws, __ws, _prom, conn), _ws, __ws, _prom, conn);
             }
           }
 
           if (_ws.subcriptions.orderbook_snap != undefined) {
             // Checks if message is a 'orderbook_snap' subscription response.
-            if ((!this.info.orderbook_snap?.is_upds_subscribed) && _ws.subcriptions.orderbook_snap?.request != undefined) {
+            if ((!conn.info.orderbook_snap?.is_upds_subscribed) && _ws.subcriptions.orderbook_snap?.request != undefined) {
               let is_booksnap_subs_resp = false;
 
               // Checks for the type of response the server should to send.
@@ -1153,13 +1249,13 @@ class Synchronizer extends EventEmitter {
                 let id_val = _ws.subcriptions.orderbook_snap.response.id?.split('.')?.reduce((f, k) => f = f?.[k], msg);
                 let object_id_val = _ws.subcriptions.orderbook_snap.response.object_id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
-                if (id_val != undefined && id_val == this.info.orderbook_snap.req_id &&
-                _ws.subcriptions.orderbook_snap.response.is_object !== true || (
+                if (id_val != undefined && id_val == conn.info.orderbook_snap.req_id &&
+                (_ws.subcriptions.orderbook_snap.response.is_object !== true || (
                   object_id_val != undefined && (
                     _ws.subcriptions.orderbook_snap.response.object_id_value == undefined || 
-                    object_id_val == _ws.subcriptions.orderbook_snap.response.object_id_value
+                    object_id_val == _ws.subcriptions.orderbook_snap.response.object_id_value.replaceAll('<market>', this.market.ws)
                   )
-                ))
+                )))
                   is_booksnap_subs_resp = true;
               }
 
@@ -1167,9 +1263,9 @@ class Synchronizer extends EventEmitter {
               if (is_booksnap_subs_resp) {
                 // Checks if this response also is the response for 'trades' subcription.
                 if (_ws.not_handle_trades !== true && _ws.subcriptions.orderbook_snap.response.include_trades)
-                  this.handle_trades_sub_resp(msg, _ws, __ws, _prom);
+                  this.handle_trades_sub_resp(msg, _ws, __ws, _prom, conn);
 
-                this.handle_orderbook_sub_resp(msg, _ws, __ws, _prom, true);
+                this.handle_orderbook_sub_resp(msg, _ws, __ws, _prom, conn, true);
 
                 // Retuns if msg do not include snapshot, otherwise this message will be further handled as an 'orderbook message'.
                 if (!_ws.subcriptions.orderbook_snap.response.include_snapshot) return; 
@@ -1182,9 +1278,9 @@ class Synchronizer extends EventEmitter {
               (Array.isArray(msg) ? msg.slice(_id_key)[0] : undefined) : 
               _id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
-            if (_channel_id != undefined && _channel_id == this.info.orderbook_snap.channel_id) {
+            if (_channel_id != undefined && _channel_id == conn.info.orderbook_snap.channel_id) {
               // Format and handle data.
-              return this.handle_orderbook_msg(this.format_orderbook_msg(msg, _ws, __ws, _prom, true), _ws, __ws, _prom);
+              return this.handle_orderbook_msg(this.format_orderbook_msg(msg, _ws, __ws, _prom, conn, true), _ws, __ws, conn);
             }
           }
         }
@@ -1231,11 +1327,31 @@ class Synchronizer extends EventEmitter {
       });
     }
 
-    // Add a timeout for the connection promise(s) and return it.
-    return Promise.race([ 
-      ...conn_proms, 
-      new Promise((resolve, reject) => setTimeout(reject, this.exc.ws.timeout || 5000, "TIMEOUT."))
-    ]);
+    Promise.all(_min_promises)
+    .then(r => main_prom_funcs.resolve(r))
+    .catch(e => main_prom_funcs.reject(e));
+
+    return conn.main_prom;
+  }
+
+  async connect (conn_idx = null) {
+    let conn_proms = []; // Store the connections promises.
+
+    if (conn_idx === null) {
+      // Try to open every connection.
+      console.log('Connecting to '+this.exchange+' '+this.base+'/'+this.quote+'...');
+      
+      for (let c_idx = 0; c_idx < this.connections_num; ++c_idx) {
+        conn_proms.push(this._connect(c_idx));
+      }
+
+    } else {
+      // Try to open the specyfic connection at 'conn_idx'. 
+      conn_proms.push(this._connect(conn_idx));
+
+    }
+
+    return Promise.all(conn_proms);
   }
 
   async validate_market () {
@@ -1375,14 +1491,21 @@ class Synchronizer extends EventEmitter {
         if (_t_rt_rsp.sort_key != undefined) r.sort((a, b) => Big(a[_t_rt_rsp.sort_key]).cmp(b[_t_rt_rsp.sort_key]));
 
         for (const t of (_t_rt_rsp.newer_first ? r.reverse() : r)) {
-          let timestamp = this.format_timestamp(_t_rt_rsp.timestamp?.split('.')?.reduce((f, k) => f?.[k], t), _t_rt_rsp);
+          const _ts = _t_rt_rsp.timestamp?.split('.')?.reduce((f, k) => f?.[k], t);
   
           let obj = {
-            timestamp,
+            timestamp: this.format_timestamp(_ts, _t_rt_rsp),
             is_buy: undefined,
             price: Big(_t_rt_rsp.price?.split('.')?.reduce((f, k) => f?.[k], t)).toFixed(),
             amount: Big(_t_rt_rsp.amount?.split('.')?.reduce((f, k) => f?.[k], t)).toFixed()
           };
+
+          // Try to define 'timestamp_us'.
+          if (_t_rt_rsp.get_timestamp_us_from_iso) {
+            obj.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+          } else if (this.exc.timestamp_in_micro || _t_rt_rsp.timestamp_in_micro) {
+            obj.timestamp_us = _ts;
+          }
   
           if (_t_rt_rsp.is_buy_key != undefined) {
             const is_buy_val = _t_rt_rsp.is_buy_key?.split('.')?.reduce((f, k) => f?.[k], t);
@@ -1416,21 +1539,21 @@ class Synchronizer extends EventEmitter {
 
     // Set '_synced_trades_since'.
     if (_t_rt_rsp?.pagination) {
-      if (this.info.trades.synced_since == null || Big(initiated_at_sec * 1e3).lt(this.info.trades.synced_since))
-        this.info.trades.synced_since = initiated_at_sec * 1e3;
+      if (this.synced_trades_since == null || Big(initiated_at_sec * 1e3).lt(this.synced_trades_since))
+        this.synced_trades_since = initiated_at_sec * 1e3;
 
     } else if (init_trades.length > 0) {
-      if (this.info.trades.synced_since == null || Big(init_trades[0].timestamp).lt(this.info.trades.synced_since))
-        this.info.trades.synced_since = init_trades[0].timestamp;
+      if (this.synced_trades_since == null || Big(init_trades[0].timestamp).lt(this.synced_trades_since))
+        this.synced_trades_since = init_trades[0].timestamp;
 
     } else {
       const _time = _t_rt_rsp?.response_time == undefined ? Date.now() : this.format_timestamp(_t_rt_rsp?.response_time?.split('.')?.reduce((f, k) => f?.[k], r), _t_rt_rsp);
-      if (this.info.trades.synced_since == null || Big(_time).lt(this.info.trades.synced_since))
-        this.info.trades.synced_since = _time;
+      if (this.synced_trades_since == null || Big(_time).lt(this.synced_trades_since))
+        this.synced_trades_since = _time;
     }
     
     // console.log('init_trades.slice(-100):',init_trades.slice(-100));
-    // console.log('trades_upd_cache (before filter):',this.trades_upd_cache); // carlos1
+    // console.log('trades_upd_cache (before filter):',this.trades_upd_cache);
 
     // Removes trades in 'trades_upd_cache' already included in 'init_trades'.
     const _id_key = (_t_rt_rsp.trade_id_key != undefined && _t_ws_upd.trade_id_key != undefined) ? 'trade_id' : 'custom_id';
@@ -1445,7 +1568,7 @@ class Synchronizer extends EventEmitter {
       );
 
     // console.log('trades_upd_cache (after filter):',this.trades_upd_cache);
-    // process.exit(); // carlos2
+    // process.exit();
 
     // Set trades from 'init_trades' and 'trades_upd_cache'.
     this.trades = [ ...init_trades, ...this.trades_upd_cache ];
@@ -1477,19 +1600,25 @@ class Synchronizer extends EventEmitter {
         }
 
         // Format orderbook snapshot from 'r' to 'init_orderbook' as an orderbook update.
-        let timestamp = _b_rt_rsp?.timestamp?.split('.')?.reduce((f, k) => f?.[k], r);
-        if (timestamp) timestamp = this.format_timestamp(timestamp, _b_rt_rsp);
+        const _ts = _b_rt_rsp?.timestamp?.split('.')?.reduce((f, k) => f?.[k], r);
         init_orderbook = {
           asks: _b_rt_rsp.asks?.split('.')?.reduce((f, k) => f?.[k], r)?.slice(0, this.orderbook_depth)?.map(([ p, q ]) => [ Big(p).toFixed(), Big(q).toFixed() ]),
           bids: _b_rt_rsp.bids?.split('.')?.reduce((f, k) => f?.[k], r)?.slice(0, this.orderbook_depth)?.map(([ p, q ]) => [ Big(p).toFixed(), Big(q).toFixed() ]),
-          timestamp,
+          timestamp: this.format_timestamp(_ts, _b_rt_rsp),
           is_snapshot: true,
           last_update_nonce: _b_rt_rsp.last_update_nonce?.split('.')?.reduce((f, k) => f?.[k], r)
         };
+
+        // Try to define 'timestamp_us'.
+        if (_b_rt_rsp.get_timestamp_us_from_iso) {
+          obj.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+        } else if (this.exc.timestamp_in_micro || _b_rt_rsp.timestamp_in_micro) {
+          obj.timestamp_us = _ts;
+        }
       }
 
       // console.log('this.orderbook_upd_cache[0].last_update_nonce:',this.orderbook_upd_cache[0]?.last_update_nonce);
-      // console.log('init_orderbook.last_update_nonce:',init_orderbook.last_update_nonce,'\n'); // carlos
+      // console.log('init_orderbook.last_update_nonce:',init_orderbook.last_update_nonce,'\n');
     } while (
       _b_rt_rsp?.last_update_nonce != undefined &&
       _b_ws_upd?.last_upd_nonce_key != undefined &&
@@ -1501,14 +1630,16 @@ class Synchronizer extends EventEmitter {
     // console.log('init_orderbook:',init_orderbook);
 
     // Set 'orderbook' from 'init_orderbook'.
-    const _b__ws = this.exc.ws2 != undefined && this.exc.ws2.subcriptions.orderbook ? this.ws2 : this.ws;
-    this.handle_orderbook_msg(init_orderbook, _b_ws, _b__ws);
+    this.apply_orderbook_snap(init_orderbook, null, null);
   }
 
   every_second (not_first) {
     // Set time variables.
     const timestamp = Date.now();
-    if (Math.round(timestamp / 1e3) * 1e3 > timestamp) return this.every_second(this.completely_synced); // Avoid 'timestamp' from beign somethin like '1702050540999'.
+
+    // Avoid 'timestamp' from beign somethin like '1702050540999'.
+    if (Math.round(timestamp / 1e3) * 1e3 > timestamp)
+      return this.every_second(this.completely_synced); 
 
     const second = Math.floor(timestamp / 1e3);
     const data_time = second - this.delay_in_sec;
@@ -1517,49 +1648,44 @@ class Synchronizer extends EventEmitter {
     this.every_second_timeout = setTimeout((...p) => this.every_second(...p), (second + 1) * 1e3 - timestamp, this.completely_synced);
     
     // If not 'completely_synced' do nothing.
-    if (!this.completely_synced) return;
+    if (!this.completely_synced) return console.log('/!\\ Not completely synced.');
 
-    // Do not necessarily wait until a newer update to set 'delayed_orderbook' and save it.
-    if (this.orderbook != null &&
-    this.orderbook.timestamp != null &&
-    Big(this.orderbook.timestamp).lte(data_time * 1e3) &&
-    (
-      this.delayed_orderbook == null ||
-      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3)
-    )) {
-      const save_it = (this.delayed_orderbook != null);
+    // // Do not necessarily wait until a newer update to set 'delayed_orderbook' and save it.
+    // if (this.orderbook != null &&
+    // this.orderbook.timestamp != null &&
+    // Big(this.orderbook.timestamp).lte(data_time * 1e3) &&
+    // (
+    //   this.delayed_orderbook == null ||
+    //   Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3)
+    // )) {
+    //   const save_it = (this.delayed_orderbook != null);
 
-      if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 
-      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3))
-        this.orderbooks.unshift(this.delayed_orderbook);
+    //   if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 
+    //   Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3))
+    //     this.orderbooks.unshift(this.delayed_orderbook);
 
-      this.delayed_orderbook = {
-        asks: Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth),
-        bids: Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth),
-        timestamp: this.orderbook.timestamp,
-        first: !save_it
-      };
+    //   this.delayed_orderbook = {
+    //     asks: Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth),
+    //     bids: Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth),
+    //     timestamp: this.orderbook.timestamp,
+    //     first: !save_it
+    //   };
 
-      if (save_it) 
-        this.orderbooks.unshift(this.delayed_orderbook);
-    }
+    //   if (save_it && this.delayed_orderbook.timestamp != undefined) 
+    //     this.orderbooks.unshift(this.delayed_orderbook);
+    // }
 
     // Checks if it isnt the first second after synchronization.
     if (not_first) {
-      console.log('Filtering... (timestamp=',timestamp,', data_time=',data_time,')');
-
       // Remove 'trades' older than 'data_time - 2 seconds'.
       this.trades = this.trades.filter(t => Big(t.timestamp).gt((data_time - 2) * 1e3));
       
       // Remove 'orderbooks' older than 'data_time - 2 seconds'.
       this.orderbooks = this.orderbooks.filter(ob => Big(ob.timestamp).gt((data_time - 2) * 1e3));
-    
-    } else {
-      console.log('Not filtering...');
     }
 
     // Emit a 'newSecond' event.
-    this.emit('newSecond', data_time, not_first);
+    this.emit('newSecond', timestamp, data_time, not_first);
   }
   
   async initiate () {
@@ -1599,7 +1725,7 @@ class Synchronizer extends EventEmitter {
 
     // Checks if authentication necesary.
     const _auth = (this.exc.ws?.auth || this.exc.rest?.auth);
-    if (_auth != undefined) {
+    if (_auth != undefined && this.authenticate == null) {
       // Sets credentials through environment variables.
       this.api.key = process.env[this.exchange.toUpperCase()+'_API_KEY'];
       this.api.scr = process.env[this.exchange.toUpperCase()+'_API_SECRET'];
@@ -1690,10 +1816,9 @@ class Synchronizer extends EventEmitter {
       this.market.ws = (this.exc.makert_prefix || "") + (this.market.ws.toUpperCase());
     else
       this.market.ws = (this.exc.makert_prefix || "") + (this.market.ws.toLowerCase());
-
-    console.log('until here 1 -',Date.now() - initiated_at,'ms');
+    
     let initial_proms = [
-      this.connect(initiated_at),
+      this.connect(),
       this.validate_market()
     ];
 
@@ -1717,8 +1842,13 @@ class Synchronizer extends EventEmitter {
     } catch (error) {
       console.log("[E] Initiating synchronization:",error);
 
-      if (this.ws && this.ws.readyState != WebSocket.CLOSED) this.ws.terminate();
-      if (this.ws2 && this.ws2.readyState != WebSocket.CLOSED) this.ws2.terminate();
+      for (const conn of this.connections) {
+        if ((conn?.ws?.readyState || WebSocket.CLOSED) != WebSocket.CLOSED)
+          conn.ws.terminate();
+
+        if ((conn?.ws2?.readyState || WebSocket.CLOSED) != WebSocket.CLOSED)
+          conn.ws2.terminate();
+      }
 
       throw "Failed to synchronize with the exchange";
     }

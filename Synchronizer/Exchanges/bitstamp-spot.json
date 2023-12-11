@@ -41,10 +41,12 @@
       "orderbook_snap": {
         "request": "{\"event\":\"bts:subscribe\",\"data\":{\"channel\":\"order_book_<market>\"}}",
         "response": {
-          "id": "event",
-          "id_value": "bts:subscription_succeeded",
-          "channel_id_key": "channel",
-          "channel_id_val": "order_book_<market>"
+          "is_object": true,
+          "object_id_key": "event",
+          "object_id_value": "bts:subscription_succeeded",
+          "id": "channel",
+          "id_value": "order_book_<market>",
+          "channel_id_key": "channel"
         },
         "update": {
           "channel_id_key": "channel",
@@ -63,10 +65,12 @@
       "orderbook": {
         "request": "{\"event\":\"bts:subscribe\",\"data\":{\"channel\":\"diff_order_book_<market>\"}}",
         "response": {
-          "id": "event",
-          "id_value": "bts:subscription_succeeded",
-          "channel_id_key": "channel",
-          "channel_id_val": "diff_order_book_<market>"
+          "is_object": true,
+          "object_id_key": "event",
+          "object_id_value": "bts:subscription_succeeded",
+          "id": "channel",
+          "id_value": "diff_order_book_<market>",
+          "channel_id_key": "channel"
         },
         "update": {
           "channel_id_key": "channel",

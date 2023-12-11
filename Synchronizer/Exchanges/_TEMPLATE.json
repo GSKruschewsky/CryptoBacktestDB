@@ -29,6 +29,7 @@
           "asks": "",
           "bids": "",
           "timestamp": "",
+          "get_timestamp_us_from_iso": null,
           "last_update_nonce": ""
         }
       },
@@ -40,6 +41,7 @@
           "data_inside": null,
           "trade_id_key": "",
           "timestamp": "",
+          "get_timestamp_us_from_iso": null,
           "is_buy_key": "",
           "is_buy_value": "",
           "price": "",
@@ -94,6 +96,7 @@
             "amount": ""
           },
           "timestamp": "",
+          "get_timestamp_us_from_iso": null,
           "last_upd_nonce_key": ""
         }
       },
@@ -115,7 +118,8 @@
           "its_first_update": null,
           "identifier_key": null,
           "identifier_value": null,
-          "asks_and_bids_together": null
+          "asks_and_bids_together": null,
+          "get_timestamp_us_from_iso": null
         },
         "update": {
           "ignore_if": null,
@@ -136,6 +140,7 @@
             "to_remove_value": null
           },
           "timestamp": "",
+          "get_timestamp_us_from_iso": null,
           "first_upd_nonce_key": "",
           "last_upd_nonce_key": ""
         }
@@ -165,6 +170,7 @@
           "updates_inside": "",
           "trade_id_key": "",
           "timestamp": "",
+          "get_timestamp_us_from_iso": null,
           "is_buy_key": "",
           "is_buy_value": null,
           "price": "",

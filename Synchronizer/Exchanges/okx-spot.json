@@ -39,7 +39,7 @@
     }
   },
   "ws": {
-    "url": "wss://ws.okx.com:8443/ws/v5/public",
+    "url": [ "wss://ws.okx.com:8443/ws/v5/public", "wss://wsaws.okx.com:8443/ws/v5/public" ],
     "timeout": 15000,
     "error": {
       "key": "event",

@@ -47,7 +47,7 @@
     }
   },
   "ws": {
-    "url": "wss://stream.binance.com:9443/stream",
+    "url": [ "wss://stream.binance.com:9443/stream", "wss://stream.binance.com:443/stream" ],
     "timeout": 15000,
     "is_market_upper": false,
     "error": { 
@@ -70,7 +70,6 @@
             "amount": "1"
           },
           "timestamp": "E",
-          "first_upd_nonce_key": "U",
           "last_upd_nonce_key": "u"
         }
       },
