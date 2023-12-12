@@ -35,9 +35,12 @@ async function calcLatency (sync) {
     sync.end(); // Then, ends synchronization...
   }
   
-  sync.conn_latency.sort();
-  sync.subr_latency.sort();
-  sync.diff_latency.sort();
+  await new Promise(r => setTimeout(r, 1e3)); // Just in case...
+
+  // Sort latency arrays
+  sync.conn_latency.sort((a, b) => Big(a).cmp(b));
+  sync.subr_latency.sort((a, b) => Big(a).cmp(b));
+  sync.diff_latency.sort((a, b) => Big(a).cmp(b));
 
   // Format and return latency results.
   return [ 'conn_latency', 'subr_latency', 'diff_latency' ]
