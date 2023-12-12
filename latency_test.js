@@ -28,10 +28,13 @@ async function calcLatency (sync) {
     sync.end(); // Then, ends synchronization...
   }
   
+  sync.conn_latency.sort();
+  sync.subr_latency.sort();
+  sync.diff_latency.sort();
+
   // Format and return latency results.
   return [ 'conn_latency', 'subr_latency', 'diff_latency' ]
   .reduce((obj, type) => {
-    sync[type].sort();
     obj[type] = {
       length: sync[type].length,
       lowest: sync[type][0],
