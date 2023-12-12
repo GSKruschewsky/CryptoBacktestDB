@@ -2,6 +2,13 @@ import Big from 'big.js';
 import fs from 'fs';
 import { Synchronizer, exchanges } from "./Synchronizer/index.js";
 
+let args = process.argv.slice(2);
+
+if (args[0] == 'us') {
+  delete exchanges['binance-spot'];
+  delete exchanges['bybit-spot'];
+}
+
 const min_latencies = 10;
 
 function calcMean (arr) {
