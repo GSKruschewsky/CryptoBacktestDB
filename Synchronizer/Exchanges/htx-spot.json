@@ -1,6 +1,7 @@
 {
   "separator": "",
   "is_market_upper": false,
+  "latency-test-symbol": "BTC/USDT",
   "rest": {
     "url": "https://api.huobi.pro",
     "timeout": 15000,
@@ -63,6 +64,7 @@
         },
         "update": {
           "channel_id_key": "ch",
+          "channel_id": "market.<market>.mbp.400",
           "updates_inside": "tick",
           "asks": "asks",
           "bids": "bids",
@@ -105,6 +107,7 @@
           "id_should_be_higher": true,
           "reiceve_array_w_newer_first": true,
           "channel_id_key": "ch",
+          "channel_id": "market.<market>.trade.detail",
           "data_inside": "tick.data",
           "trade_id_key": "tradeId",
           "timestamp": "ts",

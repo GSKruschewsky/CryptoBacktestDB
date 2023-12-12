@@ -2,6 +2,7 @@
   "separator": "",
   "makert_prefix": "t",
   "is_market_upper": true,
+  "latency-test-symbol": "BTC/USD",
   "timestamp_in_micro": null,
   "timestamp_in_seconds": null,
   "timestamp_ISO_format": null,
@@ -134,7 +135,8 @@
     "other_updates": null,
     "msgs_to_ignore": [
       [ "version" ],
-      [ "event", "conf" ]
+      [ "event", "conf" ],
+      [ "1", "hb" ]
     ]
   }
 }

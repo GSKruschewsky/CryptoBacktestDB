@@ -1,5 +1,6 @@
 {
   "separator": "",
+  "latency-test-symbol": "BTC/USDT",
   "rest": {
     "url": "https://api.binance.com",
     "timeout": 15000,

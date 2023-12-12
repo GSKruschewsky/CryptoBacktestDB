@@ -1,6 +1,7 @@
 {
   "separator": "",
   "is_market_upper": true,
+  "latency-test-symbol": "BTC/USDT",
   "trades_custom_id": true,
   "rest": {
     "url": "https://api.mexc.com",

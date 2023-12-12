@@ -2,6 +2,7 @@
   "separator": "-",
   "makert_prefix": null,
   "is_market_upper": true,
+  "latency-test-symbol": "BTC/USDT",
   "trades_custom_id": null,
   "timestamp_in_nano": null,
   "timestamp_in_micro": null,

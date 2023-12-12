@@ -1,6 +1,7 @@
 {
   "separator": "-",
   "is_market_upper": true,
+  "latency-test-symbol": "BTC/USD",
   "timestamp_ISO_format": true,
   "rest": {
     "url": "https://api.exchange.coinbase.com",

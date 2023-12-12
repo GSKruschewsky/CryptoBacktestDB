@@ -1,6 +1,7 @@
 {
   "separator": "",
   "is_market_upper": false,
+  "latency-test-symbol": "BTC/USD",
   "rest": {
     "url": "https://www.bitstamp.net",
     "timeout": 15000,

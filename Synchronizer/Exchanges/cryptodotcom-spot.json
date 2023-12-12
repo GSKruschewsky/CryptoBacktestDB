@@ -1,6 +1,7 @@
 {
   "separator": "_",
   "makert_prefix": null,
+  "latency-test-symbol": "BTC/USD",
   "is_market_upper": true,
   "trades_custom_id": null,
   "timestamp_in_micro": null,

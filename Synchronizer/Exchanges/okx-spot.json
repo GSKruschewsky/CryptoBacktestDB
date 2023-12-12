@@ -1,6 +1,7 @@
 {
   "separator": "-",
   "is_market_upper": true,
+  "latency-test-symbol": "BTC/USDT",
   "rest": {
     "url": "https://www.okx.com",
     "timeout": 15000,

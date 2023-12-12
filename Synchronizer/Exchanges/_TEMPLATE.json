@@ -2,6 +2,7 @@
   "separator": "",
   "makert_prefix": null,
   "is_market_upper": null,
+  "latency-test-symbol": "",
   "trades_custom_id": null,
   "timestamp_in_micro": null,
   "timestamp_in_seconds": null,

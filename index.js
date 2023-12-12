@@ -1,5 +1,5 @@
 import Big from 'big.js';
-import Syncronizer from "./Synchronizer/index.js";
+import { Synchronizer } from "./Synchronizer/index.js";
 
 let args = process.argv.slice(2); // Get command-line arguments, starting from index 2
 
@@ -8,7 +8,7 @@ if (args.length !== 3 && args.length !== 4) {
   process.exit(1);
 }
 
-let sync = new Syncronizer(...args);
+let sync = new Synchronizer(...args);
 
 sync.on('newSecond', function (timestamp, data_time, not_first) {
   // Log post data

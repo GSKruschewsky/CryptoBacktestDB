@@ -1,6 +1,7 @@
 {
   "is_market_upper": true,
   "timestamp_in_seconds": true,
+  "latency-test-symbol": "XBT/USD",
   "trades_custom_id": true,
   "rest": {
     "url": "https://api.kraken.com",
