@@ -88,8 +88,15 @@ class Synchronizer extends EventEmitter {
           method: _endpoint.method || "GET",
           headers
         })
-        .then(r => r.json())
+        .then(r => r.text())
       ]);
+
+      try {
+        r = JSON.parse(r);
+      } catch (e) {
+        console.log('[E] Request response is not JSON:',r);
+        return { success: false, response: r }
+      }
         
       // Check for error.
       let is_error = false;
