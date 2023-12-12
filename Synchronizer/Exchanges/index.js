@@ -11,6 +11,6 @@ let cfg_files = fs
   .filter(file => file != path.basename(__filename) && file != "_TEMPLATE.json" && file.slice(-5) === '.json');
 
 for (const file of cfg_files)
-  config[file.slice(0, -5)] = JSON.parse(fs.readFileSync(__dirname+'\\'+file));
+  config[file.slice(0, -5)] = JSON.parse(fs.readFileSync(__dirname+'/'+file));
 
 export default config;
