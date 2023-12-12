@@ -65,11 +65,11 @@ class Synchronizer extends EventEmitter {
       const resp_info = _endpoint?.response;
   
       let url = (_rest.url + _endpoint.path);
-      let headers = {};
+      let headers = _rest.headers || {};
   
       if (is_pagination) {
-        url += (_endpoint?.pagination?.to_add_url || '');
-        url = url.replace((_endpoint?.pagination?.to_del_url || ''), '');
+        url += (resp_info?.pagination?.to_add_url || '');
+        url = url.replace((resp_info?.pagination?.to_del_url || ''), '');
       }
   
       for (const [ url_code, value ] of url_replaces)
@@ -77,7 +77,7 @@ class Synchronizer extends EventEmitter {
   
       if (_endpoint.require_auth)
         headers = { ...headers, ...this.get_auth_headers(url.replace(_rest.url, '')) };
-  
+      
       let r = await Promise.race([
         new Promise((res, rej) => setTimeout(rej, (_rest.timeout || 5000), "TIMEOUT")),
         fetch(url, {
@@ -297,7 +297,7 @@ class Synchronizer extends EventEmitter {
     //   },
     //   ...
     // ]
-    // console.log('Trades msg:',msg);
+    // console.log('Trades msg:',msg.params[1]);
 
     const _t_upd = _ws.subcriptions.trades.update;
 
@@ -612,7 +612,7 @@ class Synchronizer extends EventEmitter {
     // Define the timestamp.
     if (_ob_sub.update.timestamp || _ob_sub.snapshot?.timestamp) {
       const _key = (is_snapshot && _ob_sub.snapshot?.timestamp) || _ob_sub.update.timestamp;
-      const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], msg);
+      const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], msg) || _key?.split('.')?.reduce((f, k) => f?.[k], updates);
       formatted.timestamp = this.format_timestamp(_ts, _ob_sub.update);
 
       // Try to define 'timestamp_us'.
@@ -706,6 +706,7 @@ class Synchronizer extends EventEmitter {
 
   apply_orderbook_snap (update, __ws, _prom) {
     // Validate snapshot update.
+    // console.log('Book snap:',update);
     // console.log('snap upd:',(update.last_update_nonce || update.timestamp_us || update.timestamp), (update.last_update_nonce && "last_update_nonce") || (update.timestamp_us && "timestamp_us") || (update.timestamp && "timestamp"));
     if (this.orderbook != null && (
       (this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce)) ||
@@ -1398,7 +1399,7 @@ class Synchronizer extends EventEmitter {
     // 'since' represents the start of the second that we are syncing.
     let since = initiated_at_sec;
     if (!this.exc.timestamp_in_seconds) since *= 1e3;
-
+    
     do {
       // Do not repeat the rest request just beacause we did not receive any ws trade update, instead just wait for 50ms.
       if (init_trades != null && this.trades_upd_cache[0] == undefined) {

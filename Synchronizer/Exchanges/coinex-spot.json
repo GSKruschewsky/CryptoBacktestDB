@@ -1,0 +1,154 @@
+{
+  "separator": "",
+  "makert_prefix": null,
+  "is_market_upper": true,
+  "trades_custom_id": null,
+  "timestamp_in_micro": null,
+  "timestamp_in_seconds": null,
+  "timestamp_ISO_format": null,
+  "rest": {
+    "url": "https://api.coinex.com",
+    "timeout": 15000,
+    "error": {
+      "key": "code",
+      "value_not": "0"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "User-Agent": "node-fetch@3"
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/v1/market/list",
+        "response": {
+          "data_inside": "data",
+          "symbol": null,
+          "status_key": null,
+          "status_active": null
+        }
+      },
+      "orderbook": null,
+      "trades": {
+        "path": "/v1/market/deals?market=<market>&limit=1000&last_id=0",
+        "response": {
+          "newer_first": true,
+          "response_time": null,
+          "data_inside": "data",
+          "trade_id_key": "id",
+          "timestamp": "date_ms",
+          "get_timestamp_us_from_iso": null,
+          "is_buy_key": "type",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "amount",
+          "pagination": {
+            "check_for_newer": true,
+            "max_arr_size": 1000,
+            "to_del_url": "last_id=0",
+            "to_add_url": "last_id=<page_id>",
+            "page_id": "id"
+          }
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://socket.coinex.com",
+    "timeout": 15000,
+    "error": {
+      "key": "error",
+      "value": null
+    },
+    "ping": {
+      "request": "{\"method\":\"server.ping\",\"params\":[],\"id\":<ws_req_id>}",
+      "response": {
+        "id": "result",
+        "id_value": "pong"
+      }
+    },
+    "to_send_before_subcriptions": null,
+    "subcriptions": {
+      "orderbook_snap": null,
+      "orderbook": {
+        "is_subscribed_from_scratch": null,
+        "request": "{\"method\":\"depth.subscribe\",\"params\":[\"<market>\",50,\"0.01\",true],\"id\":<ws_req_id>}",
+        "response": {
+          "include_snapshot": null,
+          "acum_list": null,
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": null,
+          "channel_id_val": null
+        },
+        "snapshot": {
+          "its_first_update": null,
+          "identifier_key": "0",
+          "identifier_value": true,
+          "asks_and_bids_together": null,
+          "get_timestamp_us_from_iso": null
+        },
+        "update": {
+          "ignore_if": null,
+          "channel_id_key": "method",
+          "channel_id": "depth.update",
+          "data_inside": "params",
+          "updates_inside": "1",
+          "asks_and_bids_together": null,
+          "is_bids_positive_amount": null,
+          "asks": "asks",
+          "bids": "bids",
+          "pl": {
+            "price": "0",
+            "amount": "1",
+            "is_bids_key": null,
+            "is_bids_value": null,
+            "to_remove_key": null,
+            "to_remove_value": null
+          },
+          "timestamp": "time",
+          "get_timestamp_us_from_iso": null,
+          "first_upd_nonce_key": null,
+          "last_upd_nonce_key": null
+        }
+      },
+      "trades": {
+        "is_subscribed_from_scratch": null,
+        "request": "{\"method\":\"deals.subscribe\",\"params\":[\"<market>\"],\"id\":<ws_req_id>}",
+        "response": {
+          "acum_list": null,
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": null,
+          "channel_id_val": null
+        },
+        "update": {
+          "ignore_if": null,
+          "ignore_first_update": null,
+          "receive_separately_trades_as_obj": false,
+          "reiceve_array_w_newer_first": true,
+          "id_should_be_higher": true,
+          "channel_id_key": "method",
+          "channel_id": "deals.update",
+          "data_inside": "params.1",
+          "updates_inside": null,
+          "trade_id_key": "id",
+          "timestamp": "time",
+          "timestamp_in_seconds": true,
+          "get_timestamp_us_from_iso": null,
+          "is_buy_key": "type",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "amount"
+        }
+      }
+    },
+    "other_updates": null,
+    "msgs_to_ignore": null
+  }
+}

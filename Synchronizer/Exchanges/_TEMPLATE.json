@@ -13,6 +13,9 @@
       "key": null,
       "value": null
     },
+    "headers": {
+
+    },
     "endpoints": {
       "available_pairs": {
         "path": "",
@@ -141,8 +144,8 @@
           },
           "timestamp": "",
           "get_timestamp_us_from_iso": null,
-          "first_upd_nonce_key": "",
-          "last_upd_nonce_key": ""
+          "first_upd_nonce_key": null,
+          "last_upd_nonce_key": null
         }
       },
       "trades": {
@@ -167,9 +170,10 @@
           "channel_id_key": "",
           "channel_id": "",
           "data_inside": "",
-          "updates_inside": "",
+          "updates_inside": null,
           "trade_id_key": "",
           "timestamp": "",
+          "timestamp_in_seconds": null,
           "get_timestamp_us_from_iso": null,
           "is_buy_key": "",
           "is_buy_value": null,
