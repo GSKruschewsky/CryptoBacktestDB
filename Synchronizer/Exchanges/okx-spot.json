@@ -20,7 +20,7 @@
         }
       },
       "trades": {
-        "path": "/api/v5/market/history-trades?instId=<market>&limit=100",
+        "path": "/api/v5/market/trades?instId=<market>&limit=500",
         "response": {
           "data_inside": "data",
           "trade_id_key": "tradeId",
@@ -30,11 +30,9 @@
           "is_buy_value": "buy",
           "price": "px",
           "amount": "sz",
-          "pagination": {
-            "max_arr_size": 100,
-            "to_add_url": "&type=1&after=<page_id>",
-            "page_id": "tradeId"
-          }
+          "slow_cache": true,
+          "slow_cache_delay": 1e3,
+          "pagination": null
         }
       }
     }

@@ -50,6 +50,8 @@
           "is_buy_value": "",
           "price": "",
           "amount": "",
+          "slow_cache": null,
+          "slow_cache_delay": null,
           "pagination": {
             "check_for_newer": null,
             "max_arr_size": null,

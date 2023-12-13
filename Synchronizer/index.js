@@ -1521,7 +1521,8 @@ class Synchronizer extends EventEmitter {
       
         // Sort, format and remove duplicates from 'r' to 'init_trades';
         init_trades = [];
-        if (_t_rt_rsp.sort_key != undefined) r.sort((a, b) => Big(a[_t_rt_rsp.sort_key]).cmp(b[_t_rt_rsp.sort_key]));
+        if (_t_rt_rsp.sort_key != undefined)
+          r.sort((a, b) => Big(a[_t_rt_rsp.sort_key]).cmp(b[_t_rt_rsp.sort_key]));
 
         for (const t of (_t_rt_rsp.newer_first ? r.reverse() : r)) {
           const _ts = _t_rt_rsp.timestamp?.split('.')?.reduce((f, k) => f?.[k], t);
@@ -1559,6 +1560,14 @@ class Synchronizer extends EventEmitter {
           if (init_trades.every(it => (it.trade_id || it.custom_id) != _unique_id))
             init_trades.push(obj);
         }
+      }
+
+      if (init_trades.length > 0 && 
+      this.trades_upd_cache[0] != undefined &&
+      Big(this.trades_upd_cache[0].timestamp).gt(init_trades.slice(-1)[0].timestamp) &&
+      _t_rt_rsp.slow_cache) {
+        // Rest 'trades' request have a slow cache, flooding the API won't help, in this case wait 1 second.
+        await new Promise(r => setTimeout(r, (_t_rt_rsp.slow_cache_delay || 1e3)));
       }
 
       // console.log('this.trades_upd_cache[0]:',this.trades_upd_cache[0]);
