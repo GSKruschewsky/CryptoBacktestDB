@@ -46,13 +46,9 @@ function save_second (data_time, not_first) {
       trades: trades_to_post,
       second: data_time,
     });
-
-    console.log('[!] Saved orderbook at '+data_time+'.');
   } else {
     console.log('/!\\ No orderbook to save at '+data_time+' (not_first= '+not_first+').');
-    if (not_first) process.exit();
   }
-  console.log('sync.orderbooks:',sync.orderbooks.map(ob => ob.timestamp));
 }
 
 sync.on('newSecond', async function (timestamp, data_time, not_first) {
