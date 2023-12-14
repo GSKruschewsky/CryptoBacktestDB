@@ -1,17 +1,30 @@
 import Big from 'big.js';
 import { Synchronizer } from "./Synchronizer/index.js";
+import sendToS3 from "./helper/sendToS3.js";
 
+import pkg from 'node-gzip';
+const { gzip } = pkg;
+
+// Get and validate parameters/arguments.
 let args = process.argv.slice(2); // Get command-line arguments, starting from index 2
-
 if (args.length !== 3 && args.length !== 4) {
   console.log("Usage: npm sync <exchange> <base> <quote> <delay_time_in_seconds (optional, default= 1)>");
   process.exit(1);
 }
 
-let sync = new Synchronizer(...args);
+// 'console.log' start printng the current time (UTC-3).
+const dlog = console.log;
+console.log = (...args) => {
+  const ts = Date.now()-60e3*60*3;
+  const strtime = new Date(ts).toLocaleString('pt-BR', { timeZone: 'UTC' }).replace(',', '') + '.' + (ts%1e3+'').padStart(3, 0);
+  return dlog(...[ strtime, '-', ...args ]);
+}
 
-sync.on('newSecond', function (timestamp, data_time, not_first) {
-  // Log post data
+let sync = new Synchronizer(...args);
+let seconds_data = [];
+let last_data_save_time = null;
+
+function save_second (data_time) {
   const trades_to_post = sync.trades
     .filter(t => 
       Big(t.timestamp).gt((data_time - 1) * 1e3) &&
@@ -25,48 +38,62 @@ sync.on('newSecond', function (timestamp, data_time, not_first) {
 
   const orderbook_to_post = sync.orderbooks.find(ob => Big(ob.timestamp).lte(data_time * 1e3));
 
-  // if (orderbook_to_post) {
-    
-  console.log('First 5 orderbooks saved:',sync.orderbooks.slice(-5).map(ob => ob.timestamp),'\n');
-  console.log({
-    asks: orderbook_to_post?.asks?.slice(0, 5),
-    bids: orderbook_to_post?.bids?.slice(0, 5),
-    book_timestamp: orderbook_to_post?.timestamp,
-    trades: trades_to_post,
-    second: data_time,
-    timestamp
-  });
-  // }
+  if (orderbook_to_post) {
+    seconds_data.push({
+      asks: orderbook_to_post?.asks,
+      bids: orderbook_to_post?.bids,
+      book_timestamp: orderbook_to_post?.timestamp,
+      trades: trades_to_post,
+      second: data_time,
+    });
+  }
+}
 
-  /* // Start delay test
-  if (sync.orderbooks.length > 0) {
+sync.on('newSecond', async function (timestamp, data_time, not_first) {
+  if ((!not_first) && sync.orderbooks.length > 0) {
+    // Define 'first_book_time' and 'synced_trades_since'.
     const first_book_time = sync.orderbooks.slice(-1)[0].timestamp;
     const synced_trades_since = sync.synced_trades_since;
 
+    // Define 'first_sec_ready_to_post'.
     let first_sec_ready_to_post = Math.ceil(Math.min(first_book_time / 1e3, synced_trades_since / 1e3 + 1));
     while (first_sec_ready_to_post < first_book_time / 1e3 || first_sec_ready_to_post < synced_trades_since / 1e3 + 1)
       ++first_sec_ready_to_post;
 
-    console.log('Started sync at:',started_at,'\n');
-
-    console.log('First 5 orderbooks saved:',sync.orderbooks.slice(-5).map(ob => ob.timestamp),'\n');
-
-    console.log('First orderbook:',first_book_time);
-    console.log('Synced trades since:',synced_trades_since,'\n');
-
-    console.log('First sec to post:',first_sec_ready_to_post,'\n');
-
-    console.log('Took:',(first_sec_ready_to_post * 1e3 - started_at)+'ms','\n');
-    
-    process.exit();
+    // Save all seconds after 'first_sec_ready_to_post' and before the current second.
+    for (let sec = first_sec_ready_to_post; sec < data_time; ++sec) save_second(sec);
   }
-  */
+
+  // Save the current second in memory.
+  save_second(data_time);
+
+  // Check if its a new hour, if so save data to AWS S3.
+  if (new Date(data_time * 1e3).getUTCHours() != new Date((last_data_save_time || started_at / 1e3) * 1e3).getUTCHours()) {
+    // Updates 'last_data_save_time'.
+    last_data_save_time = data_time;
+
+    // Save the current hour data of 'seconds_data'.
+    const data = seconds_data.filter(s => Big(s.second).gt(data_time - 1*60*60) && Big(s.second).lte(data_time));
+
+    // Compress data before saving it.
+    const compressed_data = await gzip(JSON.stringify(data));
+
+    // Save data to AWS S3.
+    const base = sync.exc?.asset_translation?.[sync.base] || sync.base;
+    const quote = sync.exc?.asset_translation?.[sync.quote] || sync.quote;
+    const name = `${sync.exchange} ${base}-${(quote)} ${new Date((data_time - 60*60*3) * 1e3).toISOString().slice(0, 13)}`;
+    await sendToS3('crypto-backtest-db', compressed_data, name);
+
+    // Remove the saved data from 'seconds_data'.
+    seconds_data = seconds_data.filter(s => Big(s.second).gt(data_time));
+
+    console.log('[!] Saved "'+name+'".');
+  }
 });
 
 let started_at = Date.now();
-
 sync.initiate()
 .catch(error => {
-  console.log('Error:',error);
+  console.log('Failed to initate synchronization:',error);
   process.exit();
 });

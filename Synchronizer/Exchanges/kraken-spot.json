@@ -99,5 +99,9 @@
       [ "status", "online" ],
       [ "event", "heartbeat" ]
     ]
+  },
+  "asset_translation": {
+    "XBT": "BTC",
+    "XDG": "DOGE"
   }
 }

@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "sync": "node --no-warnings index.js",
+    "sync-test": "node --no-warnings sync-test.js",
     "latency-test": "node --no-warnings latency_test.js"
   },
   "author": "",

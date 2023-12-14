@@ -10,12 +10,11 @@ const client = new S3Client({
     }
 });
 
-async function sendToS3 (bucketName, jsonData, fileName){
+async function sendToS3 (bucketName, data, fileName){
     return client.send(new PutObjectCommand({
         Bucket: bucketName,
-        Key: `${fileName}.json`,
-        Body: Buffer.from(typeof jsonData == 'string' ? jsonData : JSON.stringify(jsonData), 'utf-8'),
-        ContentType: 'application/json'
+        Key: fileName,
+        Body: data
     }));
 }
 

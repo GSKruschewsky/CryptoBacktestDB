@@ -1904,6 +1904,7 @@ class Synchronizer extends EventEmitter {
     }
 
     this.completely_synced = true;
+    console.log('[!] Completely synchronized.');
 
     this.keep_synced();
   }

@@ -138,5 +138,10 @@
       [ "event", "conf" ],
       [ "1", "hb" ]
     ]
+  },
+  "asset_translation": {
+    "DOGE:": "DOGE",
+    "AVAX:": "AVAX",
+    "UST": "USDT"
   }
 }

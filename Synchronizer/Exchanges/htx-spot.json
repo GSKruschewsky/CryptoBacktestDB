@@ -73,7 +73,7 @@
             "amount": "1"
           },
           "timestamp": "ts",
-          "prev_upd_nonce_key": "prevSeqNum",
+          "prev_upd_nonce_key": null,
           "last_upd_nonce_key": "seqNum"
         }
       }
