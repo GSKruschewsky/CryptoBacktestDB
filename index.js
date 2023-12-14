@@ -50,8 +50,8 @@ function save_second (data_time, not_first) {
     if (not_first && sync.orderbooks.length > 0) {
       console.log('/!\\ No orderbook to save at '+data_time+'.');
       console.log('sync.orderbooks:',sync.orderbooks.map(op => op.timestamp));
-      console.log('sync.orderbook:',sync.orderbook);
-      console.log('sync.delayed_orderbook:',sync.delayed_orderbook);
+      console.log('sync.orderbook:',sync.orderbook?.timestamp);
+      console.log('sync.delayed_orderbook:',sync.delayed_orderbook?.timestamp);
     }
   }
 }
