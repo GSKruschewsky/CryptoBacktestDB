@@ -1449,6 +1449,10 @@ class Synchronizer extends EventEmitter {
           throw 'Initial trades snapshot request failed.'
         }
         
+        // Sort received trades using 'sort_key'.
+        if (_t_rt_rsp.sort_key != undefined)
+          r.sort((a, b) => Big(a[_t_rt_rsp.sort_key]).cmp(b[_t_rt_rsp.sort_key]));
+        
         // Do the trades pagination if possible/needed.
         const _pag = _t_rt_rsp?.pagination;
         if (_pag != undefined) {
@@ -1476,6 +1480,10 @@ class Synchronizer extends EventEmitter {
                 console.log('[E] At trades pagination loop (check_for_newer):',r_pag);
                 throw "Failed to get all necessary trades.";
               }
+
+              // Sort received trades using 'sort_key'.
+              if (_t_rt_rsp.sort_key != undefined)
+                r_pag.sort((a, b) => Big(a[_t_rt_rsp.sort_key]).cmp(b[_t_rt_rsp.sort_key]));
 
               // Concatenate pagination trades.
               r = _t_rt_rsp.newer_first ? [ ...r_pag, ...r ] : [ ...r, ...r_pag ];
@@ -1506,6 +1514,10 @@ class Synchronizer extends EventEmitter {
                 throw "Failed to get all necessary trades.";
               }
 
+              // Sort received trades using 'sort_key'.
+              if (_t_rt_rsp.sort_key != undefined)
+                r_pag.sort((a, b) => Big(a[_t_rt_rsp.sort_key]).cmp(b[_t_rt_rsp.sort_key]));
+
               // Concatenate pagination trades.
               r = _t_rt_rsp.newer_first ? [ ...r, ...r_pag ] : [ ...r_pag, ...r ]
               
@@ -1521,8 +1533,6 @@ class Synchronizer extends EventEmitter {
       
         // Sort, format and remove duplicates from 'r' to 'init_trades';
         init_trades = [];
-        if (_t_rt_rsp.sort_key != undefined)
-          r.sort((a, b) => Big(a[_t_rt_rsp.sort_key]).cmp(b[_t_rt_rsp.sort_key]));
 
         for (const t of (_t_rt_rsp.newer_first ? r.reverse() : r)) {
           const _ts = _t_rt_rsp.timestamp?.split('.')?.reduce((f, k) => f?.[k], t);
@@ -1570,9 +1580,9 @@ class Synchronizer extends EventEmitter {
         await new Promise(r => setTimeout(r, (_t_rt_rsp.slow_cache_delay || 1e3)));
       }
 
-      // console.log('this.trades_upd_cache[0]:',this.trades_upd_cache[0]);
-      // console.log('init_trades.slice(-1)[0]:',init_trades.slice(-1)[0]);
-      // console.log('init_trades[0]:',init_trades[0],'\n');
+      // console.log('this.trades_upd_cache[0]:',this.trades_upd_cache[0]?.timestamp);
+      // console.log('init_trades.slice(-1)[0]:',init_trades.slice(-1)[0]?.timestamp);
+      // console.log('init_trades[0]:',init_trades[0]?.timestamp,'\n');
     } while (
       init_trades.length > 0 && // If no trades ocurred then it should be considered synchronized.
       (this.trades_upd_cache[0] == undefined ||
