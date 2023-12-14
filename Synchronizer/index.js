@@ -1739,8 +1739,8 @@ class Synchronizer extends EventEmitter {
       // Remove 'trades' older than 'data_time - 2 seconds'.
       this.trades = this.trades.filter(t => Big(t.timestamp).gt((data_time - 2) * 1e3));
       
-      // Remove 'orderbooks' older than 'data_time - 2 seconds'.
-      this.orderbooks = this.orderbooks.filter(ob => Big(ob.timestamp).gt((data_time - 2) * 1e3));
+      // Keep only the last 3 'orderbooks'.
+      this.orderbooks = this.orderbooks.slice(-3);
     }
 
     // Emit a 'newSecond' event.
