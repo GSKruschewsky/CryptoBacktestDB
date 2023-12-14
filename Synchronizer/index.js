@@ -1715,7 +1715,8 @@ class Synchronizer extends EventEmitter {
     Big(this.orderbook.timestamp).lte(data_time * 1e3) &&
     (
       this.delayed_orderbook == null ||
-      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3)
+      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3) ||
+      this.orderbooks.length == 0 // We have set the 'delayed_orderbook' and now is a new second and we haven't received any update.
     )) {
       const save_it = (this.delayed_orderbook != null);
           
