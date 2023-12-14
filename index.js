@@ -24,7 +24,7 @@ let sync = new Synchronizer(...args);
 let seconds_data = [];
 let last_data_save_time = null;
 
-function save_second (data_time) {
+function save_second (data_time, not_first) {
   const trades_to_post = sync.trades
     .filter(t => 
       Big(t.timestamp).gt((data_time - 1) * 1e3) &&
@@ -46,7 +46,13 @@ function save_second (data_time) {
       trades: trades_to_post,
       second: data_time,
     });
+
+    console.log('[!] Saved orderbook at '+data_time+'.');
+  } else {
+    console.log('/!\\ No orderbook to save at '+data_time+' (not_first= '+not_first+').');
+    if (not_first) process.exit();
   }
+  console.log('sync.orderbooks:',sync.orderbooks.map(ob => ob.timestamp));
 }
 
 sync.on('newSecond', async function (timestamp, data_time, not_first) {
@@ -65,7 +71,7 @@ sync.on('newSecond', async function (timestamp, data_time, not_first) {
   }
 
   // Save the current second in memory.
-  save_second(data_time);
+  save_second(data_time, not_first);
 
   // Check if its a new hour, if so save data to AWS S3.
   if (new Date(data_time * 1e3).getUTCHours() != new Date((last_data_save_time || started_at / 1e3) * 1e3).getUTCHours()) {
@@ -82,7 +88,7 @@ sync.on('newSecond', async function (timestamp, data_time, not_first) {
     const base = sync.exc?.asset_translation?.[sync.base] || sync.base;
     const quote = sync.exc?.asset_translation?.[sync.quote] || sync.quote;
     const name = `${sync.exchange} ${base}-${(quote)} ${new Date((data_time - 60*60*3) * 1e3).toISOString().slice(0, 13)}`;
-    await sendToS3('crypto-backtest-db', compressed_data, name);
+    await sendToS3(name, compressed_data);
 
     // Remove the saved data from 'seconds_data'.
     seconds_data = seconds_data.filter(s => Big(s.second).gt(data_time));
