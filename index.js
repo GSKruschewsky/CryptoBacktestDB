@@ -102,5 +102,4 @@ let started_at = Date.now();
 sync.initiate()
 .catch(error => {
   console.log('Failed to initate synchronization:',error);
-  process.exit();
 });
