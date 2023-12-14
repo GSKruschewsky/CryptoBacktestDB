@@ -48,6 +48,7 @@ function save_second (data_time, not_first) {
     });
   } else {
     console.log('/!\\ No orderbook to save at '+data_time+' (not_first= '+not_first+').');
+    console.log('sync.orderbooks:',sync.orderbooks.map(op => op.timestamp));
   }
 }
 

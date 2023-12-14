@@ -1709,6 +1709,31 @@ class Synchronizer extends EventEmitter {
     // If not 'completely_synced' do nothing.
     if (!this.completely_synced) return console.log('/!\\ Not completely synced.');
 
+    // Do not necessarily wait until a newer update to set 'delayed_orderbook' and save it.
+    if (this.orderbook != null &&
+    this.orderbook.timestamp != null &&
+    Big(this.orderbook.timestamp).lte(data_time * 1e3) &&
+    (
+      this.delayed_orderbook == null ||
+      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3)
+    )) {
+      const save_it = (this.delayed_orderbook != null);
+          
+      if (save_it && this.delayed_orderbook.first &&  this.delayed_orderbook.timestamp != undefined && 
+      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3))
+        this.orderbooks.unshift(this.delayed_orderbook);
+
+      this.delayed_orderbook = {
+        asks: Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth),
+        bids: Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth),
+        timestamp: this.orderbook.timestamp,
+        first: !save_it
+      };
+
+      if (save_it && this.delayed_orderbook.timestamp != undefined) 
+        this.orderbooks.unshift(this.delayed_orderbook);
+    }
+
     // Checks if it isnt the first second after synchronization.
     if (not_first) {
       // Remove 'trades' older than 'data_time - 2 seconds'.
