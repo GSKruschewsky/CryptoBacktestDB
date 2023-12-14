@@ -15,7 +15,7 @@ class Synchronizer extends EventEmitter {
   constructor (exchange, base, quote, delay = 1) {
     super();
 
-    this.orderbook_depth = 20;       // Stores the max depth od the orderbook.
+    this.orderbook_depth = 50;       // Stores the max depth od the orderbook.
     this.exchange = exchange;        // Stores the exchange name we will synchronize with.
     this.base = base;                // Stores the 'base' of the market we will synchronize with.
     this.quote = quote;              // Stores the 'quote' of the market we will synchronize with.
