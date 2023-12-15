@@ -73,7 +73,7 @@ sync.on('newSecond', async function (timestamp, data_time, not_first) {
   // Check if its a new 'half-hour', if so save data to AWS S3.
   if (data_time % 1800 == 0) {
     // Create a name to the file being saved.
-    const timestr = new Date(data_time - 60*60*3).toISOString().slice(0, 16).replace(':', '-');
+    const timestr = new Date((data_time - 60*60*3)*1e3).toISOString().slice(0, 16).replace(':', '-');
     const name = `${sync.full_market_name.replace(' ', '_')}_${timestr}.json`;
 
     // Compress data then save it.
