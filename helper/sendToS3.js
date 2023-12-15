@@ -100,17 +100,20 @@ function gzipBigJson (bigJson) {
     });
 }
 
-async function CompressAndSendBigJSONToS3 (name, bigJson) {
-    let buffer = await gzipBigJson(bigJson);
-    
+async function SendCompressedDataToS3 (name, buffer) {
     if (buffer.length >= 104857600) {
         // Arquivo maior de 100MB, faz o upload em partes.
-        return sendMultipartToS3(name+'.gz', buffer);
+        return sendMultipartToS3(name, buffer);
 
     } else {
         // Arquivo menor de 100MB, faz o upload direto.
-        return sendToS3(name+'.gz', buffer);
+        return sendToS3(name, buffer);
     }
 }
 
-export { CompressAndSendBigJSONToS3 };
+async function CompressAndSendBigJSONToS3 (name, bigJson) {
+    let buffer = await gzipBigJson(bigJson);
+    return SendCompressedDataToS3(name+'.gz', buffer);
+}
+
+export { CompressAndSendBigJSONToS3, SendCompressedDataToS3 };
