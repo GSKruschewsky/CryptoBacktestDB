@@ -1714,9 +1714,6 @@ class Synchronizer extends EventEmitter {
     // Call 'every_second' again at the next new second.
     clearTimeout(this.every_second_timeout);
     this.every_second_timeout = setTimeout((...p) => this.every_second(...p), (second + 1) * 1e3 - timestamp, this.completely_synced);
-    
-    // If not 'completely_synced' do nothing.
-    if (!this.completely_synced) return console.log('/!\\ Not completely synced.');
 
     // Do not necessarily wait until a newer update to set 'delayed_orderbook' and save it.
     if (this.orderbook != null &&
@@ -1743,6 +1740,9 @@ class Synchronizer extends EventEmitter {
       if (save_it && this.delayed_orderbook.timestamp != undefined) 
         this.orderbooks.unshift(this.delayed_orderbook);
     }
+    
+    // If not 'completely_synced' returns here.
+    if (!this.completely_synced) return console.log('/!\\ Not completely synced.');
 
     // Checks if it isnt the first second after synchronization.
     if (not_first) {

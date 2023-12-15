@@ -75,7 +75,7 @@ sync.on('newSecond', async function (timestamp, data_time, not_first) {
   if (new Date(data_time * 1e3).getUTCHours() != new Date((last_data_save_time || started_at / 1e3) * 1e3).getUTCHours()) {
     // Create a name to the file being saved.
     const timestr = new Date((data_time - 60*60*3) * 1e3).toISOString().slice(0, 13);
-    const name = `${sync.full_market_name} ${timestr}`;
+    const name = `${sync.full_market_name} ${timestr}.json`;
 
     // Compress data then save it.
     CompressAndSendBigJSONToS3(name, seconds_data);
