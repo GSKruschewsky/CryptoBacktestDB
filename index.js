@@ -1,9 +1,6 @@
 import Big from 'big.js';
 import { Synchronizer } from "./Synchronizer/index.js";
-import sendToS3 from "./helper/sendToS3.js";
-
-import pkg from 'node-gzip';
-const { gzip } = pkg;
+import { CompressAndSendBigJSONToS3 } from "./helper/sendToS3.js";
 
 // Get and validate parameters/arguments.
 let args = process.argv.slice(2); // Get command-line arguments, starting from index 2
@@ -76,21 +73,16 @@ sync.on('newSecond', async function (timestamp, data_time, not_first) {
 
   // Check if its a new hour, if so save data to AWS S3.
   if (new Date(data_time * 1e3).getUTCHours() != new Date((last_data_save_time || started_at / 1e3) * 1e3).getUTCHours()) {
-    // Save the current hour data of 'seconds_data'.
-    const data = seconds_data.filter(s => Big(s.second).gt(data_time - 1*60*60) && Big(s.second).lte(data_time));
-    
-    seconds_data = [];                // Reset 'seconds_data'.
-    last_data_save_time = data_time;  // Updates 'last_data_save_time'.
-
     // Create a name to the file being saved.
     const timestr = new Date((data_time - 60*60*3) * 1e3).toISOString().slice(0, 13);
     const name = `${sync.full_market_name} ${timestr}`;
 
     // Compress data then save it.
-    gzip(JSON.stringify(data))
-      .then(compressed_data => sendToS3(name, compressed_data))
-      .then(() => console.log('[!] Saved "'+name+'" successfully.'))
-      .catch(err => console.log('[E] Failed to save "'+name+'":',err));
+    CompressAndSendBigJSONToS3(name, seconds_data);
+    
+    // Reset 'seconds_data' and updates 'last_data_save_time'.
+    seconds_data = [];
+    last_data_save_time = data_time;
   }
 });
 
