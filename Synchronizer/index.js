@@ -57,6 +57,7 @@ class Synchronizer extends EventEmitter {
     this.__working = true;
 
     // Test latency vars.
+    this.is_lantecy_test = false;
     this.conn_latency = [];
     this.subr_latency = [];
     this.diff_latency = [];
@@ -182,7 +183,7 @@ class Synchronizer extends EventEmitter {
         _ws.subcriptions.trades?.request != undefined ||
         _ws.subcriptions.trades?.is_subscribed_from_scratch
       )) {
-        this.subr_latency.push(undefined);
+        if (this.is_lantecy_test) this.subr_latency.push(undefined);
         conn.info.trades.is_subscribed = true;
         if (!this.silent_mode) console.log('[!] ('+conn._idx+') Successfully subscribed to trades updates.');
 
@@ -224,7 +225,7 @@ class Synchronizer extends EventEmitter {
         _ws.subcriptions.orderbook?.request != undefined ||
         _ws.subcriptions.orderbook?.is_subscribed_from_scratch
       )) {
-        this.subr_latency.push(undefined);
+        if (this.is_lantecy_test) this.subr_latency.push(undefined);
         conn.info.orderbook.is_subscribed = true;
         if (!this.silent_mode) console.log('[!] ('+conn._idx+') Successfully subscribed to orderbook updates.');
           
@@ -288,8 +289,10 @@ class Synchronizer extends EventEmitter {
     }
 
     const now = Date.now();
-    conn._recv_trades_subr_at = ws_recv_ts;
-    this.subr_latency.push(conn._recv_trades_subr_at - conn._sent_trades_sub_at);
+    if (this.is_lantecy_test) {
+      conn._recv_trades_subr_at = ws_recv_ts;
+      this.subr_latency.push(conn._recv_trades_subr_at - conn._sent_trades_sub_at);
+    }
     conn.info.trades.is_subscribed = true;
     if (!this.silent_mode) console.log('[!] ('+conn._idx+') Successfully subscribed to trades updates.');
     if (this.synced_trades_since == null || Big(now).lt(this.synced_trades_since))
@@ -462,8 +465,10 @@ class Synchronizer extends EventEmitter {
     }
 
     if (_ob == "orderbook") {
-      conn._recv_orderbook_subr_at = ws_recv_ts;
-      this.subr_latency.push(conn._recv_orderbook_subr_at - conn._sent_orderbook_sub_at);
+      if (this.is_lantecy_test) {
+        conn._recv_orderbook_subr_at = ws_recv_ts;
+        this.subr_latency.push(conn._recv_orderbook_subr_at - conn._sent_orderbook_sub_at);
+      }
       _info.is_subscribed = true;
       if (!this.silent_mode) console.log('[!] ('+conn._idx+') Successfully subscribed to orderbook updates.');
 
@@ -474,8 +479,10 @@ class Synchronizer extends EventEmitter {
         _prom.resolve();
 
     } else {
-      conn._recv_orderbook_snap_subr_at = ws_recv_ts;
-      this.subr_latency.push(conn._recv_orderbook_snap_subr_at - conn._sent_orderbook_snap_sub_at);
+      if (this.is_lantecy_test) {
+        conn._recv_orderbook_snap_subr_at = ws_recv_ts;
+        this.subr_latency.push(conn._recv_orderbook_snap_subr_at - conn._sent_orderbook_snap_sub_at);
+      }
       _info.is_subscribed = true;
       if (!this.silent_mode) console.log('[!] ('+conn._idx+') Successfully subscribed to orderbook snapshot updates.');
 
@@ -738,7 +745,7 @@ class Synchronizer extends EventEmitter {
 
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
 
-    if (update.timestamp) this.diff_latency.push(ws_recv_ts - update.timestamp);
+    if (this.is_lantecy_test && update.timestamp) this.diff_latency.push(ws_recv_ts - update.timestamp);
 
     // Updates 'delayed_orderbook' if its the case.
     if (this.orderbook != null && (
@@ -790,7 +797,7 @@ class Synchronizer extends EventEmitter {
 
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
 
-    this.diff_latency.push(ws_recv_ts - upd.timestamp);
+    if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
     if (upd.first_update_nonce) {
       if (this.orderbook.received_first_update) {
@@ -1015,8 +1022,10 @@ class Synchronizer extends EventEmitter {
 
       // On connection, initiate 'ping loops', login and then make subscriptions.
       __ws.on('open', () => {
-        const _conn_opened_ts = Date.now();
-        this.conn_latency.push(_conn_opened_ts - _conn_start_ts);
+        if (this.is_lantecy_test) {
+          const _conn_opened_ts = Date.now();
+          this.conn_latency.push(_conn_opened_ts - _conn_start_ts);
+        }
         if (!this.silent_mode) console.log('[!] ('+conn._idx+') Connected to '+_ws_type+' WebSocket.');
 
         // Initiate 'ping loop'.

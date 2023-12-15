@@ -25,6 +25,7 @@ function calcMean (arr) {
 
 async function calcLatency (sync) {
   sync.silent_mode = true;
+  sync.is_lantecy_test = true;
   while (Math.min(sync.conn_latency.length, sync.subr_latency.length, sync.diff_latency.length) < min_latencies) {
     await sync.initiate() // Initiate exchange synchronization.
     .catch(err => {
