@@ -76,25 +76,21 @@ sync.on('newSecond', async function (timestamp, data_time, not_first) {
 
   // Check if its a new hour, if so save data to AWS S3.
   if (new Date(data_time * 1e3).getUTCHours() != new Date((last_data_save_time || started_at / 1e3) * 1e3).getUTCHours()) {
-    // Updates 'last_data_save_time'.
-    last_data_save_time = data_time;
-
     // Save the current hour data of 'seconds_data'.
     const data = seconds_data.filter(s => Big(s.second).gt(data_time - 1*60*60) && Big(s.second).lte(data_time));
+    
+    seconds_data = [];                // Reset 'seconds_data'.
+    last_data_save_time = data_time;  // Updates 'last_data_save_time'.
 
-    // Compress data before saving it.
-    const compressed_data = await gzip(JSON.stringify(data));
+    // Create a name to the file being saved.
+    const timestr = new Date((data_time - 60*60*3) * 1e3).toISOString().slice(0, 13);
+    const name = `${sync.full_market_name} ${timestr}`;
 
-    // Save data to AWS S3.
-    const base = sync.exc?.asset_translation?.[sync.base] || sync.base;
-    const quote = sync.exc?.asset_translation?.[sync.quote] || sync.quote;
-    const name = `${sync.exchange} ${base}-${(quote)} ${new Date((data_time - 60*60*3) * 1e3).toISOString().slice(0, 13)}`;
-    await sendToS3(name, compressed_data);
-
-    // Remove the saved data from 'seconds_data'.
-    seconds_data = seconds_data.filter(s => Big(s.second).gt(data_time));
-
-    console.log('[!] Saved "'+name+'".');
+    // Compress data then save it.
+    gzip(JSON.stringify(data))
+      .then(compressed_data => sendToS3(name, compressed_data))
+      .then(() => console.log('[!] Saved "'+name+'" successfully.'))
+      .catch(err => console.log('[E] Failed to save "'+name+'":',err));
   }
 });
 

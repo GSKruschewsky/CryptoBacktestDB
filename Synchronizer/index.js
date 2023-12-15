@@ -1740,8 +1740,8 @@ class Synchronizer extends EventEmitter {
       // Remove 'trades' older than 'data_time - 2 seconds'.
       this.trades = this.trades.filter(t => Big(t.timestamp).gt((data_time - 2) * 1e3));
       
-      // Keep only the last 3 'orderbooks'.
-      this.orderbooks = this.orderbooks.slice(-3);
+      // Keep only the last 3 orderbooks.
+      this.orderbooks = this.orderbooks.slice(0, 3);
     }
 
     // Emit a 'newSecond' event.
@@ -1783,6 +1783,11 @@ class Synchronizer extends EventEmitter {
 
     // Sets 'exc'.
     this.exc = exchanges[this.exchange];
+
+    // Sets 'full_market_name'.
+    const _base = this.exc?.asset_translation?.[this.base] || this.base;
+    const _quote = this.exc?.asset_translation?.[this.quote] || this.quote;
+    this.full_market_name = `${this.exchange} ${_base}-${(_quote)}`;
 
     // Checks if authentication necesary.
     const _auth = (this.exc.ws?.auth || this.exc.rest?.auth);
