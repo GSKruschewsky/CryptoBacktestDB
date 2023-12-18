@@ -1717,7 +1717,7 @@ class Synchronizer extends EventEmitter {
 
     // Call 'every_second' again at the next new second.
     clearTimeout(this.every_second_timeout);
-    this.every_second_timeout = setTimeout((...p) => this.every_second(...p), (second + 1) * 1e3 - timestamp, this.completely_synced);
+    this.every_second_timeout = setTimeout((...p) => this.every_second(...p), (second + 1) * 1e3 - timestamp + 10, this.completely_synced);
 
     // Do not necessarily wait until a newer update to set 'delayed_orderbook' and save it.
     if (this.orderbook != null &&
@@ -1771,7 +1771,7 @@ class Synchronizer extends EventEmitter {
 
     // Call 'every_second' at the next new second.
     clearTimeout(this.every_second_timeout);
-    this.every_second_timeout = setTimeout((...p) => this.every_second(...p), (initiated_at_sec + 1) * 1e3 - initiated_at, this.completely_synced);
+    this.every_second_timeout = setTimeout((...p) => this.every_second(...p), (initiated_at_sec + 1) * 1e3 - initiated_at + 10, this.completely_synced);
 
     // Validate user inputs variables.
     if (this.exchange == undefined)
