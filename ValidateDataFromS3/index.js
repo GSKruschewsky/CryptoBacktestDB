@@ -49,7 +49,7 @@ const assets = [
   'USDT'
 ];
 
-const datestr = '2023-12-18T13-30';
+const datestr = '2023-12-18T15-00';
 
 (async () => {
   let promises = [];

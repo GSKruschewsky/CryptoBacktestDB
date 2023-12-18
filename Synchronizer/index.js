@@ -1700,19 +1700,17 @@ class Synchronizer extends EventEmitter {
     // Set time variables.
     const timestamp = Date.now();
 
-    // Avoid 'timestamp' from beign somethin like '1702050540999'.
-    if (Math.round(timestamp / 1e3) * 1e3 > timestamp) {
-      // return this.every_second(this.completely_synced); 
-      clearTimeout(this.every_second_timeout);
-      this.every_second_timeout = setTimeout((...p) => this.every_second(...p), 10, this.completely_synced);
-      this.__called_from_every_second = true;
-      console.log('/!\\ Calling "every_second" again on 10 seconds... (timestamp= '+timestamp+')');
-      return;
-    
-    } else if (this.__called_from_every_second) {
-      console.log('[!] Called again right now. (timestamp= '+timestamp+')');
-
-    }
+    // // Avoid 'timestamp' from beign somethin like '1702050540999'.
+    // if (Math.round(timestamp / 1e3) * 1e3 > timestamp) {
+    //   // return this.every_second(this.completely_synced); 
+    //   clearTimeout(this.every_second_timeout);
+    //   this.every_second_timeout = setTimeout((...p) => this.every_second(...p), 10, this.completely_synced);
+    //   this.__called_from_every_second = true;
+    //   console.log('/!\\ Calling "every_second" again on 10 seconds... (timestamp= '+timestamp+')');
+    //   return;
+    // } else if (this.__called_from_every_second) {
+    //   console.log('[!] Called again right now. (timestamp= '+timestamp+')');
+    // }
 
     const second = Math.floor(timestamp / 1e3);
     const data_time = second - this.delay_in_sec;
