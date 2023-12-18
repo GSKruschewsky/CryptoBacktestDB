@@ -1705,7 +1705,13 @@ class Synchronizer extends EventEmitter {
       // return this.every_second(this.completely_synced); 
       clearTimeout(this.every_second_timeout);
       this.every_second_timeout = setTimeout((...p) => this.every_second(...p), 10, this.completely_synced);
-      return console.log('/!\\ Caling "every_second" again on 10 seconds...');
+      this.__called_from_every_second = true;
+      console.log('/!\\ Calling "every_second" again on 10 seconds... (timestamp= '+timestamp+')');
+      return;
+    
+    } else if (this.__called_from_every_second) {
+      console.log('[!] Called again right now. (timestamp= '+timestamp+')');
+      
     }
 
     const second = Math.floor(timestamp / 1e3);
