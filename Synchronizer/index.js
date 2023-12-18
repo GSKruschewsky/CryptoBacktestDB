@@ -1705,11 +1705,15 @@ class Synchronizer extends EventEmitter {
       // return this.every_second(this.completely_synced); 
       clearTimeout(this.every_second_timeout);
       this.every_second_timeout = setTimeout((...p) => this.every_second(...p), 10, this.completely_synced);
-      return;
+      return console.log('/!\\ Caling "every_second" again on 10 seconds...');
     }
 
     const second = Math.floor(timestamp / 1e3);
     const data_time = second - this.delay_in_sec;
+
+    if (data_time % 1800 == 0) {
+      console.log('"Half-hour"...');
+    }
 
     // Call 'every_second' again at the next new second.
     clearTimeout(this.every_second_timeout);
@@ -1751,6 +1755,10 @@ class Synchronizer extends EventEmitter {
       
       // Keep only the last 3 orderbooks.
       this.orderbooks = this.orderbooks.slice(0, 3);
+    }
+
+    if (data_time % 1800 == 0) {
+      console.log('Emiting "newSecond"...');
     }
 
     // Emit a 'newSecond' event.
