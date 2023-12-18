@@ -1,0 +1,9 @@
+Precisamos determinar apenas o 'data-time' inicial através do timestamp os demais, 
+devem ser processados apenas incrementando o 'date-time' inicial, caso 'timestamp' se distancie muito de 'date-time',
+então devemos rodar 'every_second' diversas vezes em sequencia para que 'timestamp' e 'data-time' fique sincronizados.
+
+Devemos também salvar os ultimos 10 livros de ofertas em vez de apenas os ultimos 3 a fim de evitar perdas de dados.
+(Talvez até os ultimos 20, caso não custe muita memória).
+
+O problema atual é ao eviarmos os dados nosso every_second se desincroniza completamente com o data-time e acaba se 
+confundindo e deixando de enviar dados de alguns segundos.

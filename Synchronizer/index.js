@@ -1716,10 +1716,6 @@ class Synchronizer extends EventEmitter {
     const data_time = second - this.delay_in_sec;
     console.log('every_sec (timestamp='+timestamp+', data_time='+data_time+')');
 
-    if (data_time % 1800 == 0) {
-      console.log('"Half-hour"...');
-    }
-
     // Call 'every_second' again at the next new second.
     clearTimeout(this.every_second_timeout);
     this.every_second_timeout = setTimeout((...p) => this.every_second(...p), (second + 1) * 1e3 - timestamp + 10, this.completely_synced);
@@ -1760,10 +1756,6 @@ class Synchronizer extends EventEmitter {
       
       // Keep only the last 3 orderbooks.
       this.orderbooks = this.orderbooks.slice(0, 3);
-    }
-
-    if (data_time % 1800 == 0) {
-      console.log('Emiting "newSecond"...');
     }
 
     // Emit a 'newSecond' event.
