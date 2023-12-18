@@ -1711,11 +1711,12 @@ class Synchronizer extends EventEmitter {
     
     } else if (this.__called_from_every_second) {
       console.log('[!] Called again right now. (timestamp= '+timestamp+')');
-      
+
     }
 
     const second = Math.floor(timestamp / 1e3);
     const data_time = second - this.delay_in_sec;
+    console.log('every_sec (timestamp='+timestamp+', data_time='+data_time+')');
 
     if (data_time % 1800 == 0) {
       console.log('"Half-hour"...');
