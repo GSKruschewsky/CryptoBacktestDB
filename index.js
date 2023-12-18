@@ -77,7 +77,9 @@ sync.on('newSecond', async function (timestamp, data_time, not_first) {
     const name = `${sync.full_market_name.replace(' ', '_')}_${timestr}.json`;
 
     // Compress data then save it.
-    CompressAndSendBigJSONToS3(name, seconds_data);
+    console.log('Saving data...');
+    CompressAndSendBigJSONToS3(name, seconds_data)
+    .then(() => console.log('[!] Data saved successfuly.'));
     
     // Reset 'seconds_data'.
     seconds_data = [];
