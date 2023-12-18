@@ -1,3 +1,4 @@
 node_modules
 .env
 latency-test_*
+reduced_*
