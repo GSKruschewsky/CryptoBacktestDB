@@ -22,7 +22,7 @@ importer.addEventListener('change', async () => {
   mkt_selector.addEventListener('change', showMarketData);
 
   showMarketData({ target: { value: 'BTC-USDT' } });
-})
+});
 
 let main_chart = undefined;
 function showMarketData ({ target: { value: selected_market } }) {
