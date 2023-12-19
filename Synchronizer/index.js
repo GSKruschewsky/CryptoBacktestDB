@@ -1,9 +1,10 @@
-import EventEmitter from 'events';
 import WebSocket from 'ws';
 import Big from 'big.js';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 import exchanges from './Exchanges/index.js';
+import { CompressAndSendBigJSONToS3 } from "../helper/sendToS3.js";
+
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -11,10 +12,8 @@ dotenv.config();
 import pkg from 'node-gzip';
 const { ungzip } = pkg;
 
-class Synchronizer extends EventEmitter {
+class Synchronizer {
   constructor (exchange, base, quote, delay = 1) {
-    super();
-
     this.orderbook_depth = 50;       // Stores the max depth od the orderbook.
     this.exchange = exchange;        // Stores the exchange name we will synchronize with.
     this.base = base;                // Stores the 'base' of the market we will synchronize with.
@@ -22,11 +21,12 @@ class Synchronizer extends EventEmitter {
     this.delay_in_sec = delay;       /* Sets the delay between now and the that we going to save. (Used to avoid network delay interfering w/ the data being posted)
     Ex.: If 'delay_in_sec' is 1 at the timestmap 1701717880 we will post data from 1701717879, so are sure we have already received all updates of the data posted. */
     
+    this.is_test = false;            // Sets if this synchronization is just a test or if we should realy store data.
+
     this.completely_synced = false;  // Stores the current STATE of the object. (Is it synchronized ?)
-    this.every_second_timeout;       // Control variable for the timeout of 'every_second()' function.
+    this.process_second_timeout;     // Control variable for the timeout of 'process_second' function.
 
     this.markets = null;             // Stores exchange available markets.
-    // conn.info = { };                // Stores websocket subscriptions information.
 
     this.orderbook = null;           // Stores the current (real-time) orderbook.
     this.orderbook_upd_cache = [];   // Store orderbook updates while the first orderbook snapshot is not defined.
@@ -37,6 +37,8 @@ class Synchronizer extends EventEmitter {
     this.trades = null;              // Stores the last trades since 'now - (delay_time_in_seconds + 2)'.
     this.trades_upd_cache = [];      // Stores new trades while the first trades snapshot is not defined.
     this.synced_trades_since = null; // Stores the timestamp since 'trades' are synchronized.
+
+    this.seconds_data = [];          // Stores the orderbook and trades from each second.
 
     this.exc = null;                 // Stores the exchange configuration JSON. 
     this.api = {};                   // Stores the exchange credentials if needed.
@@ -984,7 +986,8 @@ class Synchronizer extends EventEmitter {
           this.completely_synced = false;
 
           // Reset global variables.
-          clearTimeout(this.every_second_timeout);
+          clearTimeout(this.process_second_timeout);
+          this.seconds_data = [];
           this.markets = null;
           this.orderbook = null;
           this.orderbook_upd_cache = [];
@@ -1696,34 +1699,81 @@ class Synchronizer extends EventEmitter {
     this.apply_orderbook_snap(init_orderbook, null, null, ws_recv_ts);
   }
 
-  every_second (not_first) {
+  save_to_s3 () {
+    // Create a name to the file being saved.
+    const timestr = new Date((this.data_time - 60*60*3)*1e3).toISOString().slice(0, 16).replaceAll(':', '-');
+    const name = `${this.full_market_name.replace(' ', '_')}_${timestr}.json`;
+
+    // Compress data then save it.
+    console.log('Compressing and saving data...');
+    CompressAndSendBigJSONToS3(name, this.seconds_data)
+    .then(() => console.log('[!] Data saved successfuly.'))
+    .catch(error => console.log('[E] Failed to save data:',error));
+    
+    // Reset data in memory. 'this.seconds_data'.
+    this.seconds_data = [];
+  }
+
+  save_second () {
+    const trades_to_post = this.trades
+      .filter(t => 
+        Big(t.timestamp).gt((this.data_time - 1) * 1e3) &&
+        Big(t.timestamp).lte(this.data_time * 1e3)
+      )
+      .map(t => {
+        delete t.trade_id;
+        delete t.custom_id;
+        return t;
+      });
+  
+    const orderbook_to_post = this.orderbooks.find(ob => Big(ob.timestamp).lte(this.data_time * 1e3));
+  
+    if (orderbook_to_post) {
+      const obj = {
+        asks: orderbook_to_post?.asks,
+        bids: orderbook_to_post?.bids,
+        book_timestamp: orderbook_to_post?.timestamp,
+        trades: trades_to_post,
+        second: this.data_time,
+      };
+
+      if (this.is_test)
+        console.log(obj); // Just log the object.
+      else
+        this.seconds_data.push(obj); // Save in memory.
+      
+    } else {
+      if (this.orderbooks.length > 0) {
+        console.log('/!\\ No orderbook to save at '+this.data_time+':');
+        console.log('this.orderbook:',this.orderbook?.timestamp);
+        console.log('this.delayed_orderbook:',this.delayed_orderbook?.timestamp);
+        console.log('this.orderbooks:',this.orderbooks.map(op => op.timestamp),'\n');
+      }
+    }
+  
+    ++this.data_time;
+  }
+
+  save_data (second) {
+    // Save seconds to the memory.
+    while (this.data_time <= second - this.delay_in_sec) {
+      // Check if its a new 'half-hour', if so save data to AWS S3.
+      if ((!this.is_test) && this.data_time % 1800 == 0) this.save_to_s3();
+      
+      // Save data to memory.
+      this.save_second();
+    }
+  }
+
+  process_second () {
     // Set time variables.
     const timestamp = Date.now();
-
-    // // Avoid 'timestamp' from beign somethin like '1702050540999'.
-    // if (Math.round(timestamp / 1e3) * 1e3 > timestamp) {
-    //   // return this.every_second(this.completely_synced); 
-    //   clearTimeout(this.every_second_timeout);
-    //   this.every_second_timeout = setTimeout((...p) => this.every_second(...p), 10, this.completely_synced);
-    //   this.__called_from_every_second = true;
-    //   console.log('/!\\ Calling "every_second" again on 10 seconds... (timestamp= '+timestamp+')');
-    //   return;
-    // } else if (this.__called_from_every_second) {
-    //   console.log('[!] Called again right now. (timestamp= '+timestamp+')');
-    // }
-
     const second = Math.floor(timestamp / 1e3);
-    const data_time = second - this.delay_in_sec;
-    console.log('every_sec (timestamp='+timestamp+', data_time='+data_time+')');
-
-    // Call 'every_second' again at the next new second.
-    clearTimeout(this.every_second_timeout);
-    this.every_second_timeout = setTimeout((...p) => this.every_second(...p), (second + 1) * 1e3 - timestamp + 10, this.completely_synced);
 
     // Do not necessarily wait until a newer update to set 'delayed_orderbook' and save it.
     if (this.orderbook != null &&
     this.orderbook.timestamp != null &&
-    Big(this.orderbook.timestamp).lte(data_time * 1e3) &&
+    Big(this.orderbook.timestamp).lte(this.data_time * 1e3) &&
     (
       this.delayed_orderbook == null ||
       Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3) ||
@@ -1749,26 +1799,27 @@ class Synchronizer extends EventEmitter {
     // If not 'completely_synced' returns here.
     if (!this.completely_synced) return console.log('/!\\ Not completely synced.');
 
-    // Checks if it isnt the first second after synchronization.
-    if (not_first) {
-      // Remove 'trades' older than 'data_time - 2 seconds'.
-      this.trades = this.trades.filter(t => Big(t.timestamp).gt((data_time - 2) * 1e3));
-      
-      // Keep only the last 3 orderbooks.
-      this.orderbooks = this.orderbooks.slice(0, 3);
-    }
+    // Call 'process_second' it again in a second.
+    this.process_second_timeout = setTimeout((...p) => this.process_second(...p), (second + 1) * 1e3 - timestamp + 10);
 
-    // Emit a 'newSecond' event.
-    this.emit('newSecond', timestamp, data_time, not_first);
+    // Remove 'trades' older than 'this.data_time - 2 seconds'.
+    this.trades = this.trades.filter(t => Big(t.timestamp).gt((this.data_time - 2) * 1e3));
+    
+    // Keep only the orderbooks w/ timestamp > this.data_time - 2.
+    this.orderbooks = this.orderbooks.filter(ob => Big(ob.timestamp).gt((this.data_time - 2) * 1e3));
+    // const idx = this.orderbooks.findIndex(ob => ob.timestamp ? Big(ob.timestamp).lte((this.data_time - 2) * 1e3) : false);
+    // if (idx != -1) this.orderbooks = this.orderbooks.slice(0, idx);
+
+    // Call 'save_data' function.
+    this.save_data(second);
   }
   
   async initiate () {
     const initiated_at = Date.now();
     const initiated_at_sec = Math.floor(initiated_at / 1e3);
 
-    // Call 'every_second' at the next new second.
-    clearTimeout(this.every_second_timeout);
-    this.every_second_timeout = setTimeout((...p) => this.every_second(...p), (initiated_at_sec + 1) * 1e3 - initiated_at + 10, this.completely_synced);
+    // Set 'this.data_time' as the first second we should save the market data if possible.
+    this.data_time = initiated_at_sec + 1;
 
     // Validate user inputs variables.
     if (this.exchange == undefined)
@@ -1934,7 +1985,10 @@ class Synchronizer extends EventEmitter {
     }
 
     this.completely_synced = true;
-    console.log('[!] Completely synchronized.');
+    console.log('[!] Completely synchronized.\n');
+    
+    // Call 'process_second' for the first time.
+    this.process_second(this.completely_synced);
 
     this.keep_synced();
   }
@@ -1957,7 +2011,7 @@ class Synchronizer extends EventEmitter {
     this.__working = false;
 
     // Stop 'ever_second' loop
-    clearTimeout(this.every_second_timeout);
+    clearTimeout(this.process_second_timeout);
 
     // Close all connections
     for (let c_idx = 0; c_idx < this.connections_num; ++c_idx) {
@@ -1982,4 +2036,4 @@ class Synchronizer extends EventEmitter {
   }
 }
 
-export { Synchronizer, exchanges };
+export default Synchronizer;

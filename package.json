@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "sync": "node --no-warnings index.js",
-    "sync-test": "node --no-warnings sync-test.js",
+    "sync-test": "node --no-warnings index.js test",
     "latency-test": "node --no-warnings latency_test.js",
     "get-from-s3": "node ValidateDataFromS3/index.js"
   },
