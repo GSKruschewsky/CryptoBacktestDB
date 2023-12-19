@@ -1,7 +1,16 @@
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { JsonStreamStringify } from 'json-stream-stringify';
 import Big from 'big.js';
 import fs from 'fs';
+
+// Get and validate parameters/arguments.
+let args = process.argv.slice(2); // Get command-line arguments, starting from index 2
+
+if (!args[0]) {
+  console.log('Usage:\nnpm run get-from-s3 <datestr>\n\nExample:\nnpm run get-from-s3 2023-12-19T16-00\n');
+  process.exit();
+}
+
+const datestr = args[0];
 
 // Commonjs importing 
 import pkg from 'node-gzip';
@@ -57,8 +66,6 @@ const assets = [
   'AVAX',
   'USDT'
 ];
-
-const datestr = '2023-12-18T17-00';
 
 (async () => {
   console.log('Getting "'+datestr+'" data from S3...');

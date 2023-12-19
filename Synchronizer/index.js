@@ -1805,10 +1805,8 @@ class Synchronizer {
     // Remove 'trades' older than 'this.data_time - 2 seconds'.
     this.trades = this.trades.filter(t => Big(t.timestamp).gt((this.data_time - 2) * 1e3));
     
-    // Keep only the orderbooks w/ timestamp > this.data_time - 2.
-    this.orderbooks = this.orderbooks.filter(ob => Big(ob.timestamp).gt((this.data_time - 2) * 1e3));
-    // const idx = this.orderbooks.findIndex(ob => ob.timestamp ? Big(ob.timestamp).lte((this.data_time - 2) * 1e3) : false);
-    // if (idx != -1) this.orderbooks = this.orderbooks.slice(0, idx);
+    // Keep only the last 3 orderbooks or orderbooks w/ timestamp > this.data_time - 2.
+    this.orderbooks = this.orderbooks.filter((ob, idx) => idx <= 2 || Big(ob.timestamp).gt((this.data_time - 2) * 1e3));
 
     // Call 'save_data' function.
     this.save_data(second);
