@@ -2,6 +2,7 @@ const main = document.getElementById('content-inside');
 const importer = document.getElementById('fileImport');
 
 let data = null; 
+let mkt_selector = null;
 
 importer.addEventListener('change', async () => {
   const [ file ] = importer.files;
@@ -10,11 +11,13 @@ importer.addEventListener('change', async () => {
 
   const markets = [ ...new Set(Object.values(data).reduce((s, x) => [ ...s, ...Object.keys(x) ], [])) ];
   
-  const mkt_selector = document.createElement("select");
-  for (const market of markets) 
-    mkt_selector.append(new Option(market));
-
-  main.appendChild(mkt_selector);
+  if (!mkt_selector) {
+    mkt_selector = document.createElement("select");
+    for (const market of markets) 
+      mkt_selector.append(new Option(market));
+  
+    main.appendChild(mkt_selector);
+  }
 
   mkt_selector.addEventListener('change', showMarketData);
 
