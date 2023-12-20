@@ -1750,6 +1750,7 @@ class Synchronizer {
         this.seconds_data.push(obj); // Save in memory.
 
       this.saved_first_second = true;
+      console.log('Saved second',this.data_time,'(book_timestamp=',book_timestamp+')');
       
     } else {
       if (!this.saved_first_second) {
