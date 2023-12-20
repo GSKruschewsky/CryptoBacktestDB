@@ -85,7 +85,7 @@ class Synchronizer {
       if (_endpoint.require_auth)
         headers = { ...headers, ...this.get_auth_headers(url.replace(_rest.url, '')) };
       
-      console.log('Requesting "'+url+'"...');
+      // console.log('Requesting "'+url+'"...');
       let r = await Promise.race([
         new Promise((res, rej) => setTimeout(rej, (_rest.timeout || 5000), "TIMEOUT")),
         fetch(url, {
