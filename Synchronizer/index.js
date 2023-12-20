@@ -1930,13 +1930,8 @@ class Synchronizer {
       console.log("[E] Initiating synchronization:",error);
 
       for (const conn of this.connections) {
-        conn.ws.terminate();
-        conn.ws2.terminate();
-        // if ((conn?.ws?.readyState || WebSocket.CLOSED) != WebSocket.CLOSED)
-        //   conn.ws.terminate();
-
-        // if ((conn?.ws2?.readyState || WebSocket.CLOSED) != WebSocket.CLOSED)
-        //   conn.ws2.terminate();
+        if (conn?.ws?.terminate) conn.ws.terminate();
+        if (conn?.ws2?.terminate) conn.ws2.terminate();
       }
 
       throw "Failed to synchronize with the exchange";
