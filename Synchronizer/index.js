@@ -1761,11 +1761,8 @@ class Synchronizer {
         console.log(obj); // Just log the object.
       else
         this.seconds_data.push(obj); // Save in memory.
-
-      if (!this.saved_first_second) {
-        console.log('[!] First second saved:',this.data_time,'(book_timestamp=',orderbook_to_post?.timestamp+').');
-        this.saved_first_second = true;
-      }
+      
+      this.saved_first_second = true;
       
     } else {
       if (this.saved_first_second) {
