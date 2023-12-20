@@ -1939,8 +1939,9 @@ class Synchronizer {
 
     while (this.__working) {
       if (!this.completely_synced) {
-        console.log('Not completely synced, initiating againg...');
+        if (this.already_initiated) console.log('Not completely synced, initiating againg...');
         await this.initiate()
+        .then(() => this.already_initiated = true)
         .catch(error => {
           console.log('Failed to initate synchronization:',error);
           console.log('Trying again...');
