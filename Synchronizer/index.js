@@ -1597,7 +1597,7 @@ class Synchronizer {
       this.trades_upd_cache[0] != undefined &&
       Big(this.trades_upd_cache[0].timestamp).gt(init_trades.slice(-1)[0].timestamp) &&
       _t_rt_rsp.slow_cache) {
-        // Rest 'trades' request have a slow cache, flooding the API won't help, in this case wait 1 second.
+        // Rest 'trades' request have a slow cache, flooding the API won't help, in this case wait 'slow_cache_delay' or 1 second.
         await new Promise(r => setTimeout(r, (_t_rt_rsp.slow_cache_delay || 1e3)));
       }
 
@@ -1691,6 +1691,15 @@ class Synchronizer {
         } else if (this.exc.timestamp_in_micro || _b_rt_rsp.timestamp_in_micro) {
           obj.timestamp_us = _ts;
         }
+      }
+
+      if (_b_rt_rsp?.last_update_nonce != undefined &&
+      _b_ws_upd?.last_upd_nonce_key != undefined &&
+      this.orderbook_upd_cache[0] != undefined &&
+      Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce) &&
+      _b_rt_rsp.slow_cache) {
+        // Rest 'orderbook' request have a slow cache, flooding the API won't help, in this case wait 'slow_cache_delay' or 1 second.
+        await new Promise(r => setTimeout(r, (_b_rt_rsp.slow_cache_delay || 1e3)));
       }
 
       // console.log('this.orderbook_upd_cache[0].last_update_nonce:',this.orderbook_upd_cache[0]?.last_update_nonce);

@@ -45,7 +45,9 @@
           "asks": "asks",
           "bids": "bids",
           "timestamp": "timestamp",
-          "last_update_nonce": "lastUpdateId"
+          "last_update_nonce": "lastUpdateId",
+          "slow_cache": true,
+          "slow_cache_delay": null
         }
       }
     }

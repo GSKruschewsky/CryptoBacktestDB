@@ -34,7 +34,9 @@
           "bids": "",
           "timestamp": "",
           "get_timestamp_us_from_iso": null,
-          "last_update_nonce": ""
+          "last_update_nonce": "",
+          "slow_cache": null,
+          "slow_cache_delay": null
         }
       },
       "trades": {
