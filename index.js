@@ -20,7 +20,13 @@ console.log = (...args) => {
 }
 
 let sync = new Synchronizer(...args);
-sync.is_test = is_test;
+
+if (is_test) {
+  sync.is_test = true;
+  sync.orderbook_depth = 5;
+  sync.seconds_to_export = 1;
+}
+
 sync.keep_synced()
 .catch(error => {
   console.log('Failed to keep synchronization:',error);

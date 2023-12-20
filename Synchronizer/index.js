@@ -14,12 +14,11 @@ const { ungzip } = pkg;
 
 class Synchronizer {
   constructor (exchange, base, quote, delay = 1) {
-    this.orderbook_depth = 50;       // Stores the max depth od the orderbook.
-    this.exchange = exchange;        // Stores the exchange name we will synchronize with.
+    this.orderbook_depth = 50;       // Defines the max depth od the orderbook.
+    this.seconds_to_export = 1800;   // Defines how many seconds at most we will wait before exporting the data saved in memory. (if '1800' each 30min, if '3600' each hour, etc..)
+    this.exchange = exchange;        // Defines the exchange name we will synchronize with.
     this.base = base;                // Stores the 'base' of the market we will synchronize with.
     this.quote = quote;              // Stores the 'quote' of the market we will synchronize with.
-    this.delay_in_sec = delay;       /* Sets the delay between now and the that we going to save. (Used to avoid network delay interfering w/ the data being posted)
-    Ex.: If 'delay_in_sec' is 1 at the timestmap 1701717880 we will post data from 1701717879, so are sure we have already received all updates of the data posted. */
     
     this.is_test = false;            // Sets if this synchronization is just a test or if we should realy store data.
 
@@ -39,6 +38,7 @@ class Synchronizer {
     this.synced_trades_since = null; // Stores the timestamp since 'trades' are synchronized.
 
     this.seconds_data = [];          // Stores the orderbook and trades from each second.
+    this.saved_first_second = false; // Defines if the first second has already been saved. (Avoids 'no orderbook' error before the first save)
 
     this.exc = null;                 // Stores the exchange configuration JSON. 
     this.api = {};                   // Stores the exchange credentials if needed.
@@ -734,6 +734,46 @@ class Synchronizer {
     }
   }
 
+  before_apply_to_orderbook (upd_time) {
+    const upd_sec = Math.floor(upd_time / 1e3);
+    const book_sec = Math.floor(this.orderbook?.timestamp / 1e3);
+
+    if (this.orderbook != null && (
+      this.delayed_orderbook == null || 
+      Math.floor(this.orderbook.timestamp / 1e3) != Math.floor(upd_time / 1e3)
+    )) {
+      const save_it = (this.delayed_orderbook != null);
+
+      if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 
+      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3))
+        this.orderbooks.unshift(this.delayed_orderbook);
+
+      this.delayed_orderbook = {
+        asks: Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth),
+        bids: Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth),
+        timestamp: this.orderbook.timestamp,
+        first: !save_it
+      };
+
+      if (save_it && this.delayed_orderbook.timestamp != undefined) {
+        this.orderbooks.unshift(this.delayed_orderbook);
+
+        // Check if is time to save orderbooks and trades of the last 'half-hour' to AWS S3.
+        if (this.completely_synced && upd_sec % this.seconds_to_export == 0) {
+          // Set up 'this.seconds_data'.
+          while (this.data_time <= upd_sec) this.save_second();
+          
+          // Reset 'trades' and 'orderbooks' vars.
+          this.trades = [];
+          this.orderbooks = [];
+          
+          // Save 'this.seconds_data' to AWS S3 and reset it.
+          this.save_to_s3();
+        }
+      }
+    }
+  }
+
   apply_orderbook_snap (update, __ws, _prom, ws_recv_ts) {
     // Validate snapshot update.
     // console.log('Book snap:',update);
@@ -750,26 +790,7 @@ class Synchronizer {
     if (this.is_lantecy_test && update.timestamp) this.diff_latency.push(ws_recv_ts - update.timestamp);
 
     // Updates 'delayed_orderbook' if its the case.
-    if (this.orderbook != null && (
-      this.delayed_orderbook == null || 
-      Math.floor(this.orderbook.timestamp / 1e3) != Math.floor(update.timestamp / 1e3)
-    )) {
-      const save_it = (this.delayed_orderbook != null);
-
-      if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 
-      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3))
-        this.orderbooks.unshift(this.delayed_orderbook);
-
-      this.delayed_orderbook = {
-        asks: Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth),
-        bids: Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth),
-        timestamp: this.orderbook.timestamp,
-        first: !save_it
-      };
-
-      if (save_it && this.delayed_orderbook.timestamp != undefined) 
-        this.orderbooks.unshift(this.delayed_orderbook);
-    }
+    this.before_apply_to_orderbook(update.timestamp);
 
     // if (!this.orderbook) 
     //   console.log('[!!] Got first orderbook snapshot from',((this.exc.rest?.endpoints?.orderbook != null) ? "REST" : "WS"),'at',update.timestamp);
@@ -832,26 +853,7 @@ class Synchronizer {
     }
 
     // Updates 'delayed_orderbook' if its the case.
-    if (this.orderbook != null && (
-      this.delayed_orderbook == null || 
-      Math.floor(this.orderbook.timestamp / 1e3) != Math.floor(upd.timestamp / 1e3)
-    )) {
-      const save_it = (this.delayed_orderbook != null);
-          
-      if (save_it && this.delayed_orderbook.first &&  this.delayed_orderbook.timestamp != undefined && 
-      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3))
-        this.orderbooks.unshift(this.delayed_orderbook);
-
-      this.delayed_orderbook = {
-        asks: Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth),
-        bids: Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth),
-        timestamp: this.orderbook.timestamp,
-        first: !save_it
-      };
-
-      if (save_it && this.delayed_orderbook.timestamp != undefined) 
-        this.orderbooks.unshift(this.delayed_orderbook);
-    }
+    this.before_apply_to_orderbook(upd.timestamp);
 
     // Apply updates.
     for (const side of [ 'asks', 'bids' ]) {
@@ -991,12 +993,13 @@ class Synchronizer {
           this.markets = null;
           this.orderbook = null;
           this.orderbook_upd_cache = [];
-          this.orderbooks = [];
+          // this.orderbooks = [];
           this.delayed_orderbook = null;
-          this.trades = null;
+          // this.trades = null;
           this.trades_upd_cache = [];
           this.synced_trades_since = null;
           this.ws_req_nonce = 0;
+          this.saved_first_second = false;
 
         } else {
           // Only this connection has ended, try reconnection respecting the established attempt limits.
@@ -1635,7 +1638,7 @@ class Synchronizer {
     // process.exit();
 
     // Set trades from 'init_trades' and 'trades_upd_cache'.
-    this.trades = [ ...init_trades, ...this.trades_upd_cache ];
+    this.trades = [ ...(this.trades || []), ...init_trades, ...this.trades_upd_cache ];
     this.trades_upd_cache = []; // Empties 'trades_upd_cache'.
   }
 
@@ -1705,9 +1708,9 @@ class Synchronizer {
     const name = `${this.full_market_name.replace(' ', '_')}_${timestr}.json`;
 
     // Compress data then save it.
-    console.log('Compressing and saving data...');
+    if (!this.is_test) console.log('Compressing and saving data...');
     CompressAndSendBigJSONToS3(name, this.seconds_data)
-    .then(() => console.log('[!] Data saved successfuly.'))
+    .then(() => { if (!this.is_test) console.log('[!] Data saved successfuly.'); })
     .catch(error => console.log('[E] Failed to save data:',error));
     
     // Reset data in memory. 'this.seconds_data'.
@@ -1741,9 +1744,11 @@ class Synchronizer {
         console.log(obj); // Just log the object.
       else
         this.seconds_data.push(obj); // Save in memory.
+
+      this.saved_first_second = true;
       
     } else {
-      if (this.orderbooks.length > 0) {
+      if (!this.saved_first_second) {
         console.log('/!\\ No orderbook to save at '+this.data_time+':');
         console.log('this.orderbook:',this.orderbook?.timestamp);
         console.log('this.delayed_orderbook:',this.delayed_orderbook?.timestamp);
@@ -1752,64 +1757,6 @@ class Synchronizer {
     }
   
     ++this.data_time;
-  }
-
-  save_data (second) {
-    // Save seconds to the memory.
-    while (this.data_time <= second - this.delay_in_sec) {
-      // Check if its a new 'half-hour', if so save data to AWS S3.
-      if ((!this.is_test) && this.data_time % 1800 == 0) this.save_to_s3();
-      
-      // Save data to memory.
-      this.save_second();
-    }
-  }
-
-  process_second () {
-    // Set time variables.
-    const timestamp = Date.now();
-    const second = Math.floor(timestamp / 1e3);
-
-    // Do not necessarily wait until a newer update to set 'delayed_orderbook' and save it.
-    if (this.orderbook != null &&
-    this.orderbook.timestamp != null &&
-    Big(this.orderbook.timestamp).lte(this.data_time * 1e3) &&
-    (
-      this.delayed_orderbook == null ||
-      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3) ||
-      this.orderbooks.length == 0 // We have set the 'delayed_orderbook' and now is a new second and we haven't received any update.
-    )) {
-      const save_it = (this.delayed_orderbook != null);
-          
-      if (save_it && this.delayed_orderbook.first &&  this.delayed_orderbook.timestamp != undefined && 
-      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3))
-        this.orderbooks.unshift(this.delayed_orderbook);
-
-      this.delayed_orderbook = {
-        asks: Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth),
-        bids: Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth),
-        timestamp: this.orderbook.timestamp,
-        first: !save_it
-      };
-
-      if (save_it && this.delayed_orderbook.timestamp != undefined) 
-        this.orderbooks.unshift(this.delayed_orderbook);
-    }
-    
-    // If not 'completely_synced' returns here.
-    if (!this.completely_synced) return console.log('/!\\ Not completely synced.');
-
-    // Call 'process_second' it again in a second.
-    this.process_second_timeout = setTimeout((...p) => this.process_second(...p), (second + 1) * 1e3 - timestamp + 10);
-
-    // Remove 'trades' older than 'this.data_time - 2 seconds'.
-    this.trades = this.trades.filter(t => Big(t.timestamp).gt((this.data_time - 2) * 1e3));
-    
-    // Keep only the last 3 orderbooks or orderbooks w/ timestamp > this.data_time - 2.
-    this.orderbooks = this.orderbooks.filter((ob, idx) => idx <= 2 || Big(ob.timestamp).gt((this.data_time - 2) * 1e3));
-
-    // Call 'save_data' function.
-    this.save_data(second);
   }
   
   async initiate () {
@@ -1837,12 +1784,6 @@ class Synchronizer {
       throw "Initiating synchronization 'quote' is not defined.";
     
     this.quote = this.quote.toUpperCase();
-    
-    if (this.delay_in_sec == undefined)
-      throw "Initiating synchronization 'delay_in_sec' is not defined.";
-
-    if (!Number.isInteger(this.delay_in_sec)) 
-      throw "Initiating synchronization 'delay_in_sec' should be positive integer.";
 
     // Sets 'exc'.
     this.exc = exchanges[this.exchange];
@@ -1956,7 +1897,7 @@ class Synchronizer {
     if (this.exc.rest.endpoints?.trades != undefined) {
       initial_proms.push(this.get_trades_snapshot(initiated_at_sec));
     } else {
-      this.trades = [];
+      if (!this.trades) this.trades = [];
     }
 
     // Try to make an initial request for the orderbook snapshot, if necessary.
@@ -1984,9 +1925,6 @@ class Synchronizer {
 
     this.completely_synced = true;
     console.log('[!] Completely synchronized.\n');
-    
-    // Call 'process_second' for the first time.
-    this.process_second(this.completely_synced);
 
     this.keep_synced();
   }
