@@ -1693,8 +1693,8 @@ class Synchronizer {
         }
       }
 
-      console.log('this.orderbook_upd_cache[0].last_update_nonce:',this.orderbook_upd_cache[0]?.last_update_nonce);
-      console.log('init_orderbook.last_update_nonce:',init_orderbook.last_update_nonce,'\n');
+      // console.log('this.orderbook_upd_cache[0].last_update_nonce:',this.orderbook_upd_cache[0]?.last_update_nonce);
+      // console.log('init_orderbook.last_update_nonce:',init_orderbook.last_update_nonce,'\n');
 
     } while (
       _b_rt_rsp?.last_update_nonce != undefined &&
