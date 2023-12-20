@@ -1762,10 +1762,13 @@ class Synchronizer {
       else
         this.seconds_data.push(obj); // Save in memory.
 
-      this.saved_first_second = true;
+      if (!this.saved_first_second) {
+        console.log('[!] First second saved:',this.data_time,'(book_timestamp=',orderbook_to_post?.timestamp+').');
+        this.saved_first_second = true;
+      }
       
     } else {
-      if (!this.saved_first_second) {
+      if (this.saved_first_second) {
         console.log('/!\\ No orderbook to save at '+this.data_time+':');
         console.log('this.orderbook:',this.orderbook?.timestamp);
         console.log('this.delayed_orderbook:',this.delayed_orderbook?.timestamp);
