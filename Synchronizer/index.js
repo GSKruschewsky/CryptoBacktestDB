@@ -1892,37 +1892,38 @@ class Synchronizer {
     else
       this.market.ws = (this.exc.makert_prefix || "") + (this.market.ws.toLowerCase());
     
-    let initial_proms = [
-      this.connect(),
-      this.validate_market()
-    ];
-
-    // Try to make the initial 'trades' request.
-    // (proceed only when last snapshot trade (timestamp) <= first trade in 'trades_upd_cache')
-    if (this.exc.rest.endpoints?.trades != undefined) {
-      initial_proms.push(this.get_trades_snapshot(initiated_at_sec));
-    } else {
-      if (!this.trades) this.trades = [];
-    }
-
-    // Try to make an initial request for the orderbook snapshot, if necessary.
-    // (proceed only when orderbook snapshot (last_update_nonce) <= first update in 'orderbook_upd_cache')
-    if (this.exc.rest.endpoints?.orderbook != undefined) {
-      initial_proms.push(this.get_orderbook_snapshot());
-    }
 
     // Try to connect with websocket and subscribe to market updates.
     try {
-      await Promise.all(initial_proms);
+      await this.validate_market();
+      
+      await this.connect();
+
+      // Try to make the initial 'trades' request.
+      // (proceed only when last snapshot trade (timestamp) <= first trade in 'trades_upd_cache')
+      if (this.exc.rest.endpoints?.trades != undefined) {
+        await this.get_trades_snapshot(initiated_at_sec);
+      } else {
+        if (!this.trades) this.trades = [];
+      }
+
+      // Try to make an initial request for the orderbook snapshot, if necessary.
+      // (proceed only when orderbook snapshot (last_update_nonce) <= first update in 'orderbook_upd_cache')
+      if (this.exc.rest.endpoints?.orderbook != undefined) {
+        await this.get_orderbook_snapshot();
+      }
+
     } catch (error) {
       console.log("[E] Initiating synchronization:",error);
 
       for (const conn of this.connections) {
-        if ((conn?.ws?.readyState || WebSocket.CLOSED) != WebSocket.CLOSED)
-          conn.ws.terminate();
+        conn.ws.terminate();
+        conn.ws2.terminate();
+        // if ((conn?.ws?.readyState || WebSocket.CLOSED) != WebSocket.CLOSED)
+        //   conn.ws.terminate();
 
-        if ((conn?.ws2?.readyState || WebSocket.CLOSED) != WebSocket.CLOSED)
-          conn.ws2.terminate();
+        // if ((conn?.ws2?.readyState || WebSocket.CLOSED) != WebSocket.CLOSED)
+        //   conn.ws2.terminate();
       }
 
       throw "Failed to synchronize with the exchange";
@@ -1940,14 +1941,14 @@ class Synchronizer {
 
     while (this.__working) {
       if (!this.completely_synced) {
-        if (this.already_initiated) console.log('Not completely synced, initiating againg...');
         await this.initiate()
         .then(() => this.already_initiated = true)
         .catch(error => {
-          console.log('Failed to initate synchronization:',error);
-          console.log('Trying again...');
+          // console.log('Failed to initate synchronization:',error);
+          console.log('Not completely synced, initiating againg...');
         });
       }
+      
       await new Promise(r => setTimeout(r, 250)); // Waits 250ms beteen each loop cycle.
     }
   }
