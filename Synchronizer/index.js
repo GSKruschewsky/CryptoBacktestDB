@@ -758,17 +758,21 @@ class Synchronizer {
       if (save_it && this.delayed_orderbook.timestamp != undefined) {
         this.orderbooks.unshift(this.delayed_orderbook);
 
-        // Check if is time to save orderbooks and trades of the last 'half-hour' to AWS S3.
-        if (this.completely_synced && upd_sec % this.seconds_to_export == 0) {
-          // Set up 'this.seconds_data'.
+        if (this.completely_synced) {
+          // Updates 'this.seconds_data'.
           while (this.data_time <= upd_sec) this.save_second();
-          
-          // Reset 'trades' and 'orderbooks' vars.
-          this.trades = [];
-          this.orderbooks = [];
-          
-          // Save 'this.seconds_data' to AWS S3 and reset it.
-          this.save_to_s3();
+
+          // Keep only trades w/ timestamp > this.data_time - 1
+          this.trades = this.trades.filter(t => t.timestamp > (this.data_time - 1) * 1e3);
+
+          // Keep only the last orderbook or orderbooks w/ timestamp > this.data_time - 1.
+          this.orderbooks = this.orderbooks.filter((ob, idx) => idx == 0 || ob.timestamp > (this.data_time - 1) * 1e3);
+
+          // Check if is time to save orderbooks and trades of the last 'half-hour' to AWS S3.
+          if ((!this.is_test) && upd_sec % this.seconds_to_export == 0) {
+            // Save 'this.seconds_data' to AWS S3 and reset it.
+            this.save_to_s3();
+          }
         }
       }
     }

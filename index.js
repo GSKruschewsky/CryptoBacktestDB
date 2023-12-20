@@ -24,7 +24,6 @@ let sync = new Synchronizer(...args);
 if (is_test) {
   sync.is_test = true;
   sync.orderbook_depth = 5;
-  sync.seconds_to_export = 1;
 }
 
 sync.keep_synced()
