@@ -1998,7 +1998,11 @@ class Synchronizer {
     while (this.__working) {
       if (!this.completely_synced) {
         console.log('Not completely synced, initiating againg...');
-        await this.initiate();
+        await this.initiate()
+        .catch(error => {
+          console.log('Failed to initate synchronization:',error);
+          console.log('Trying again...');
+        });
       }
       await new Promise(r => setTimeout(r, 250)); // Waits 250ms beteen each loop cycle.
     }

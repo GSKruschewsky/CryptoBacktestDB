@@ -21,7 +21,7 @@ console.log = (...args) => {
 
 let sync = new Synchronizer(...args);
 sync.is_test = is_test;
-sync.initiate()
+sync.keep_synced()
 .catch(error => {
-  console.log('Failed to initate synchronization:',error);
+  console.log('Failed to keep synchronization:',error);
 });

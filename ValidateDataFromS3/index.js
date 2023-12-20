@@ -76,7 +76,7 @@ const assets = [
     for (const exchange of exchanges[quote]) {
       for (const base of assets) {
         if (base == quote) continue; // Avoids 'USDT-USDT'.
-        if (exchange == 'mexc-spot') continue; // 18/12 Mexc not working.
+        // if (exchange == 'mexc-spot') continue; // 18/12 Mexc not working.
         promises.push(getFromBucket(exchange, base, quote));
       }
     }
