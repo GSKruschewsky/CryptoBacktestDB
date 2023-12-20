@@ -1480,6 +1480,7 @@ class Synchronizer {
             // Check for newer trades (required when using 'since' parameter and trades reponse have a limit.)
             // loop growing 'page_id' w/ the newest trade timstamp/id until the response length be lower than '_pag.max_arr_size'.
             let resp_len = r.length;
+
             while (resp_len >= _pag.max_arr_size) {
               if (resp_len > _pag.max_arr_size) // Just in case...
                 throw "Initial trades snapshot response length > 'pagination.max_arr_size'";
@@ -1603,6 +1604,7 @@ class Synchronizer {
       // console.log('this.trades_upd_cache[0]:',this.trades_upd_cache[0]?.timestamp);
       // console.log('init_trades.slice(-1)[0]:',init_trades.slice(-1)[0]?.timestamp);
       // console.log('init_trades[0]:',init_trades[0]?.timestamp,'\n');
+
     } while (
       init_trades.length > 0 && // If no trades ocurred then it should be considered synchronized.
       (this.trades_upd_cache[0] == undefined ||
@@ -1691,8 +1693,9 @@ class Synchronizer {
         }
       }
 
-      // console.log('this.orderbook_upd_cache[0].last_update_nonce:',this.orderbook_upd_cache[0]?.last_update_nonce);
-      // console.log('init_orderbook.last_update_nonce:',init_orderbook.last_update_nonce,'\n');
+      console.log('this.orderbook_upd_cache[0].last_update_nonce:',this.orderbook_upd_cache[0]?.last_update_nonce);
+      console.log('init_orderbook.last_update_nonce:',init_orderbook.last_update_nonce,'\n');
+
     } while (
       _b_rt_rsp?.last_update_nonce != undefined &&
       _b_ws_upd?.last_upd_nonce_key != undefined &&

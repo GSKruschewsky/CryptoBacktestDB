@@ -29,6 +29,7 @@
           "is_buy_value": false,
           "price": "p",
           "amount": "q",
+          "slow_cache": true,
           "pagination": {
             "check_for_newer": true,
             "max_arr_size": 1000,
