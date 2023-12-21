@@ -15,7 +15,7 @@ const { ungzip } = pkg;
 class Synchronizer {
   constructor (exchange, base, quote, delay = 1) {
     this.orderbook_depth = 50;       // Defines the max depth od the orderbook.
-    this.seconds_to_export = 1800;   // Defines how many seconds at most we will wait before exporting the data saved in memory. (if '1800' each 30min, if '3600' each hour, etc..)
+    this.seconds_to_export = 3600;   // Defines how many seconds at most we will wait before exporting the data saved in memory. (if '1800' each 30min, if '3600' each hour, etc..)
     this.exchange = exchange;        // Defines the exchange name we will synchronize with.
     this.base = base;                // Stores the 'base' of the market we will synchronize with.
     this.quote = quote;              // Stores the 'quote' of the market we will synchronize with.
@@ -763,7 +763,7 @@ class Synchronizer {
           // Updates 'this.seconds_data'.
           while (this.data_time <= upd_sec) {
             this.save_second();
-            
+
             // Check if is time to save orderbooks and trades of the last 'half-hour' to AWS S3.
             if ((!this.is_test) && this.saved_first_second && this.data_time % this.seconds_to_export == 0) {
               // Save 'this.seconds_data' to AWS S3 and reset it.
@@ -1929,11 +1929,16 @@ class Synchronizer {
 
     } catch (error) {
       console.log("[E] Initiating synchronization:",error);
-
+      
+      // Reset all connections.
       for (const conn of this.connections) {
         if (conn?.ws?.terminate) conn.ws.terminate();
         if (conn?.ws2?.terminate) conn.ws2.terminate();
+        conn.ws = null;
+        conn.ws2 = null;
       }
+      this.connections = [];
+      this.attemp_delay = {};
 
       throw "Failed to synchronize with the exchange";
     }
@@ -1970,11 +1975,14 @@ class Synchronizer {
     clearTimeout(this.process_second_timeout);
 
     // Close all connections
-    for (let c_idx = 0; c_idx < this.connections_num; ++c_idx) {
-      const conn = this.connections[c_idx];
-      if (conn?.ws && conn.ws.readyState != WebSocket.CLOSED) conn.ws.terminate();
-      if (conn?.ws2 && conn.ws2.readyState != WebSocket.CLOSED) conn.ws2.terminate();
+    for (const conn of this.connections) {
+      if (conn?.ws?.terminate) conn.ws.terminate();
+      if (conn?.ws2?.terminate) conn.ws2.terminate();
+      conn.ws = null;
+      conn.ws2 = null;
     }
+    this.connections = [];
+    this.attemp_delay = {};
 
     // Reset global vars
     this.completely_synced = false;
@@ -1987,7 +1995,6 @@ class Synchronizer {
     this.synced_trades_since = null;
     this.ws_req_nonce = 0;
     this.connections = [];
-    this.connections_num = 3;
     this.attemp_delay = {}; 
   }
 }
