@@ -29,4 +29,7 @@ if (is_test) {
 sync.keep_synced()
 .catch(error => {
   console.log('Failed to keep synchronization:',error);
+})
+.finally(() => {
+  console.log('[E] "sync.keep_synced()" finally.');
 });
