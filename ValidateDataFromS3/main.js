@@ -62,18 +62,11 @@ function showMarketData ({ target: { value: selected_market } }) {
     main_chart.data.datasets = [
       ...main_chart.data.datasets,
       {
-        label: exchange+' MID',
-        data: data[exchange][selected_market].map(s => ({ x: s.second * 1e3, y: s.mid_price })),
-        fill: false,
-        borderColor: colors[c_idx],
-        backgroundColor: colors[c_idx],
-      },
-      {
-        label: exchange+' IMB',
+        label: exchange,
         data: data[exchange][selected_market].map(s => ({ x: s.second * 1e3, y: s.book_imb_price })),
         fill: false,
-        borderColor: colors[c_idx].slice(0, -1)+', 0.5)',
-        backgroundColor: colors[c_idx].slice(0, -1)+', 0.5)',
+        borderColor: colors[c_idx],
+        backgroundColor: colors[c_idx]
       }
     ];
 

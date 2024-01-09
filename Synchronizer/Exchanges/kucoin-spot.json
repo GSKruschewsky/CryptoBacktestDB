@@ -131,7 +131,6 @@
             "to_remove_value": null
           },
           "timestamp": "time",
-          "first_upd_nonce_key": "sequenceStart",
           "last_upd_nonce_key": "sequenceEnd"
         }
       },
