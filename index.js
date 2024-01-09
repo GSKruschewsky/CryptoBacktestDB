@@ -33,3 +33,10 @@ sync.keep_synced()
 .finally(() => {
   console.log('[E] "sync.keep_synced()" finally.');
 });
+
+// Do not end...
+(async () => {
+  while (true) {
+    await new Promise(r => setTimeout(r, 5e3));
+  }
+})();
