@@ -15,7 +15,7 @@ const { ungzip } = pkg;
 class Synchronizer {
   constructor (exchange, base, quote, delay = 1) {
     this.orderbook_depth = 50;       // Defines the max depth od the orderbook.
-    this.seconds_to_export = 3600;   // Defines how many seconds at most we will wait before exporting the data saved in memory. (if '1800' each 30min, if '3600' each hour, etc..)
+    this.seconds_to_export = 1800;   // Defines how many seconds at most we will wait before exporting the data saved in memory. (if '1800' each 30min, if '3600' each hour, etc..)
     this.exchange = exchange;        // Defines the exchange name we will synchronize with.
     this.base = base;                // Stores the 'base' of the market we will synchronize with.
     this.quote = quote;              // Stores the 'quote' of the market we will synchronize with.
