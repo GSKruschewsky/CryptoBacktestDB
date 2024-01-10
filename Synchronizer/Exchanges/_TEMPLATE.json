@@ -130,8 +130,6 @@
           "get_timestamp_us_from_iso": null
         },
         "update": {
-          "avoid_repetition": null,
-          "avoid_repetition_size": 10,
           "ignore_if": null,
           "channel_id_key": "",
           "channel_id": "",

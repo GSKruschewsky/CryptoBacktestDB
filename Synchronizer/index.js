@@ -510,16 +510,15 @@ class Synchronizer {
     //   last_update_nonce: <upd nonce here>, *only if required.
     // }
 
-    if (_ws.subcriptions.orderbook.update.avoid_repetition) {
-      let msg_str = JSON.stringify(msg);
-
-      if (this.last_book_updates.length > 0 && this.last_book_updates.includes(msg_str)) {
-        return null; // Already aplied this update message.
-      } else {
-        if (this.last_book_updates.push(msg_str) > (_ws.subcriptions.orderbook.update.avoid_repetition_size || 10))
-          this.last_book_updates.shift();
-      }
-    }
+    // if (_ws.subcriptions.orderbook.update.avoid_repetition) {
+    //   let msg_str = JSON.stringify(msg);
+    //   if (this.last_book_updates.length > 0 && this.last_book_updates.includes(msg_str)) {
+    //     return null; // Already aplied this update message.
+    //   } else {
+    //     if (this.last_book_updates.push(msg_str) > (_ws.subcriptions.orderbook.update.avoid_repetition_size || 10))
+    //       this.last_book_updates.shift();
+    //   }
+    // }
 
     const _ob_sub = _ws.subcriptions[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
