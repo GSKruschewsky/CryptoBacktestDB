@@ -767,6 +767,7 @@ class Synchronizer {
             // Check if is time to save orderbooks and trades of the last 'half-hour' to AWS S3.
             if ((!this.is_test) && this.saved_first_second && this.data_time % this.seconds_to_export == 0) {
               // Save 'this.seconds_data' to AWS S3 and reset it.
+              console.log('Compressing and saving data... ('+new Date((this.data_time - 60*60*3)*1e3).toLocaleString('pt-BR', { timeZone: 'UTC' }).replace(',', '')+')');
               this.save_to_s3();
             }
           }
@@ -1727,7 +1728,6 @@ class Synchronizer {
     const name = `${this.full_market_name.replace(' ', '_')}_${timestr}.json`;
 
     // Compress data then save it.
-    if (!this.is_test) console.log('Compressing and saving data...');
     CompressAndSendBigJSONToS3(name, this.seconds_data)
     .then(() => { if (!this.is_test) console.log('[!] Data saved successfuly.'); })
     .catch(error => console.log('[E] Failed to save data:',error));
