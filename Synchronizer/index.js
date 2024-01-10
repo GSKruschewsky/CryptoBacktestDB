@@ -56,6 +56,8 @@ class Synchronizer {
     this.attemp_delay = {};          // Stores the attemp_delay promises.
     this._url_nonce = 0;             // Stores the url nonce, used when multiple connections w/ multiple endpoints.
 
+    this.last_book_updates = [];     // Stores the last book updates to avoid repetitions.
+
     this.__working = true;
 
     // Test latency vars.
@@ -507,7 +509,17 @@ class Synchronizer {
     //   first_update_nonce: <upd nonce here>, *only if required.
     //   last_update_nonce: <upd nonce here>, *only if required.
     // }
-    // console.log('Book msg:',msg);
+
+    if (_ws.subcriptions.orderbook.update.avoid_repetition) {
+      let msg_str = JSON.stringify(msg);
+
+      if (this.last_book_updates.length > 0 && this.last_book_updates.includes(msg_str)) {
+        return null; // Already aplied this update message.
+      } else {
+        if (this.last_book_updates.push(msg_str) > (_ws.subcriptions.orderbook.update.avoid_repetition_size || 10))
+          this.last_book_updates.shift();
+      }
+    }
 
     const _ob_sub = _ws.subcriptions[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
@@ -717,7 +729,7 @@ class Synchronizer {
     if (update == null) return; // Ignore.
 
     if (update.is_snapshot) {
-      this.apply_orderbook_snap(update, __ws, _prom, ws_recv_ts);
+      this.apply_orderbook_snap(update, _ws, __ws, _prom, ws_recv_ts);
 
     } else {
       if (this.orderbook == null) {
@@ -730,7 +742,7 @@ class Synchronizer {
   
       } else {
         // Just apply update.
-        this.apply_orderbook_upd(update, __ws, _prom, ws_recv_ts);
+        this.apply_orderbook_upd(update, _ws, __ws, _prom, ws_recv_ts);
       }
     }
   }
@@ -818,15 +830,17 @@ class Synchronizer {
     }
   }
 
-  apply_orderbook_upd (upd, __ws, _prom, ws_recv_ts) {
+  apply_orderbook_upd (upd, _ws, __ws, _prom, ws_recv_ts) {
     // Validate updates.
     // console.log('Book upd:',upd);
     if ((this.orderbook.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce)) ||
     (this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
     (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
       return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
-
+      
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
+
+    console.log('Book upd:',upd);
 
     if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
