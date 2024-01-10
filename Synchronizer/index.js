@@ -729,7 +729,7 @@ class Synchronizer {
     if (update == null) return; // Ignore.
 
     if (update.is_snapshot) {
-      this.apply_orderbook_snap(update, _ws, __ws, _prom, ws_recv_ts);
+      this.apply_orderbook_snap(update, __ws, _prom, ws_recv_ts);
 
     } else {
       if (this.orderbook == null) {
@@ -742,7 +742,7 @@ class Synchronizer {
   
       } else {
         // Just apply update.
-        this.apply_orderbook_upd(update, _ws, __ws, _prom, ws_recv_ts);
+        this.apply_orderbook_upd(update, __ws, _prom, ws_recv_ts);
       }
     }
   }
@@ -830,7 +830,7 @@ class Synchronizer {
     }
   }
 
-  apply_orderbook_upd (upd, _ws, __ws, _prom, ws_recv_ts) {
+  apply_orderbook_upd (upd, __ws, _prom, ws_recv_ts) {
     // Validate updates.
     // console.log('Book upd:',upd);
     if ((this.orderbook.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce)) ||
@@ -839,8 +839,6 @@ class Synchronizer {
       return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
       
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
-
-    console.log('Book upd:',upd);
 
     if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
