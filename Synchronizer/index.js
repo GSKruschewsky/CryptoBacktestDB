@@ -752,12 +752,13 @@ class Synchronizer {
 
     if (this.orderbook != null && (
       this.delayed_orderbook == null || 
-      Math.floor(this.orderbook.timestamp / 1e3) != Math.floor(upd_time / 1e3)
+      book_sec != Math.floor(upd_time / 1e3)
     )) {
+      console.log('[!] New second, book_sec ('+book_sec+') upd_sec ('+upd_sec+')');
       const save_it = (this.delayed_orderbook != null);
 
       if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 
-      Math.floor(this.delayed_orderbook.timestamp / 1e3) != Math.floor(this.orderbook.timestamp / 1e3))
+      Math.floor(this.delayed_orderbook.timestamp / 1e3) != book_sec)
         this.orderbooks.unshift(this.delayed_orderbook);
 
       this.delayed_orderbook = {
@@ -1005,6 +1006,7 @@ class Synchronizer {
         if (this.__working == false || this.connections.every(conn => !conn)) {
           // All connections are closed.
           this.completely_synced = false;
+          console.log('_connect > "completely_synced" SET TO FALSE!');
 
           // Reset global variables.
           clearTimeout(this.process_second_timeout);
@@ -1997,6 +1999,7 @@ class Synchronizer {
 
     // Reset global vars
     this.completely_synced = false;
+    console.log('end > "completely_synced" SET TO FALSE!');
     this.orderbook = null;
     this.orderbook_upd_cache = [];
     this.orderbooks = [];
