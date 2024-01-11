@@ -898,12 +898,13 @@ class Synchronizer {
     // console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
   }
 
-  async _connect (conn_idx) {
+  async _connect (conn_idx, ctype) {
     // If connection not null returns the connection promise.
-    if (this.connections[conn_idx]) return this.connections[conn_idx].main_prom;
+    if (this.connections[conn_idx]?.[ctype]) return this.connections[conn_idx][ctype].main_prom;
     
-    this.connections[conn_idx] = { info: {} };  // Create the connection object.
-    let conn = this.connections[conn_idx];      // Create a reference to the connection object.
+    if (!this.connections[conn_idx]) this.connections[conn_idx] = {};
+    this.connections[conn_idx][ctype] = { info: {} };  // Create the connection object.
+    let conn = this.connections[conn_idx][ctype];      // Create a reference to the connection object.
     conn._idx = conn_idx;
 
     // Create the connection main promise and a control variable to it.
@@ -911,497 +912,498 @@ class Synchronizer {
     conn.main_prom = new Promise((resolve, reject) => main_prom_funcs = { resolve, reject }).finally(() => main_prom_funcs = null);
     
     // If there is an 'attemp delay' to this connection waits the delay.
-    if (this.attemp_delay[conn_idx]) await this.attemp_delay[conn_idx];
+    if (this.attemp_delay[conn_idx]?.[ctype]) await this.attemp_delay[conn_idx][ctype];
 
     let _min_promises = [];
-    for (const __idx in (this.exc.ws2 ? [ this.exc.ws, this.exc.ws2 ] : [ this.exc.ws ])) {
-      const is_secondary = (__idx == '1');
-      const _ws = is_secondary ? this.exc.ws2 : this.exc.ws;
-      const _ws_type = (is_secondary ? "secondary" : "primary");
+    
+    const is_secondary = (ctype == 'secondary');
+    const _ws = is_secondary ? this.exc.ws2 : this.exc.ws;
 
-      // Check if this connection will handle orderbook updates.
-      if (_ws.not_handle_orderbook !== true) {
-        // // Reset initial orderbook vars.
-        // this.orderbook = null;
-        // this.orderbook_upd_cache = [];
-        conn.info.orderbook = {};
-        conn.info.orderbook_snap = {};
-        
-        // If no 'orderbook.response', 'info.orderbook.channel_id' should be defined here.
-        if (_ws.subcriptions?.orderbook != undefined && _ws.subcriptions.orderbook?.response == undefined) 
-          conn.info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id.replaceAll('<market>', this.market.ws);
-      }
+    // Check if this connection will handle orderbook updates.
+    if (_ws.not_handle_orderbook !== true) {
+      // // Reset initial orderbook vars.
+      // this.orderbook = null;
+      // this.orderbook_upd_cache = [];
+      conn.info.orderbook = {};
+      conn.info.orderbook_snap = {};
       
-      // Check if this connection will handle trades updates.
-      if (_ws.not_handle_trades !== true) { 
-        // // Reset initial trades vars.
+      // If no 'orderbook.response', 'info.orderbook.channel_id' should be defined here.
+      if (_ws.subcriptions?.orderbook != undefined && _ws.subcriptions.orderbook?.response == undefined) 
+        conn.info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id.replaceAll('<market>', this.market.ws);
+    }
+    
+    // Check if this connection will handle trades updates.
+    if (_ws.not_handle_trades !== true) { 
+      // // Reset initial trades vars.
+      // this.trades = null;
+      // this.trades_upd_cache = [];
+      conn.info.trades = {};
+      
+      // If no 'trades.response', 'info.trades.channel_id' should be defined here.
+      if (_ws.subcriptions?.trades != undefined && _ws.subcriptions.trades?.response == undefined) 
+        conn.info.trades.channel_id = _ws.subcriptions.trades?.update?.channel_id.replaceAll('<market>', this.market.ws);
+    }
+    
+    // Create an control var and a promise to indicate if we have succeed on the websocket connection.
+    let _prom = null;
+    _min_promises.push(
+      Promise.race([
+        new Promise((resolve, reject) => setTimeout(reject, _ws.timeout || 15000, "[E] Timeout connecting to conn "+conn._idx+" "+ctype+" websocket.")),
+        new Promise((resolve, reject) => _prom = { resolve, reject }).finally(() => _prom = null)
+      ])
+    );
+
+    // Checks if websocket conection require any preparation before connection.
+    if (this.exc.rest.endpoints?.prepare_for_ws != undefined) {
+      let { success, response: r } = await this.rest_request('prepare_for_ws');
+      if (!success) _prom.reject({ At:'[E] Connecting to exchange '+ctype+' WebSocket:', error: r });
+  
+      const _r_info = this.exc.rest.endpoints.prepare_for_ws.response;
+  
+      const _ws_token = _r_info.ws_token_key?.split('.')?.reduce((f, k) => f?.[k], r);
+      if (_ws_token != undefined) _ws.token = _ws_token;
+  
+      const _ws_url = _r_info.ws_url_key?.split('.')?.reduce((f, k) => f?.[k], r);
+      if (_ws_url != undefined) _ws.url = _ws_url + "?token=<ws_token>";
+  
+      if (_ws.ping != undefined) {
+        const _ws_ping_interval = _r_info.ws_ping_interval_key?.split('.')?.reduce((f, k) => f?.[k], r);
+        if (_ws_ping_interval != undefined) _ws.ping.interval = _ws_ping_interval;
+      }
+    }
+
+    // Define the endpoint to use, if more than 1.
+    let _ws_conn_url = Array.isArray(_ws.url) ? _ws.url[this._url_nonce++ % _ws.url.length] : _ws.url;
+
+    // Creates the WebSocket connection.
+    this.connection_tries.push(Date.now());
+    const _conn_start_ts = Date.now();
+    conn[ctype == "primary" ? "ws" : "ws2"] = new WebSocket(
+      _ws_conn_url
+      .replaceAll('<market>', this.market.ws)
+      .replace('<ws_token>', _ws.token)
+    );
+    const __ws = conn[ctype == "primary" ? "ws" : "ws2"];
+    
+    // Create control vars for a 'ping loop'.
+    __ws.keep_alive = true;
+
+    // Create control vars for a 'ws ping loop'.
+    __ws.ws_keep_alive = true;
+
+    // When receive a ping, pong back.
+    __ws.on('ping', __ws.pong);
+
+    // While we receive 'pong', keep the connection open.
+    __ws.on('pong', () => {
+      __ws.keep_alive = true; 
+    });
+
+    // On disconnection reset vars.
+    __ws.on('close', () => {
+      if (!this.silent_mode) console.log('[!] WebSocket '+ctype+' connection '+conn_idx+' is closed.');
+
+      clearInterval(__ws.ping_loop_interval);
+      clearInterval(__ws.ws_ping_loop_interval);
+      
+      __ws.terminate();
+      conn = null;
+
+      if (this.__working == false || this.connections.every(conn => !conn)) {
+        // All connections are closed.
+        this.completely_synced = false;
+        console.log('_connect > "completely_synced" SET TO FALSE!');
+
+        // Reset global variables.
+        clearTimeout(this.process_second_timeout);
+        this.seconds_data = [];
+        this.markets = null;
+        this.orderbook = null;
+        this.orderbook_upd_cache = [];
+        // this.orderbooks = [];
+        this.delayed_orderbook = null;
         // this.trades = null;
-        // this.trades_upd_cache = [];
-        conn.info.trades = {};
-        
-        // If no 'trades.response', 'info.trades.channel_id' should be defined here.
-        if (_ws.subcriptions?.trades != undefined && _ws.subcriptions.trades?.response == undefined) 
-          conn.info.trades.channel_id = _ws.subcriptions.trades?.update?.channel_id.replaceAll('<market>', this.market.ws);
-      }
-      
-      // Create an control var and a promise to indicate if we have succeed on the websocket connection.
-      let _prom = null;
-      _min_promises.push(
-        Promise.race([
-          new Promise((resolve, reject) => setTimeout(reject, _ws.timeout || 15000, "TIMEOUT.")),
-          new Promise((resolve, reject) => _prom = { resolve, reject }).finally(() => _prom = null)
-        ])
-      );
+        this.trades_upd_cache = [];
+        this.synced_trades_since = null;
+        this.ws_req_nonce = 0;
+        this.saved_first_second = false;
 
-      // Checks if websocket conection require any preparation before connection.
-      if (this.exc.rest.endpoints?.prepare_for_ws != undefined) {
-        let { success, response: r } = await this.rest_request('prepare_for_ws');
-        if (!success) _prom.reject({ At:'[E] Connecting to exchange '+_ws_type+' WebSocket:', error: r });
-    
-        const _r_info = this.exc.rest.endpoints.prepare_for_ws.response;
-    
-        const _ws_token = _r_info.ws_token_key?.split('.')?.reduce((f, k) => f?.[k], r);
-        if (_ws_token != undefined) _ws.token = _ws_token;
-    
-        const _ws_url = _r_info.ws_url_key?.split('.')?.reduce((f, k) => f?.[k], r);
-        if (_ws_url != undefined) _ws.url = _ws_url + "?token=<ws_token>";
-    
-        if (_ws.ping != undefined) {
-          const _ws_ping_interval = _r_info.ws_ping_interval_key?.split('.')?.reduce((f, k) => f?.[k], r);
-          if (_ws_ping_interval != undefined) _ws.ping.interval = _ws_ping_interval;
+      } else {
+        // Only this connection has ended, try reconnection respecting the established attempt limits.
+        
+        // Filter 'connection_tries' to only attemps that happened on the last minute.
+        this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
+
+        // Checks if the number of connetion attemps in the last minute is greater then 'max_attemps_per_min'.
+        if (this.connection_tries.length > this.max_attemps_per_min) {
+          // In this case we should wait 'conn_attemp_delay' before the connection.
+          if (!this.attemp_delay[conn_idx]) this.attemp_delay[conn_idx] = {};
+          this.attemp_delay[conn_idx][ctype] = (async () => {
+            await new Promise(r => setTimeout(r, this.conn_attemp_delay));
+            delete this.attemp_delay[conn_idx][ctype];
+          })();
         }
+
+        this.connect(conn_idx, ctype);
       }
+    });
 
-      // Define the endpoint to use, if more than 1.
-      let _ws_conn_url = Array.isArray(_ws.url) ? _ws.url[this._url_nonce++ % _ws.url.length] : _ws.url;
+    // On WebSocket error, we log the error and then diconnect.
+    __ws.on('error', error => {
+      console.log('[E] WebSocket '+ctype+' connection error:',error);
+      __ws.terminate();
+    });
 
-      // Creates the WebSocket connection.
-      this.connection_tries.push(Date.now());
-      const _conn_start_ts = Date.now();
-      conn[_ws_type == "primary" ? "ws" : "ws2"] = new WebSocket(
-        _ws_conn_url
-        .replaceAll('<market>', this.market.ws)
-        .replace('<ws_token>', _ws.token)
-      );
-      const __ws = conn[_ws_type == "primary" ? "ws" : "ws2"];
-      
-      // Create control vars for a 'ping loop'.
-      __ws.keep_alive = true;
+    // On connection, initiate 'ping loops', login and then make subscriptions.
+    __ws.on('open', () => {
+      if (this.is_lantecy_test) {
+        const _conn_opened_ts = Date.now();
+        this.conn_latency.push(_conn_opened_ts - _conn_start_ts);
+      }
+      if (!this.silent_mode) console.log('[!] ('+conn._idx+') Connected to '+ctype+' WebSocket.');
 
-      // Create control vars for a 'ws ping loop'.
-      __ws.ws_keep_alive = true;
-
-      // When receive a ping, pong back.
-      __ws.on('ping', __ws.pong);
-
-      // While we receive 'pong', keep the connection open.
-      __ws.on('pong', () => {
-        __ws.keep_alive = true; 
-      });
-
-      // On disconnection reset vars.
-      __ws.on('close', () => {
-        if (!this.silent_mode) console.log('[!] WebSocket '+_ws_type+' connection '+conn_idx+' is closed.');
-
-        clearInterval(__ws.ping_loop_interval);
-        clearInterval(__ws.ws_ping_loop_interval);
+      // Initiate 'ping loop'.
+      __ws.ping_loop_interval = setInterval(() => {
+        if (!__ws.keep_alive) {
+          console.log('[E] WebSocket '+ctype+' ping_loop: Server did not pong back in '+((_ws.timeout || 5000) / 1e3)+' seconds, ending connection...');
+          __ws.terminate();
+          clearInterval(__ws.ping_loop_interval);
         
-        __ws.terminate();
-        conn = null;
-        this.connections[conn_idx] = null;
-
-        if (this.__working == false || this.connections.every(conn => !conn)) {
-          // All connections are closed.
-          this.completely_synced = false;
-          console.log('_connect > "completely_synced" SET TO FALSE!');
-
-          // Reset global variables.
-          clearTimeout(this.process_second_timeout);
-          this.seconds_data = [];
-          this.markets = null;
-          this.orderbook = null;
-          this.orderbook_upd_cache = [];
-          // this.orderbooks = [];
-          this.delayed_orderbook = null;
-          // this.trades = null;
-          this.trades_upd_cache = [];
-          this.synced_trades_since = null;
-          this.ws_req_nonce = 0;
-          this.saved_first_second = false;
-
         } else {
-          // Only this connection has ended, try reconnection respecting the established attempt limits.
-          
-          // Filter 'connection_tries' to only attemps that happened on the last minute.
-          this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
-
-          // Checks if the number of connetion attemps in the last minute is greater then 'max_attemps_per_min'.
-          if (this.connection_tries.length > this.max_attemps_per_min) {
-            // In this case we should wait 'conn_attemp_delay' before the connection.
-            this.attemp_delay[conn_idx] = (async () => {
-              await new Promise(r => setTimeout(r, this.conn_attemp_delay));
-              delete this.attemp_delay[conn_idx];
-            })();
-          }
-
-          this.connect(conn_idx);
-        }
-      });
-
-      // On WebSocket error, we log the error and then diconnect.
-      __ws.on('error', error => {
-        console.log('[E] WebSocket '+_ws_type+' connection error:',error);
-        __ws.terminate();
-      });
-
-      // On connection, initiate 'ping loops', login and then make subscriptions.
-      __ws.on('open', () => {
-        if (this.is_lantecy_test) {
-          const _conn_opened_ts = Date.now();
-          this.conn_latency.push(_conn_opened_ts - _conn_start_ts);
-        }
-        if (!this.silent_mode) console.log('[!] ('+conn._idx+') Connected to '+_ws_type+' WebSocket.');
-
-        // Initiate 'ping loop'.
-        __ws.ping_loop_interval = setInterval(() => {
-          if (!__ws.keep_alive) {
-            console.log('[E] WebSocket '+_ws_type+' ping_loop: Server did not pong back in '+((_ws.timeout || 5000) / 1e3)+' seconds, ending connection...');
-            __ws.terminate();
-          }
           __ws.keep_alive = false;
           __ws.ping();
 
           if (_ws.ping?.request != undefined && _ws.ping.response == undefined) // Just ping and do not wait for response.
             __ws.send(_ws.ping.request);
-
-        }, (_ws.timeout || 5000));
-
-        // Initiate 'ws ping loop'.
-        if (_ws.ping?.request != undefined && _ws.ping.response != undefined) {
-          __ws.ws_ping_loop_interval = setInterval(() => {
-            if (!__ws.ws_keep_alive) {
-              console.log('[E] WebSocket '+_ws_type+' ws_ping_loop: Server did not pong back in '+((_ws.ping.interval || _ws.timeout || 5000) / 1e3)+' seconds, ending connection...');
-              __ws.terminate();
-            }
-            __ws.ws_keep_alive = false;
-            __ws.send(_ws.ping.request.replace('<ws_req_id>', ++this.ws_req_nonce));
-
-          }, (_ws.ping.interval || _ws.timeout || 5000));
         }
 
-        // Checks if login is required.
-        if (_ws.login != undefined) {
-          // Send a login request.
-          const { signature, sign_nonce } = this.authenticate();
-          __ws.send(
-            _ws.login.request
-            .replace('<api_key>', this.api.key)
-            .replace('<api_pass>', this.api.pass)
-            .replace('<sign_nonce>', sign_nonce)
-            .replace('<signature>', signature)
-          );
+      }, (_ws.timeout || 5000));
 
-        } else {
-          // If no login is required we can make subscriptions now.
-          this.make_subscriptions(__ws, _ws, _prom, conn);
-        }
-      });
-
-      // On message, we should identify each format and handle each message sent by the server.
-      __ws.on('message', async (msg) => {
-        const ws_recv_ts = Date.now();
-        // Decript message if needed
-        if (_ws.gzip_encrypted) msg = await ungzip(msg);
-
-        // Try to JSON parse the mesage.
-        try { msg = JSON.parse(msg); } catch (e) { msg = msg.toString(); }
-
-        // console.log('('+conn._idx+') WebSocket '+_ws_type+' message:',msg);
-
-        // Checks if message is an error.
-        if (msg?.[_ws.error.key] != undefined && 
-        (_ws.error.value == undefined || msg[_ws.error.key] == _ws.error.value) &&
-        (_ws.error.value_not == undefined || msg[_ws.error.key] != _ws.error.value_not)) {
-          if (_prom) {
-            _prom.reject({ At: '[E] ('+conn._idx+') WebSocket '+_ws_type+' error message:', error: msg });
-          } else {
-            console.log('[E] ('+conn._idx+') WebSocket '+_ws_type+' error message:',msg,'\n\nEnding connection...');
+      // Initiate 'ws ping loop'.
+      if (_ws.ping?.request != undefined && _ws.ping.response != undefined) {
+        __ws.ws_ping_loop_interval = setInterval(() => {
+          if (!__ws.ws_keep_alive) {
+            console.log('[E] WebSocket '+ctype+' ws_ping_loop: Server did not pong back in '+((_ws.ping.interval || _ws.timeout || 5000) / 1e3)+' seconds, ending connection...');
             __ws.terminate();
           }
-          
-          return;
+          __ws.ws_keep_alive = false;
+          __ws.send(_ws.ping.request.replace('<ws_req_id>', ++this.ws_req_nonce));
+
+        }, (_ws.ping.interval || _ws.timeout || 5000));
+      }
+
+      // Checks if login is required.
+      if (_ws.login != undefined) {
+        // Send a login request.
+        const { signature, sign_nonce } = this.authenticate();
+        __ws.send(
+          _ws.login.request
+          .replace('<api_key>', this.api.key)
+          .replace('<api_pass>', this.api.pass)
+          .replace('<sign_nonce>', sign_nonce)
+          .replace('<signature>', signature)
+        );
+
+      } else {
+        // If no login is required we can make subscriptions now.
+        this.make_subscriptions(__ws, _ws, _prom, conn);
+      }
+    });
+
+    // On message, we should identify each format and handle each message sent by the server.
+    __ws.on('message', async (msg) => {
+      const ws_recv_ts = Date.now();
+      // Decript message if needed
+      if (_ws.gzip_encrypted) msg = await ungzip(msg);
+
+      // Try to JSON parse the mesage.
+      try { msg = JSON.parse(msg); } catch (e) { msg = msg.toString(); }
+
+      // console.log('('+conn._idx+') WebSocket '+ctype+' message:',msg);
+
+      // Checks if message is an error.
+      if (msg?.[_ws.error.key] != undefined && 
+      (_ws.error.value == undefined || msg[_ws.error.key] == _ws.error.value) &&
+      (_ws.error.value_not == undefined || msg[_ws.error.key] != _ws.error.value_not)) {
+        if (_prom) {
+          _prom.reject({ At: '[E] ('+conn._idx+') WebSocket '+ctype+' error message:', error: msg });
+        } else {
+          console.log('[E] ('+conn._idx+') WebSocket '+ctype+' error message:',msg,'\n\nEnding connection...');
+          __ws.terminate();
+        }
+        
+        return;
+      }
+
+      // Checks if message is a login response.
+      if (_ws.login != undefined && 
+      msg[_ws.login.response.id_key] != undefined && 
+      (_ws.login.response.id_value == null || msg[_ws.login.response.id_key] == _ws.login.response.id_value)) {
+        // Checks if login succeed.
+        if (_ws.login.response.success_key == undefined || (
+          msg[_ws.login.response.success_key] != undefined && (
+            _ws.login.response.success_value == undefined || 
+            msg[_ws.login.response.success_key] == _ws.login.response.success_value
+          )
+        )) {
+          if (!this.silent_mode) console.log('[!] WebSocket '+ctype+' successfully logged in.');
+          this.make_subscriptions(__ws, _ws, _prom, conn);
+
+        } else {
+          if (_prom) {
+            _prom.reject({ At: '[E] '+ctype+' WebSocket failed to login:', error: msg });
+          } else {
+            console.log('[E] '+ctype+' WebSocket failed to login:',msg,'\n\nEnding connection...');
+            __ws.terminate();
+          }
         }
 
-        // Checks if message is a login response.
-        if (_ws.login != undefined && 
-        msg[_ws.login.response.id_key] != undefined && 
-        (_ws.login.response.id_value == null || msg[_ws.login.response.id_key] == _ws.login.response.id_value)) {
-          // Checks if login succeed.
-          if (_ws.login.response.success_key == undefined || (
-            msg[_ws.login.response.success_key] != undefined && (
-              _ws.login.response.success_value == undefined || 
-              msg[_ws.login.response.success_key] == _ws.login.response.success_value
-            )
-          )) {
-            if (!this.silent_mode) console.log('[!] WebSocket '+_ws_type+' successfully logged in.');
-            this.make_subscriptions(__ws, _ws, _prom, conn);
+        return;
+      }
+
+      // Checks if message is a 'ws ping loop' response.
+      if (_ws.ping?.response != undefined) {
+        let _id_value = _ws.ping.response.id?.split('.')?.reduce((f, k) => f = f?.[k], msg);
+        if (_id_value != undefined && 
+        (_ws.ping.response.id_value == undefined || _id_value == _ws.ping.response.id_value)) {
+          __ws.ws_keep_alive = true;
+          return;
+        }
+      }
+
+      // Checks if WebSocket handles 'trades' updates. (If so, handle 'trades' subscription response and updates)
+      if (_ws.not_handle_trades !== true && _ws.subcriptions.trades != undefined) {
+        // Checks if message is a 'trades' subscription response.
+        if ((!conn.info.trades.is_subscribed) && _ws.subcriptions.trades?.request != undefined) {
+          let is_trades_subs_resp = false;
+
+          // Checks for the type of response the server should to send.
+          if (_ws.subcriptions.trades.response.acum_list) {
+            let list_id_val = _ws.subcriptions.trades.response?.list_id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
+
+            if (list_id_val != undefined && 
+            (_ws.subcriptions.trades.response.list_id_value == null ||
+            list_id_val == _ws.subcriptions.trades.response.list_id_value) && 
+            (_ws.subcriptions.trades.response.list_inside?.split('.')?.reduce((f, k) => f = f?.[k], msg) || msg).some(
+              x => x[_ws.subcriptions.trades.response.id] == _ws.subcriptions.trades.response.id_value
+            ))
+              is_trades_subs_resp = true;
 
           } else {
-            if (_prom) {
-              _prom.reject({ At: '[E] '+_ws_type+' WebSocket failed to login:', error: msg });
-            } else {
-              console.log('[E] '+_ws_type+' WebSocket failed to login:',msg,'\n\nEnding connection...');
-              __ws.terminate();
-            }
+            let id_val = _ws.subcriptions.trades.response.id?.split('.')?.reduce((f, k) => f = f?.[k], msg);
+            let object_id_val = _ws.subcriptions.trades.response.object_id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
+
+            if (id_val != undefined && id_val == conn.info.trades.req_id &&
+            _ws.subcriptions.trades.response.is_object !== true || (
+              object_id_val != undefined && (
+                _ws.subcriptions.trades.response.object_id_value == undefined || 
+                object_id_val == _ws.subcriptions.trades.response.object_id_value.replaceAll('<market>', this.market.ws)
+              )
+            ))
+              is_trades_subs_resp = true;
           }
 
-          return;
+          if (is_trades_subs_resp) return this.handle_trades_sub_resp(msg, _ws, __ws, _prom, conn, ws_recv_ts);
         }
+  
+        // Checks if message is a 'trades' update message.
+        const _id_key = _ws.subcriptions.trades?.update?.channel_id_key;
+        let _channel_id = Number.isInteger(_id_key*1) && Big(_id_key).lt(0) ? 
+          (Array.isArray(msg) ? msg.slice(_id_key)[0] : undefined) : 
+          _id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
-        // Checks if message is a 'ws ping loop' response.
-        if (_ws.ping?.response != undefined) {
-          let _id_value = _ws.ping.response.id?.split('.')?.reduce((f, k) => f = f?.[k], msg);
-          if (_id_value != undefined && 
-          (_ws.ping.response.id_value == undefined || _id_value == _ws.ping.response.id_value)) {
-            __ws.ws_keep_alive = true;
-            return;
-          }
+        if (_channel_id != undefined && (
+          _channel_id == conn.info.trades.channel_id ||
+          _channel_id == _ws.subcriptions?.trades?.update?.channel_id?.replaceAll('<market>', this.market.ws) // Some exchanges (htx) may sent an update before the subscription response.
+        )) {
+          // Format and handle data.
+          return this.handle_trades_msg(this.format_trades_msg(msg, _ws, __ws, _prom, conn), _ws);
+        
         }
+      }
 
-        // Checks if WebSocket handles 'trades' updates. (If so, handle 'trades' subscription response and updates)
-        if (_ws.not_handle_trades !== true && _ws.subcriptions.trades != undefined) {
-          // Checks if message is a 'trades' subscription response.
-          if ((!conn.info.trades.is_subscribed) && _ws.subcriptions.trades?.request != undefined) {
-            let is_trades_subs_resp = false;
-
+      // Checks if WebSocket handles 'orderbook' updates. (If so, handle 'orderbook' and 'orderbook_snap' subscription response and updates)
+      if (_ws.not_handle_orderbook !== true) {
+        if (_ws.subcriptions.orderbook != undefined) {
+          // Checks if message is a 'orderbook' subscription response.
+          if ((!conn.info.orderbook.is_upds_subscribed) && _ws.subcriptions.orderbook?.request != undefined) {
+            let is_book_subs_resp = false;
+            
             // Checks for the type of response the server should to send.
-            if (_ws.subcriptions.trades.response.acum_list) {
-              let list_id_val = _ws.subcriptions.trades.response?.list_id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
+            if (_ws.subcriptions.orderbook.response.acum_list) {
+              let list_id_val = _ws.subcriptions.orderbook.response?.list_id_key.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
               if (list_id_val != undefined && 
-              (_ws.subcriptions.trades.response.list_id_value == null ||
-              list_id_val == _ws.subcriptions.trades.response.list_id_value) && 
-              (_ws.subcriptions.trades.response.list_inside?.split('.')?.reduce((f, k) => f = f?.[k], msg) || msg).some(
-                x => x[_ws.subcriptions.trades.response.id] == _ws.subcriptions.trades.response.id_value
+              (_ws.subcriptions.orderbook.response.list_id_value == null ||
+              list_id_val == _ws.subcriptions.orderbook.response.list_id_value) && 
+              (_ws.subcriptions.orderbook.response.list_inside?.split('.')?.reduce((f, k) => f = f?.[k], msg) || msg).some(
+                x => x[_ws.subcriptions.orderbook.response.id] == _ws.subcriptions.orderbook.response.id_value
               ))
-                is_trades_subs_resp = true;
+                is_book_subs_resp = true;
 
             } else {
-              let id_val = _ws.subcriptions.trades.response.id?.split('.')?.reduce((f, k) => f = f?.[k], msg);
-              let object_id_val = _ws.subcriptions.trades.response.object_id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
+              let id_val = _ws.subcriptions.orderbook.response.id?.split('.')?.reduce((f, k) => f = f?.[k], msg);
+              let object_id_val = _ws.subcriptions.orderbook.response.object_id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
-              if (id_val != undefined && id_val == conn.info.trades.req_id &&
-              _ws.subcriptions.trades.response.is_object !== true || (
+              if (id_val != undefined && id_val == conn.info.orderbook.req_id &&
+              (_ws.subcriptions.orderbook.response.is_object !== true || (
                 object_id_val != undefined && (
-                  _ws.subcriptions.trades.response.object_id_value == undefined || 
-                  object_id_val == _ws.subcriptions.trades.response.object_id_value.replaceAll('<market>', this.market.ws)
+                  _ws.subcriptions.orderbook.response.object_id_value == undefined || 
+                  object_id_val == _ws.subcriptions.orderbook.response.object_id_value.replaceAll('<market>', this.market.ws)
                 )
-              ))
-                is_trades_subs_resp = true;
+              )))
+                is_book_subs_resp = true;
             }
 
-            if (is_trades_subs_resp) return this.handle_trades_sub_resp(msg, _ws, __ws, _prom, conn, ws_recv_ts);
+            // Checks if msg is a response to 'orderbook' subcription.
+            if (is_book_subs_resp) {
+              // Checks if this response also is the response for 'trades' subcription.
+              if (_ws.not_handle_trades !== true && _ws.subcriptions.orderbook.response.include_trades)
+                this.handle_trades_sub_resp(msg, _ws, __ws, _prom, conn, ws_recv_ts);
+
+              this.handle_orderbook_sub_resp(msg, _ws, __ws, _prom, conn, ws_recv_ts);
+
+              // Retuns if messade do not include snapshot, otherwise this message will be further handled as an 'orderbook message'.
+              if (!_ws.subcriptions.orderbook.response.include_snapshot) return; 
+            }
           }
-    
-          // Checks if message is a 'trades' update message.
-          const _id_key = _ws.subcriptions.trades?.update?.channel_id_key;
+  
+          // Checks if message is a 'orderbook' update/snapshot message.
+          const _id_key = _ws.subcriptions.orderbook?.update?.channel_id_key;
           let _channel_id = Number.isInteger(_id_key*1) && Big(_id_key).lt(0) ? 
             (Array.isArray(msg) ? msg.slice(_id_key)[0] : undefined) : 
             _id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
           if (_channel_id != undefined && (
-            _channel_id == conn.info.trades.channel_id ||
-            _channel_id == _ws.subcriptions?.trades?.update?.channel_id?.replaceAll('<market>', this.market.ws) // Some exchanges (htx) may sent an update before the subscription response.
+            _channel_id == conn.info.orderbook.channel_id ||
+            _channel_id == _ws.subcriptions?.orderbook?.update?.channel_id?.replaceAll('<market>', this.market.ws) || // In some cases need to parse an update before the orderbook subscription response.
+            _channel_id == _ws.subcriptions?.orderbook?.snapshot?.channel_id?.replaceAll('<market>', this.market.ws)
           )) {
             // Format and handle data.
-            return this.handle_trades_msg(this.format_trades_msg(msg, _ws, __ws, _prom, conn), _ws);
-          
+            const _ob_sub = _ws.subcriptions.orderbook;
+
+            if (_ob_sub.update.data_inside?.includes(',')) {
+              msg
+              .slice(..._ob_sub.update.data_inside.split(','))
+              .forEach(upd_msg => this.handle_orderbook_msg(this.format_orderbook_msg(upd_msg, _ws, __ws, _prom, conn), _ws, __ws, _prom, ws_recv_ts));
+              return;
+            }
+            
+            if (_ob_sub.update.data_inside_arr && _ob_sub.update.data_inside_arr_inside) {
+              const base_upd = Object.keys(msg).reduce((s, k) => {
+                if (k != _ob_sub.update.data_inside_arr_inside)
+                  s[k] = msg[k];
+                return s;
+              }, {});
+
+              msg[_ws.subcriptions.orderbook.update.data_inside_arr_inside]
+              .forEach(upd_msg => {
+                this.handle_orderbook_msg(this.format_orderbook_msg({ ...base_upd, ...upd_msg }, _ws, __ws, _prom, conn), _ws, __ws, _prom, ws_recv_ts);
+              });
+              return;
+            }
+
+            return this.handle_orderbook_msg(this.format_orderbook_msg(msg, _ws, __ws, _prom, conn), _ws, __ws, _prom, ws_recv_ts);
           }
         }
 
-        // Checks if WebSocket handles 'orderbook' updates. (If so, handle 'orderbook' and 'orderbook_snap' subscription response and updates)
-        if (_ws.not_handle_orderbook !== true) {
-          if (_ws.subcriptions.orderbook != undefined) {
-            // Checks if message is a 'orderbook' subscription response.
-            if ((!conn.info.orderbook.is_upds_subscribed) && _ws.subcriptions.orderbook?.request != undefined) {
-              let is_book_subs_resp = false;
-              
-              // Checks for the type of response the server should to send.
-              if (_ws.subcriptions.orderbook.response.acum_list) {
-                let list_id_val = _ws.subcriptions.orderbook.response?.list_id_key.split('.')?.reduce((f, k) => f = f?.[k], msg);
+        if (_ws.subcriptions.orderbook_snap != undefined) {
+          // Checks if message is a 'orderbook_snap' subscription response.
+          if ((!conn.info.orderbook_snap?.is_upds_subscribed) && _ws.subcriptions.orderbook_snap?.request != undefined) {
+            let is_booksnap_subs_resp = false;
 
-                if (list_id_val != undefined && 
-                (_ws.subcriptions.orderbook.response.list_id_value == null ||
-                list_id_val == _ws.subcriptions.orderbook.response.list_id_value) && 
-                (_ws.subcriptions.orderbook.response.list_inside?.split('.')?.reduce((f, k) => f = f?.[k], msg) || msg).some(
-                  x => x[_ws.subcriptions.orderbook.response.id] == _ws.subcriptions.orderbook.response.id_value
-                ))
-                  is_book_subs_resp = true;
+            // Checks for the type of response the server should to send.
+            if (_ws.subcriptions.orderbook_snap.response.acum_list) {
+              let list_id_val = _ws.subcriptions.orderbook_snap.response?.list_id_key.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
-              } else {
-                let id_val = _ws.subcriptions.orderbook.response.id?.split('.')?.reduce((f, k) => f = f?.[k], msg);
-                let object_id_val = _ws.subcriptions.orderbook.response.object_id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
+              if (list_id_val != undefined && 
+              (_ws.subcriptions.orderbook_snap.response.list_id_value == null ||
+              list_id_val == _ws.subcriptions.orderbook_snap.response.list_id_value) && 
+              (_ws.subcriptions.orderbook_snap.response.list_inside?.split('.')?.reduce((f, k) => f = f?.[k], msg) || msg).some(
+                x => x[_ws.subcriptions.orderbook_snap.response.id] == _ws.subcriptions.orderbook_snap.response.id_value
+              ))
+                is_booksnap_subs_resp = true;
 
-                if (id_val != undefined && id_val == conn.info.orderbook.req_id &&
-                (_ws.subcriptions.orderbook.response.is_object !== true || (
-                  object_id_val != undefined && (
-                    _ws.subcriptions.orderbook.response.object_id_value == undefined || 
-                    object_id_val == _ws.subcriptions.orderbook.response.object_id_value.replaceAll('<market>', this.market.ws)
-                  )
-                )))
-                  is_book_subs_resp = true;
-              }
+            } else {
+              let id_val = _ws.subcriptions.orderbook_snap.response.id?.split('.')?.reduce((f, k) => f = f?.[k], msg);
+              let object_id_val = _ws.subcriptions.orderbook_snap.response.object_id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
-              // Checks if msg is a response to 'orderbook' subcription.
-              if (is_book_subs_resp) {
-                // Checks if this response also is the response for 'trades' subcription.
-                if (_ws.not_handle_trades !== true && _ws.subcriptions.orderbook.response.include_trades)
-                  this.handle_trades_sub_resp(msg, _ws, __ws, _prom, conn, ws_recv_ts);
-
-                this.handle_orderbook_sub_resp(msg, _ws, __ws, _prom, conn, ws_recv_ts);
-
-                // Retuns if messade do not include snapshot, otherwise this message will be further handled as an 'orderbook message'.
-                if (!_ws.subcriptions.orderbook.response.include_snapshot) return; 
-              }
+              if (id_val != undefined && id_val == conn.info.orderbook_snap.req_id &&
+              (_ws.subcriptions.orderbook_snap.response.is_object !== true || (
+                object_id_val != undefined && (
+                  _ws.subcriptions.orderbook_snap.response.object_id_value == undefined || 
+                  object_id_val == _ws.subcriptions.orderbook_snap.response.object_id_value.replaceAll('<market>', this.market.ws)
+                )
+              )))
+                is_booksnap_subs_resp = true;
             }
-    
-            // Checks if message is a 'orderbook' update/snapshot message.
-            const _id_key = _ws.subcriptions.orderbook?.update?.channel_id_key;
-            let _channel_id = Number.isInteger(_id_key*1) && Big(_id_key).lt(0) ? 
-              (Array.isArray(msg) ? msg.slice(_id_key)[0] : undefined) : 
-              _id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
 
-            if (_channel_id != undefined && (
-              _channel_id == conn.info.orderbook.channel_id ||
-              _channel_id == _ws.subcriptions?.orderbook?.update?.channel_id?.replaceAll('<market>', this.market.ws) || // In some cases need to parse an update before the orderbook subscription response.
-              _channel_id == _ws.subcriptions?.orderbook?.snapshot?.channel_id?.replaceAll('<market>', this.market.ws)
-            )) {
-              // Format and handle data.
-              const _ob_sub = _ws.subcriptions.orderbook;
+            // Checks if msg is a response to 'orderbook_snap' subcription.
+            if (is_booksnap_subs_resp) {
+              // Checks if this response also is the response for 'trades' subcription.
+              if (_ws.not_handle_trades !== true && _ws.subcriptions.orderbook_snap.response.include_trades)
+                this.handle_trades_sub_resp(msg, _ws, __ws, _prom, conn, ws_recv_ts);
 
-              if (_ob_sub.update.data_inside?.includes(',')) {
-                msg
-                .slice(..._ob_sub.update.data_inside.split(','))
-                .forEach(upd_msg => this.handle_orderbook_msg(this.format_orderbook_msg(upd_msg, _ws, __ws, _prom, conn), _ws, __ws, _prom, ws_recv_ts));
-                return;
-              }
-              
-              if (_ob_sub.update.data_inside_arr && _ob_sub.update.data_inside_arr_inside) {
-                const base_upd = Object.keys(msg).reduce((s, k) => {
-                  if (k != _ob_sub.update.data_inside_arr_inside)
-                    s[k] = msg[k];
-                  return s;
-                }, {});
+              this.handle_orderbook_sub_resp(msg, _ws, __ws, _prom, conn, ws_recv_ts, true);
 
-                msg[_ws.subcriptions.orderbook.update.data_inside_arr_inside]
-                .forEach(upd_msg => {
-                  this.handle_orderbook_msg(this.format_orderbook_msg({ ...base_upd, ...upd_msg }, _ws, __ws, _prom, conn), _ws, __ws, _prom, ws_recv_ts);
-                });
-                return;
-              }
-
-              return this.handle_orderbook_msg(this.format_orderbook_msg(msg, _ws, __ws, _prom, conn), _ws, __ws, _prom, ws_recv_ts);
+              // Retuns if msg do not include snapshot, otherwise this message will be further handled as an 'orderbook message'.
+              if (!_ws.subcriptions.orderbook_snap.response.include_snapshot) return; 
             }
           }
-
-          if (_ws.subcriptions.orderbook_snap != undefined) {
-            // Checks if message is a 'orderbook_snap' subscription response.
-            if ((!conn.info.orderbook_snap?.is_upds_subscribed) && _ws.subcriptions.orderbook_snap?.request != undefined) {
-              let is_booksnap_subs_resp = false;
-
-              // Checks for the type of response the server should to send.
-              if (_ws.subcriptions.orderbook_snap.response.acum_list) {
-                let list_id_val = _ws.subcriptions.orderbook_snap.response?.list_id_key.split('.')?.reduce((f, k) => f = f?.[k], msg);
-
-                if (list_id_val != undefined && 
-                (_ws.subcriptions.orderbook_snap.response.list_id_value == null ||
-                list_id_val == _ws.subcriptions.orderbook_snap.response.list_id_value) && 
-                (_ws.subcriptions.orderbook_snap.response.list_inside?.split('.')?.reduce((f, k) => f = f?.[k], msg) || msg).some(
-                  x => x[_ws.subcriptions.orderbook_snap.response.id] == _ws.subcriptions.orderbook_snap.response.id_value
-                ))
-                  is_booksnap_subs_resp = true;
-
-              } else {
-                let id_val = _ws.subcriptions.orderbook_snap.response.id?.split('.')?.reduce((f, k) => f = f?.[k], msg);
-                let object_id_val = _ws.subcriptions.orderbook_snap.response.object_id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
-
-                if (id_val != undefined && id_val == conn.info.orderbook_snap.req_id &&
-                (_ws.subcriptions.orderbook_snap.response.is_object !== true || (
-                  object_id_val != undefined && (
-                    _ws.subcriptions.orderbook_snap.response.object_id_value == undefined || 
-                    object_id_val == _ws.subcriptions.orderbook_snap.response.object_id_value.replaceAll('<market>', this.market.ws)
-                  )
-                )))
-                  is_booksnap_subs_resp = true;
-              }
-
-              // Checks if msg is a response to 'orderbook_snap' subcription.
-              if (is_booksnap_subs_resp) {
-                // Checks if this response also is the response for 'trades' subcription.
-                if (_ws.not_handle_trades !== true && _ws.subcriptions.orderbook_snap.response.include_trades)
-                  this.handle_trades_sub_resp(msg, _ws, __ws, _prom, conn, ws_recv_ts);
-
-                this.handle_orderbook_sub_resp(msg, _ws, __ws, _prom, conn, ws_recv_ts, true);
-
-                // Retuns if msg do not include snapshot, otherwise this message will be further handled as an 'orderbook message'.
-                if (!_ws.subcriptions.orderbook_snap.response.include_snapshot) return; 
-              }
-            }
-    
-            // Checks if message is a 'orderbook_snap' update message.
-            const _id_key = _ws.subcriptions.orderbook_snap?.update?.channel_id_key;
-            let _channel_id = Number.isInteger(_id_key*1) && Big(_id_key).lt(0) ? 
-              (Array.isArray(msg) ? msg.slice(_id_key)[0] : undefined) : 
-              _id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
-
-            if (_channel_id != undefined && _channel_id == conn.info.orderbook_snap.channel_id) {
-              // Format and handle data.
-              return this.handle_orderbook_msg(this.format_orderbook_msg(msg, _ws, __ws, _prom, conn, true), _ws, __ws, _prom, ws_recv_ts);
-            }
-          }
-        }
-
-        // Handle other updates:
-        if (_ws?.other_updates != undefined) {
-          const updts = Object.values(_ws?.other_updates || {});
-          for (const upd of updts) {
-            const _id_val = upd.identifier_key?.split('.')?.reduce((f, k) => f?.[k], msg);
-            if (_id_val != undefined && 
-            (upd.identifier_value == undefined || _id_val == upd.identifier_value)) {
-              // Handle the update.
-              if (upd.replace_and_respond) {
-                let msg_to_respond = JSON.parse(JSON.stringify(msg));
   
-                for (const key of (upd.to_delete_from_object || []))
-                  delete msg_to_respond[key];
-  
-                msg_to_respond = JSON.stringify(msg_to_respond)
-                .replace(upd.to_replace, upd.replace_with);
-  
-                __ws.send(msg_to_respond);
-                return;
-              }
+          // Checks if message is a 'orderbook_snap' update message.
+          const _id_key = _ws.subcriptions.orderbook_snap?.update?.channel_id_key;
+          let _channel_id = Number.isInteger(_id_key*1) && Big(_id_key).lt(0) ? 
+            (Array.isArray(msg) ? msg.slice(_id_key)[0] : undefined) : 
+            _id_key?.split('.')?.reduce((f, k) => f = f?.[k], msg);
+
+          if (_channel_id != undefined && _channel_id == conn.info.orderbook_snap.channel_id) {
+            // Format and handle data.
+            return this.handle_orderbook_msg(this.format_orderbook_msg(msg, _ws, __ws, _prom, conn, true), _ws, __ws, _prom, ws_recv_ts);
+          }
+        }
+      }
+
+      // Handle other updates:
+      if (_ws?.other_updates != undefined) {
+        const updts = Object.values(_ws?.other_updates || {});
+        for (const upd of updts) {
+          const _id_val = upd.identifier_key?.split('.')?.reduce((f, k) => f?.[k], msg);
+          if (_id_val != undefined && 
+          (upd.identifier_value == undefined || _id_val == upd.identifier_value)) {
+            // Handle the update.
+            if (upd.replace_and_respond) {
+              let msg_to_respond = JSON.parse(JSON.stringify(msg));
+
+              for (const key of (upd.to_delete_from_object || []))
+                delete msg_to_respond[key];
+
+              msg_to_respond = JSON.stringify(msg_to_respond)
+              .replace(upd.to_replace, upd.replace_with);
+
+              __ws.send(msg_to_respond);
+              return;
             }
           }
         }
-    
-        // WebSocket messages to ignore.
-        if (_ws?.msgs_to_ignore != undefined &&
-        _ws.msgs_to_ignore.some(([ key, value ]) => {
-          const _val = key?.split('.')?.reduce((f, k) => f?.[k], msg);
-          return (_val != undefined && (value == undefined || _val == value));
-        }))
-          return; // Should ignore
-    
-        // Received an unexpected message from the server.
-        if (_prom) {
-          _prom.reject({ At: '[E] WebSocket '+_ws_type+' unexpected message:', error: msg });
-        } else {
-          console.log('[E] WebSocket '+_ws_type+' unexpected message:',msg,'\nEnding connection...\n');
-        }
-        __ws.terminate();
-      });
-    }
+      }
+  
+      // WebSocket messages to ignore.
+      if (_ws?.msgs_to_ignore != undefined &&
+      _ws.msgs_to_ignore.some(([ key, value ]) => {
+        const _val = key?.split('.')?.reduce((f, k) => f?.[k], msg);
+        return (_val != undefined && (value == undefined || _val == value));
+      }))
+        return; // Should ignore
+  
+      // Received an unexpected message from the server.
+      if (_prom) {
+        _prom.reject({ At: '[E] WebSocket '+ctype+' unexpected message:', error: msg });
+      } else {
+        console.log('[E] WebSocket '+ctype+' unexpected message:',msg,'\nEnding connection...\n');
+      }
+      __ws.terminate();
+    });
 
     Promise.all(_min_promises)
     .then(r => main_prom_funcs.resolve(r))
@@ -1410,7 +1412,7 @@ class Synchronizer {
     return conn.main_prom;
   }
 
-  async connect (conn_idx = null) {
+  async connect (conn_idx = null, type) {
     let conn_proms = []; // Store the connections promises.
 
     if (conn_idx === null) {
@@ -1418,13 +1420,14 @@ class Synchronizer {
       if (!this.silent_mode) console.log('Connecting to '+this.exchange+' '+this.base+'/'+this.quote+'...');
       
       for (let c_idx = 0; c_idx < this.connections_num; ++c_idx) {
-        conn_proms.push(this._connect(c_idx));
+        conn_proms.push(this._connect(c_idx, "primary"));
+        if (this.exc.ws2)
+          conn_proms.push(this._connect(c_idx, "secondary"));
       }
 
     } else {
       // Try to open the specyfic connection at 'conn_idx'. 
-      conn_proms.push(this._connect(conn_idx));
-
+      conn_proms.push(this._connect(conn_idx, type));
     }
 
     return Promise.all(conn_proms);
