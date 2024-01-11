@@ -519,6 +519,8 @@ class Synchronizer {
     //       this.last_book_updates.shift();
     //   }
     // }
+    
+    // console.log('Book msg:',msg);
 
     const _ob_sub = _ws.subcriptions[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
@@ -754,7 +756,7 @@ class Synchronizer {
       this.delayed_orderbook == null || 
       book_sec != Math.floor(upd_time / 1e3)
     )) {
-      console.log('[!] New second, book_sec ('+book_sec+') upd_sec ('+upd_sec+')');
+      // console.log('[!] New second, book_sec ('+book_sec+') upd_sec ('+upd_sec+')');
       const save_it = (this.delayed_orderbook != null);
 
       if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 
@@ -832,7 +834,7 @@ class Synchronizer {
 
   apply_orderbook_upd (upd, __ws, _prom, ws_recv_ts) {
     // Validate updates.
-    // console.log('Book upd:',upd);
+    console.log('Book upd:',upd);
     if ((this.orderbook.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce)) ||
     (this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
     (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
@@ -891,6 +893,9 @@ class Synchronizer {
     this.orderbook.timestamp = upd.timestamp;
     this.orderbook.timestamp_us = upd.timestamp_us;
     this.orderbook.last_update_nonce = upd.last_update_nonce;
+
+    console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
   }
 
   async _connect (conn_idx) {
@@ -1000,7 +1005,10 @@ class Synchronizer {
 
         clearInterval(__ws.ping_loop_interval);
         clearInterval(__ws.ws_ping_loop_interval);
-
+        
+        __ws.terminate();
+        __ws = null;
+        conn = null;
         this.connections[conn_idx] = null;
 
         if (this.__working == false || this.connections.every(conn => !conn)) {
@@ -1025,7 +1033,7 @@ class Synchronizer {
         } else {
           // Only this connection has ended, try reconnection respecting the established attempt limits.
           
-          // Filter 'connection_tries' to only tries that happened on the last minute.
+          // Filter 'connection_tries' to only attemps that happened on the last minute.
           this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
 
           // Checks if the number of connetion attemps in the last minute is greater then 'max_attemps_per_min'.

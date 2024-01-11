@@ -13,6 +13,7 @@ if (args.length !== 3 && args.length !== 4) {
 
 // 'console.log' start printing the current time (UTC-3).
 const dlog = console.log;
+console.dlog = dlog;
 console.log = (...args) => {
   const ts = Date.now()-60e3*60*3;
   const strtime = new Date(ts).toLocaleString('pt-BR', { timeZone: 'UTC' }).replace(',', '') + '.' + (ts%1e3+'').padStart(3, 0);
