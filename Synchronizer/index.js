@@ -1007,7 +1007,6 @@ class Synchronizer {
         clearInterval(__ws.ws_ping_loop_interval);
         
         __ws.terminate();
-        __ws = null;
         conn = null;
         this.connections[conn_idx] = null;
 
