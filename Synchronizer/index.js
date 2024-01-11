@@ -1009,7 +1009,7 @@ class Synchronizer {
       __ws.terminate();
       conn = null;
 
-      if (this.__working == false || this.connections.every(conn => !conn)) {
+      if (this.__working == false || this.connections.every(conn => !(conn.primary && (this.exc.ws2 || conn.secondary)))) {
         // All connections are closed.
         this.completely_synced = false;
         console.log('_connect > "completely_synced" SET TO FALSE!');
