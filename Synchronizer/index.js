@@ -758,7 +758,7 @@ class Synchronizer {
       this.delayed_orderbook == null || 
       book_sec != Math.floor(upd_time / 1e3)
     )) {
-      // console.log('[!] New second, book_sec ('+book_sec+') upd_sec ('+upd_sec+')');
+      console.log('[!] New second, book_sec ('+book_sec+') upd_sec ('+upd_sec+')');
       const save_it = (this.delayed_orderbook != null);
 
       if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 
