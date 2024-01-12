@@ -153,12 +153,14 @@ class Synchronizer {
   }
 
   make_subscriptions (__ws, _ws, _prom, conn) {
+    console.log('M');
     // Send some data before subscriptions if needed.
     if (_ws.to_send_before_subcriptions != undefined) {
       for (const data of _ws.to_send_before_subcriptions)
         __ws.send(data);
     }
 
+    console.log('N');
     // Send 'trades' subscription request.
     if (_ws.not_handle_trades !== true) {
       if (_ws.subcriptions.trades?.request != undefined) {
@@ -201,6 +203,8 @@ class Synchronizer {
       }
     }
 
+
+    console.log('O');
     // Send 'orderbook' subscription request.
     if (_ws.not_handle_orderbook !== true) {
       if (_ws.subcriptions.orderbook?.request != undefined) {
@@ -266,6 +270,7 @@ class Synchronizer {
   }
 
   handle_trades_sub_resp (msg, _ws, __ws, _prom, conn, ws_recv_ts) {
+    console.log('P');
     const _id_val = _ws.subcriptions.trades?.response?.channel_id_key?.split('.').reduce((f, k) => f?.[k], msg);
 
     if (_ws.subcriptions.trades.update.channel_id) {
@@ -293,16 +298,19 @@ class Synchronizer {
       return;
     }
 
+    console.log('Q');
     const now = Date.now();
     if (this.is_lantecy_test) {
       conn._recv_trades_subr_at = ws_recv_ts;
       this.subr_latency.push(conn._recv_trades_subr_at - conn._sent_trades_sub_at);
     }
+    console.log('R');
     conn.info.trades.is_subscribed = true;
     if (!this.silent_mode) console.log('[!] ('+conn._idx+') Successfully subscribed to trades updates.');
     if (this.synced_trades_since == null || Big(now).lt(this.synced_trades_since))
       this.synced_trades_since = now;
 
+    console.log('S');
     // If 'not_handle_orderbook' or 'info.orderbook.is_subscribed' resolve the promise.
     if (_prom && (
       _ws.not_handle_orderbook === true || 
@@ -439,11 +447,13 @@ class Synchronizer {
   }
 
   handle_orderbook_sub_resp (msg, _ws, __ws, _prom, conn, ws_recv_ts, is_snap = false) {
+    console.log('T');
     const _ob = is_snap ? 'orderbook_snap' : 'orderbook';
     const _sub = _ws.subcriptions?.[_ob];
     const _info = conn.info[_ob];
     const _id_val = _sub?.response?.channel_id_key?.split('.').reduce((f, k) => f?.[k], msg);
 
+    console.log('U');
     if (_sub?.update?.channel_id) {
       _info.channel_id = _sub.update.channel_id.replaceAll('<market>', this.market.ws);
       
@@ -469,6 +479,7 @@ class Synchronizer {
       return;
     }
 
+    console.log('V');
     if (_ob == "orderbook") {
       if (this.is_lantecy_test) {
         conn._recv_orderbook_subr_at = ws_recv_ts;
@@ -899,6 +910,7 @@ class Synchronizer {
   }
 
   async _connect (conn_idx, ctype) {
+    console.log('A');
     // If connection not null returns the connection promise.
     if (this.connections[conn_idx]?.[ctype]) return this.connections[conn_idx][ctype].main_prom;
     
@@ -907,10 +919,12 @@ class Synchronizer {
     let conn = this.connections[conn_idx][ctype];      // Create a reference to the connection object.
     conn._idx = conn_idx;
 
+    console.log('B');
     // Create the connection main promise and a control variable to it.
     let main_prom_funcs;
     conn.main_prom = new Promise((resolve, reject) => main_prom_funcs = { resolve, reject }).finally(() => main_prom_funcs = null);
     
+    console.log('C');
     // If there is an 'attemp delay' to this connection waits the delay.
     if (this.attemp_delay[conn_idx]?.[ctype]) await this.attemp_delay[conn_idx][ctype];
 
@@ -919,6 +933,7 @@ class Synchronizer {
     const is_secondary = (ctype == 'secondary');
     const _ws = is_secondary ? this.exc.ws2 : this.exc.ws;
 
+    console.log('D');
     // Check if this connection will handle orderbook updates.
     if (_ws.not_handle_orderbook !== true) {
       // // Reset initial orderbook vars.
@@ -932,6 +947,7 @@ class Synchronizer {
         conn.info.orderbook.channel_id = _ws.subcriptions.orderbook.update.channel_id.replaceAll('<market>', this.market.ws);
     }
     
+    console.log('E');
     // Check if this connection will handle trades updates.
     if (_ws.not_handle_trades !== true) { 
       // // Reset initial trades vars.
@@ -944,6 +960,7 @@ class Synchronizer {
         conn.info.trades.channel_id = _ws.subcriptions.trades?.update?.channel_id.replaceAll('<market>', this.market.ws);
     }
     
+    console.log('F');
     // Create an control var and a promise to indicate if we have succeed on the websocket connection.
     let _prom = null;
     _min_promises.push(
@@ -953,6 +970,7 @@ class Synchronizer {
       ])
     );
 
+    console.log('G');
     // Checks if websocket conection require any preparation before connection.
     if (this.exc.rest.endpoints?.prepare_for_ws != undefined) {
       let { success, response: r } = await this.rest_request('prepare_for_ws');
@@ -975,6 +993,7 @@ class Synchronizer {
     // Define the endpoint to use, if more than 1.
     let _ws_conn_url = Array.isArray(_ws.url) ? _ws.url[this._url_nonce++ % _ws.url.length] : _ws.url;
 
+    console.log('H');
     // Creates the WebSocket connection.
     this.connection_tries.push(Date.now());
     const _conn_start_ts = Date.now();
@@ -1056,12 +1075,14 @@ class Synchronizer {
 
     // On connection, initiate 'ping loops', login and then make subscriptions.
     __ws.on('open', () => {
+      console.log('I');
       if (this.is_lantecy_test) {
         const _conn_opened_ts = Date.now();
         this.conn_latency.push(_conn_opened_ts - _conn_start_ts);
       }
       if (!this.silent_mode) console.log('[!] ('+conn._idx+') Connected to '+ctype+' WebSocket.');
 
+      console.log('J');
       // Initiate 'ping loop'.
       __ws.ping_loop_interval = setInterval(() => {
         if (!__ws.keep_alive) {
@@ -1079,6 +1100,7 @@ class Synchronizer {
 
       }, (_ws.timeout || 5000));
 
+      console.log('K');
       // Initiate 'ws ping loop'.
       if (_ws.ping?.request != undefined && _ws.ping.response != undefined) {
         __ws.ws_ping_loop_interval = setInterval(() => {
@@ -1092,6 +1114,7 @@ class Synchronizer {
         }, (_ws.ping.interval || _ws.timeout || 5000));
       }
 
+      console.log('L');
       // Checks if login is required.
       if (_ws.login != undefined) {
         // Send a login request.
