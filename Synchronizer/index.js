@@ -997,12 +997,12 @@ class Synchronizer {
     // Creates the WebSocket connection.
     this.connection_tries.push(Date.now());
     const _conn_start_ts = Date.now();
-    conn[ctype == "primary" ? "ws" : "ws2"] = new WebSocket(
+    conn.ws = new WebSocket(
       _ws_conn_url
       .replaceAll('<market>', this.market.ws)
       .replace('<ws_token>', _ws.token)
     );
-    const __ws = conn[ctype == "primary" ? "ws" : "ws2"];
+    const __ws = conn.ws;
     
     // Create control vars for a 'ping loop'.
     __ws.keep_alive = true;
@@ -1025,8 +1025,8 @@ class Synchronizer {
       clearInterval(__ws.ping_loop_interval);
       clearInterval(__ws.ws_ping_loop_interval);
       
-      __ws.terminate();
-      conn = null;
+      this.connections[conn_idx][ctype].ws.terminate();
+      delete this.connections[conn_idx][ctype];
 
       if (this.__working == false || this.connections.every(conn => !(conn.primary && (this.exc.ws2 == null || conn.secondary)))) {
         // All connections are closed.
