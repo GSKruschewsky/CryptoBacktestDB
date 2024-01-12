@@ -1009,7 +1009,7 @@ class Synchronizer {
       __ws.terminate();
       conn = null;
 
-      if (this.__working == false || this.connections.every(conn => !(conn.primary && (this.exc.ws2 || conn.secondary)))) {
+      if (this.__working == false || this.connections.every(conn => !(conn.primary && (this.exc.ws2 == null || conn.secondary)))) {
         // All connections are closed.
         this.completely_synced = false;
         console.log('_connect > "completely_synced" SET TO FALSE!');
@@ -1427,6 +1427,7 @@ class Synchronizer {
 
     } else {
       // Try to open the specyfic connection at 'conn_idx'. 
+      if (!this.silent_mode) console.log('Reconnecting to conn '+conn_idx+' '+type+'...');
       conn_proms.push(this._connect(conn_idx, type));
     }
 
