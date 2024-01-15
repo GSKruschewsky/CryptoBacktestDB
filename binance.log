@@ -1,0 +1,2612 @@
+
+> cryptobacktestdb@1.0.0 sync-ob-test
+> node --no-warnings index.js ob-test binance-spot btc usdt
+
+15/01/2024 15:57:13.078 - Connecting to binance-spot BTC/USDT...
+15/01/2024 15:57:16.114 - [!] (2) Connected to primary WebSocket.
+15/01/2024 15:57:16.116 - [!] (1) Connected to primary WebSocket.
+15/01/2024 15:57:16.451 - [!] (1) Successfully subscribed to trades updates.
+15/01/2024 15:57:16.452 - [!] (1) Successfully subscribed to orderbook updates.
+15/01/2024 15:57:16.472 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345036891,
+    s: 'BTCUSDT',
+    U: 42137368386,
+    u: 42137369171,
+    b: [
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array],
+      ... 91 more items
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array],
+      ... 111 more items
+    ]
+  }
+}
+15/01/2024 15:57:16.573 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345036991,
+    s: 'BTCUSDT',
+    U: 42137369172,
+    u: 42137369352,
+    b: [
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:16.671 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037091,
+    s: 'BTCUSDT',
+    U: 42137369353,
+    u: 42137369459,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:16.774 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037191,
+    s: 'BTCUSDT',
+    U: 42137369460,
+    u: 42137369510,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:16.800 - [!] (0) Connected to primary WebSocket.
+15/01/2024 15:57:16.891 - [!] (2) Successfully subscribed to trades updates.
+15/01/2024 15:57:16.891 - [!] (2) Successfully subscribed to orderbook updates.
+15/01/2024 15:57:16.892 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345036991,
+    s: 'BTCUSDT',
+    U: 42137369172,
+    u: 42137369352,
+    b: [
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:16.894 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037091,
+    s: 'BTCUSDT',
+    U: 42137369353,
+    u: 42137369459,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:16.897 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037191,
+    s: 'BTCUSDT',
+    U: 42137369460,
+    u: 42137369510,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:16.931 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037291,
+    s: 'BTCUSDT',
+    U: 42137369511,
+    u: 42137369740,
+    b: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:16.970 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037291,
+    s: 'BTCUSDT',
+    U: 42137369511,
+    u: 42137369740,
+    b: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.025 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037391,
+    s: 'BTCUSDT',
+    U: 42137369741,
+    u: 42137369821,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.071 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037491,
+    s: 'BTCUSDT',
+    U: 42137369822,
+    u: 42137369862,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.095 - [!] (0) Successfully subscribed to trades updates.
+15/01/2024 15:57:17.095 - [!] (0) Successfully subscribed to orderbook updates.
+15/01/2024 15:57:17.152 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037589,
+    s: 'BTCUSDT',
+    U: 42137369860,
+    u: 42137369943,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.173 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037591,
+    s: 'BTCUSDT',
+    U: 42137369863,
+    u: 42137369943,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.252 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037689,
+    s: 'BTCUSDT',
+    U: 42137369944,
+    u: 42137369966,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.273 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037691,
+    s: 'BTCUSDT',
+    U: 42137369944,
+    u: 42137369966,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.352 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037789,
+    s: 'BTCUSDT',
+    U: 42137369967,
+    u: 42137369983,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.373 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037791,
+    s: 'BTCUSDT',
+    U: 42137369967,
+    u: 42137369984,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.413 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037391,
+    s: 'BTCUSDT',
+    U: 42137369741,
+    u: 42137369821,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.414 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037491,
+    s: 'BTCUSDT',
+    U: 42137369822,
+    u: 42137369862,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.415 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037591,
+    s: 'BTCUSDT',
+    U: 42137369863,
+    u: 42137369943,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.416 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037691,
+    s: 'BTCUSDT',
+    U: 42137369944,
+    u: 42137369966,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.417 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037791,
+    s: 'BTCUSDT',
+    U: 42137369967,
+    u: 42137369984,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.452 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037890,
+    s: 'BTCUSDT',
+    U: 42137369984,
+    u: 42137370007,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.473 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037891,
+    s: 'BTCUSDT',
+    U: 42137369985,
+    u: 42137370007,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.484 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037891,
+    s: 'BTCUSDT',
+    U: 42137369985,
+    u: 42137370007,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.574 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037991,
+    s: 'BTCUSDT',
+    U: 42137370008,
+    u: 42137370044,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.671 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037991,
+    s: 'BTCUSDT',
+    U: 42137370008,
+    u: 42137370044,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.727 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038091,
+    s: 'BTCUSDT',
+    U: 42137370045,
+    u: 42137370083,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.810 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345037990,
+    s: 'BTCUSDT',
+    U: 42137370008,
+    u: 42137370043,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.814 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038090,
+    s: 'BTCUSDT',
+    U: 42137370044,
+    u: 42137370083,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.818 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038190,
+    s: 'BTCUSDT',
+    U: 42137370084,
+    u: 42137370369,
+    b: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.896 - [!] Completely synchronized.
+
+15/01/2024 15:57:17.945 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038191,
+    s: 'BTCUSDT',
+    U: 42137370084,
+    u: 42137370370,
+    b: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.946 - [E] apply_orderbook_upd: upd.first_update_nonce (42137370084) <= != orderbook.last_update_nonce + 1 (42137370370). 
+
+Ending connection...
+15/01/2024 15:57:17.948 - [!] WebSocket primary connection 2 is closed.
+15/01/2024 15:57:17.948 - Reconnecting to conn 2 primary...
+15/01/2024 15:57:17.981 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038091,
+    s: 'BTCUSDT',
+    U: 42137370045,
+    u: 42137370083,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.987 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038191,
+    s: 'BTCUSDT',
+    U: 42137370084,
+    u: 42137370370,
+    b: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.988 - [E] apply_orderbook_upd: upd.first_update_nonce (42137370084) <= != orderbook.last_update_nonce + 1 (42137370370). 
+
+Ending connection...
+15/01/2024 15:57:17.989 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038291,
+    s: 'BTCUSDT',
+    U: 42137370371,
+    u: 42137370426,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.989 - [E] apply_orderbook_upd: upd.first_update_nonce (42137370371) <= != orderbook.last_update_nonce + 1 (42137370370). 
+
+Ending connection...
+15/01/2024 15:57:17.990 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038391,
+    s: 'BTCUSDT',
+    U: 42137370427,
+    u: 42137370474,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:17.990 - [E] apply_orderbook_upd: upd.first_update_nonce (42137370427) <= != orderbook.last_update_nonce + 1 (42137370370). 
+
+Ending connection...
+15/01/2024 15:57:17.991 - [!] WebSocket primary connection 1 is closed.
+15/01/2024 15:57:17.991 - Reconnecting to conn 1 primary...
+15/01/2024 15:57:18.328 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038290,
+    s: 'BTCUSDT',
+    U: 42137370370,
+    u: 42137370424,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:18.329 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038390,
+    s: 'BTCUSDT',
+    U: 42137370425,
+    u: 42137370473,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:18.331 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038490,
+    s: 'BTCUSDT',
+    U: 42137370474,
+    u: 42137370501,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:18.332 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038590,
+    s: 'BTCUSDT',
+    U: 42137370502,
+    u: 42137370526,
+    b: [ [Array], [Array], [Array], [Array], [Array], [Array] ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:18.788 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038690,
+    s: 'BTCUSDT',
+    U: 42137370527,
+    u: 42137370586,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:18.790 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038790,
+    s: 'BTCUSDT',
+    U: 42137370587,
+    u: 42137370619,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:18.791 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038890,
+    s: 'BTCUSDT',
+    U: 42137370620,
+    u: 42137370660,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:19.020 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345038990,
+    s: 'BTCUSDT',
+    U: 42137370661,
+    u: 42137370697,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:19.021 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345039090,
+    s: 'BTCUSDT',
+    U: 42137370698,
+    u: 42137370814,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:19.034 - Orderbook:
+42984.38	1.04439
+42984.01	0.86215
+42984.00	0.86235
+42983.86	0.86226
+42983.60	0.86227
+42983.55	0.86228
+42983.34	0.86229
+42983.08	0.8623
+42982.91	0.86231
+42982.86	0.86232 
+
+42982.85	0.00419
+42982.01	0.14011
+42982.00	0.2334
+42981.77	0.00693
+42980.38	0.00349
+42979.85	0.12009
+42979.84	0.24511
+42979.68	0.06407
+42979.16	0.00048
+42979.07	0.2 
+
+15/01/2024 15:57:19.035 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345039190,
+    s: 'BTCUSDT',
+    U: 42137370815,
+    u: 42137370838,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:19.066 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345039290,
+    s: 'BTCUSDT',
+    U: 42137370839,
+    u: 42137370847,
+    b: [ [Array], [Array], [Array], [Array], [Array] ],
+    a: [ [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:19.068 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345039390,
+    s: 'BTCUSDT',
+    U: 42137370848,
+    u: 42137370864,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [ [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:19.069 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345039490,
+    s: 'BTCUSDT',
+    U: 42137370865,
+    u: 42137370879,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [ [Array], [Array], [Array], [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:19.337 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345039590,
+    s: 'BTCUSDT',
+    U: 42137370880,
+    u: 42137370888,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [ [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:19.338 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345039690,
+    s: 'BTCUSDT',
+    U: 42137370889,
+    u: 42137370898,
+    b: [ [Array], [Array], [Array], [Array], [Array], [Array] ],
+    a: [ [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:19.385 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345039790,
+    s: 'BTCUSDT',
+    U: 42137370899,
+    u: 42137370931,
+    b: [ [Array] ],
+    a: [ [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:19.662 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345039890,
+    s: 'BTCUSDT',
+    U: 42137370932,
+    u: 42137370980,
+    b: [ [Array], [Array], [Array], [Array], [Array] ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:19.663 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345039990,
+    s: 'BTCUSDT',
+    U: 42137370981,
+    u: 42137370999,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [ [Array], [Array], [Array], [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:19.664 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345040090,
+    s: 'BTCUSDT',
+    U: 42137371000,
+    u: 42137371019,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [ [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:19.667 - Orderbook:
+42984.11	0.00041
+42984.03	0.01
+42984.00	0.2184
+42983.86	0.1
+42983.85	0.00082
+42983.59	0.00041
+42983.43	0.00677
+42983.34	0.1
+42983.33	0.00041
+42982.86	3.38849 
+
+42982.85	1.54255
+42982.30	0.02259
+42982.01	0.14011
+42982.00	0.2334
+42981.99	0.0057
+42981.77	0.00693
+42981.51	0.00735
+42980.38	0.00349
+42979.84	0.24511
+42979.16	0.30736 
+
+15/01/2024 15:57:19.753 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345040190,
+    s: 'BTCUSDT',
+    U: 42137371020,
+    u: 42137371040,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [ [Array], [Array], [Array], [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:19.990 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345040291,
+    s: 'BTCUSDT',
+    U: 42137371041,
+    u: 42137371049,
+    b: [ [Array], [Array], [Array] ],
+    a: [ [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:19.991 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345040391,
+    s: 'BTCUSDT',
+    U: 42137371050,
+    u: 42137371057,
+    b: [ [Array], [Array], [Array], [Array], [Array] ],
+    a: [ [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:20.059 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345040491,
+    s: 'BTCUSDT',
+    U: 42137371058,
+    u: 42137371075,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [ [Array], [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:20.319 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345040591,
+    s: 'BTCUSDT',
+    U: 42137371076,
+    u: 42137371104,
+    b: [ [Array], [Array], [Array], [Array], [Array], [Array] ],
+    a: [ [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:20.320 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345040691,
+    s: 'BTCUSDT',
+    U: 42137371105,
+    u: 42137371120,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [ [Array], [Array], [Array], [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:20.354 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345040791,
+    s: 'BTCUSDT',
+    U: 42137371121,
+    u: 42137371133,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [ [Array], [Array], [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:20.460 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345040891,
+    s: 'BTCUSDT',
+    U: 42137371134,
+    u: 42137371142,
+    b: [ [Array], [Array], [Array], [Array], [Array] ],
+    a: [ [Array], [Array], [Array] ]
+  }
+}
+15/01/2024 15:57:20.630 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345040991,
+    s: 'BTCUSDT',
+    U: 42137371143,
+    u: 42137371161,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:20.739 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041091,
+    s: 'BTCUSDT',
+    U: 42137371162,
+    u: 42137371246,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:20.750 - Orderbook:
+42984.11	0.00041
+42984.03	0.01
+42984.00	0.2184
+42983.86	0.1
+42983.85	0.00082
+42983.59	0.00041
+42983.43	0.00677
+42983.34	0.1
+42983.33	0.00041
+42982.86	3.64026 
+
+42982.85	1.78245
+42982.30	0.02259
+42982.00	0.2334
+42981.99	0.0057
+42981.77	0.00693
+42981.51	0.00735
+42981.11	0.04877
+42980.99	0.00694
+42980.38	0.00349
+42979.85	0.27951 
+
+15/01/2024 15:57:20.906 - [!] (2) Connected to primary WebSocket.
+15/01/2024 15:57:20.907 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041191,
+    s: 'BTCUSDT',
+    U: 42137371247,
+    u: 42137371322,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:20.908 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041291,
+    s: 'BTCUSDT',
+    U: 42137371323,
+    u: 42137371359,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:20.954 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041391,
+    s: 'BTCUSDT',
+    U: 42137371360,
+    u: 42137371395,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.051 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041491,
+    s: 'BTCUSDT',
+    U: 42137371396,
+    u: 42137371522,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.234 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041591,
+    s: 'BTCUSDT',
+    U: 42137371523,
+    u: 42137371624,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.254 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041691,
+    s: 'BTCUSDT',
+    U: 42137371625,
+    u: 42137371657,
+    b: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.259 - [!] (2) Successfully subscribed to trades updates.
+15/01/2024 15:57:21.259 - [!] (2) Successfully subscribed to orderbook updates.
+15/01/2024 15:57:21.532 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041791,
+    s: 'BTCUSDT',
+    U: 42137371658,
+    u: 42137371752,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.534 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041891,
+    s: 'BTCUSDT',
+    U: 42137371753,
+    u: 42137371843,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.538 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041791,
+    s: 'BTCUSDT',
+    U: 42137371658,
+    u: 42137371752,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.539 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041891,
+    s: 'BTCUSDT',
+    U: 42137371753,
+    u: 42137371843,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.609 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041991,
+    s: 'BTCUSDT',
+    U: 42137371844,
+    u: 42137372076,
+    b: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.614 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345041991,
+    s: 'BTCUSDT',
+    U: 42137371844,
+    u: 42137372076,
+    b: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.657 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345042091,
+    s: 'BTCUSDT',
+    U: 42137372077,
+    u: 42137372194,
+    b: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array],
+      ... 98 more items
+    ]
+  }
+}
+15/01/2024 15:57:21.668 - Orderbook:
+42981.77	0.00041
+42981.66	0.28
+42981.52	0.00241
+42981.50	0.2
+42981.40	0.28
+42981.26	0.23
+42980.39	0.25328
+42980.01	0.02331
+42980.00	0.35824
+42978.60	1.99746 
+
+42978.59	0.00012
+42978.31	0.00017
+42977.33	0.01744
+42977.29	0.14711
+42976.81	0.00049
+42976.50	0.00025
+42976.40	0.06405
+42976.28	0.00048
+42976.00	0.2184
+42975.95	0.23287 
+
+15/01/2024 15:57:21.755 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345042191,
+    s: 'BTCUSDT',
+    U: 42137372195,
+    u: 42137372270,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.852 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345042291,
+    s: 'BTCUSDT',
+    U: 42137372271,
+    u: 42137372319,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:21.976 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345042391,
+    s: 'BTCUSDT',
+    U: 42137372320,
+    u: 42137372459,
+    b: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array]
+    ]
+  }
+}
+15/01/2024 15:57:22.016 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345042091,
+    s: 'BTCUSDT',
+    U: 42137372077,
+    u: 42137372194,
+    b: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array],
+      ... 98 more items
+    ]
+  }
+}
+15/01/2024 15:57:22.018 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345042191,
+    s: 'BTCUSDT',
+    U: 42137372195,
+    u: 42137372270,
+    b: [
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array], [Array],
+      [Array], [Array]
+    ],
+    a: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:22.020 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345042291,
+    s: 'BTCUSDT',
+    U: 42137372271,
+    u: 42137372319,
+    b: [
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ],
+    a: [
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:22.142 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345042491,
+    s: 'BTCUSDT',
+    U: 42137372460,
+    u: 42137373077,
+    b: [
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array],
+      ... 67 more items
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array],
+      ... 67 more items
+    ]
+  }
+}
+15/01/2024 15:57:22.224 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345042591,
+    s: 'BTCUSDT',
+    U: 42137373078,
+    u: 42137373391,
+    b: [
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array],
+      ... 59 more items
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:22.254 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345042691,
+    s: 'BTCUSDT',
+    U: 42137373392,
+    u: 42137373762,
+    b: [
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array],
+      ... 91 more items
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array]
+    ]
+  }
+}
+15/01/2024 15:57:22.356 - Book msg: {
+  stream: 'btcusdt@depth@100ms',
+  data: {
+    e: 'depthUpdate',
+    E: 1705345042791,
+    s: 'BTCUSDT',
+    U: 42137373763,
+    u: 42137374177,
+    b: [
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array],
+      ... 80 more items
+    ],
+    a: [
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array],
+      [Array], [Array], [Array], [Array], [Array], [Array]
+    ]
+  }
+}

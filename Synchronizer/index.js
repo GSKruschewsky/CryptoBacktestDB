@@ -513,11 +513,15 @@ class Synchronizer {
     //   first_update_nonce: <upd nonce here>, *only if required.
     //   last_update_nonce: <upd nonce here>, *only if required.
     // }
-    
-    // if (this.is_ob_test) console.log('Book msg:',msg);
 
     const _ob_sub = _ws.subcriptions[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
+    
+    if (this.is_ob_test) {
+      let _msg = (_ob_sub.update.data_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
+      _msg = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
+      console.log('Book msg:',_msg);
+    }
 
     // Checks if its the first update.
     if (_info.received_first_update !== true) {
@@ -1826,11 +1830,11 @@ class Synchronizer {
           let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
           let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
 
-          // console.log('Orderbook:');
-          // console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(2) + '\t' + q).join('\n'),'\n');
-          // console.dlog(_bids.map(([p, q]) => Big(p).toFixed(2) + '\t' + q).join('\n'),'\n');
-
           if (Big(_asks[0][0]).lte(_bids[0][0])) {
+            console.log('Orderbook:');
+            console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(2) + '\t' + q).join('\n'),'\n');
+            console.dlog(_bids.map(([p, q]) => Big(p).toFixed(2) + '\t' + q).join('\n'),'\n');
+
             console.log('[E] Orderbook > ASK lower or equal BID.');
             process.exit(1);
           }

@@ -1,4 +1,5 @@
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { JsonStreamStringify } from 'json-stream-stringify';
 import Big from 'big.js';
 import fs from 'fs';
 
@@ -157,6 +158,8 @@ const assets = [
 
       // Push only essential data to 'reduced'.
       reduced[exchange][market].push({
+        asks: asks.slice(0, 10), 
+        bids: bids.slice(0, 10),
         mid_price: second_data.mid_price,
         imb_mid_price: second_data.imb_mid_price,
         book_imb_value: second_data.book_imb_value,
@@ -172,7 +175,17 @@ const assets = [
 
   const filename = 'reduced_'+datestr+'.json';
   fs.writeFileSync(filename, JSON.stringify(reduced));
-
-  console.log('[!] "'+filename+'" successfuly saved.');
+  
+  // let str_data = '';
+  // const stream = new JsonStreamStringify(data, null, null, false, 1048576);
+  // stream.on('data', chunk => {
+  //   str_data += chunk;
+  // });
+  // stream.on('error', e => console.log('JsonStreamStringify > Stream error:',e));
+  // stream.on('end', () => {
+  //   const filename = 'data_'+datestr+'.json';
+  //   fs.writeFileSync(filename, str_data);
+  //   console.log('[!] "'+filename+'" successfuly saved.');
+  // });
 
 })();

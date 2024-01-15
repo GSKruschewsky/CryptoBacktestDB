@@ -71,7 +71,8 @@
             "amount": "1"
           },
           "timestamp": "E",
-          "last_upd_nonce_key": "u"
+          "last_upd_nonce_key": "u",
+          "first_upd_nonce_key": "U"
         }
       },
       "trades": {

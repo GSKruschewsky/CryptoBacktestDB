@@ -131,7 +131,8 @@
             "to_remove_value": null
           },
           "timestamp": "time",
-          "last_upd_nonce_key": "sequenceEnd"
+          "last_upd_nonce_key": "sequenceEnd",
+          "first_upd_nonce_key": "sequenceStart"
         }
       },
       "trades": {
