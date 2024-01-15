@@ -886,13 +886,13 @@ class Synchronizer {
       if (this.orderbook.received_first_update) {
         if (upd.first_update_nonce != this.orderbook.last_update_nonce + 1) {
           const _at = 'apply_orderbook_upd:';
-          const _error = 'upd.first_update_nonce ('+upd.first_update_nonce+') <= != orderbook.last_update_nonce + 1 ('+(this.orderbook.last_update_nonce + 1)+').';
+          const _error = 'upd.first_update_nonce ('+upd.first_update_nonce+') != orderbook.last_update_nonce + 1 ('+(this.orderbook.last_update_nonce + 1)+').';
 
           if (_prom) {
             _prom.reject({ At: _at, error: _error });
           } else {
             console.log('[E]',_at,_error,'\n\nEnding connection...');
-            __ws.terminate();
+            process.exit();
           }
           return;
         }
@@ -905,7 +905,7 @@ class Synchronizer {
             _prom.reject({ At: _at, error: _error });
           } else {
             console.log('[E]',_at,_error,'\n\nEnding connection...');
-            __ws.terminate();
+            process.exit();
           }
           return;
         }
