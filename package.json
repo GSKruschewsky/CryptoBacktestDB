@@ -7,6 +7,7 @@
     "sync": "node --no-warnings index.js",
     "sync-test": "node --no-warnings index.js test",
     "latency-test": "node --no-warnings latency_test.js",
+    "sync-ob-test": "node --no-warnings index.js ob-test",
     "get-from-s3": "node ValidateDataFromS3/index.js"
   },
   "author": "",

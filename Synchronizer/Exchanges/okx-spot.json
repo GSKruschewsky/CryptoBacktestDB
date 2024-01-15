@@ -76,6 +76,7 @@
           "identifier_value": "snapshot"
         },
         "update": {
+          "avoid_repetition": true,
           "data_inside_arr": true,
           "data_inside_arr_inside": "data",
           "channel_id_key": "action",

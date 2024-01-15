@@ -21,6 +21,7 @@ class Synchronizer {
     this.quote = quote;              // Stores the 'quote' of the market we will synchronize with.
     
     this.is_test = false;            // Sets if this synchronization is just a test or if we should realy store data.
+    this.is_ob_test = false;         // Sets if this synchronization is just a test of the orderbook sync.
 
     this.completely_synced = false;  // Stores the current STATE of the object. (Is it synchronized ?)
     this.process_second_timeout;     // Control variable for the timeout of 'process_second' function.
@@ -57,6 +58,7 @@ class Synchronizer {
     this._url_nonce = 0;             // Stores the url nonce, used when multiple connections w/ multiple endpoints.
 
     this.last_book_updates = [];     // Stores the last book updates to avoid repetitions.
+    this.last_book_updates_nonce = 0;
 
     this.__working = true;
 
@@ -511,18 +513,8 @@ class Synchronizer {
     //   first_update_nonce: <upd nonce here>, *only if required.
     //   last_update_nonce: <upd nonce here>, *only if required.
     // }
-
-    // if (_ws.subcriptions.orderbook.update.avoid_repetition) {
-    //   let msg_str = JSON.stringify(msg);
-    //   if (this.last_book_updates.length > 0 && this.last_book_updates.includes(msg_str)) {
-    //     return null; // Already aplied this update message.
-    //   } else {
-    //     if (this.last_book_updates.push(msg_str) > (_ws.subcriptions.orderbook.update.avoid_repetition_size || 10))
-    //       this.last_book_updates.shift();
-    //   }
-    // }
     
-    // console.log('Book msg:',msg);
+    // if (this.is_ob_test) console.log('Book msg:',msg);
 
     const _ob_sub = _ws.subcriptions[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
@@ -758,7 +750,7 @@ class Synchronizer {
       this.delayed_orderbook == null || 
       book_sec != Math.floor(upd_time / 1e3)
     )) {
-      console.log('[!] New second, book_sec ('+book_sec+') upd_sec ('+upd_sec+')');
+      if (!this.is_test) console.log('[!] New second, book_sec ('+book_sec+') upd_sec ('+upd_sec+')');
       const save_it = (this.delayed_orderbook != null);
 
       if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 
@@ -800,7 +792,7 @@ class Synchronizer {
 
   apply_orderbook_snap (update, __ws, _prom, ws_recv_ts) {
     // Validate snapshot update.
-    // console.log('Book snap:',update);
+
     // console.log('snap upd:',(update.last_update_nonce || update.timestamp_us || update.timestamp), (update.last_update_nonce && "last_update_nonce") || (update.timestamp_us && "timestamp_us") || (update.timestamp && "timestamp"));
     if (this.orderbook != null && (
       (this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce)) ||
@@ -810,6 +802,26 @@ class Synchronizer {
       return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
 
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
+
+    if (this.last_book_updates.length > 0) {
+      let msg_str = JSON.stringify(update);
+      let idx;
+
+      for (idx = this.last_book_updates_nonce - 1; idx >= 0; --idx) {
+        if (this.last_book_updates[idx] == msg_str)
+          return; // Already aplied this update message.
+      }
+
+      for (idx = this.last_book_updates.length - 1; idx >= this.last_book_updates_nonce; --idx) {
+        if (this.last_book_updates[idx] == msg_str)
+          return; // Already aplied this update message.
+      }
+        
+      this.last_book_updates_nonce = (++this.last_book_updates_nonce % this.last_book_updates.length)
+      this.last_book_updates[this.last_book_updates_nonce] = msg_str;
+    }
+    
+    // if (this.is_ob_test) console.log('Book snap:',update);
 
     if (this.is_lantecy_test && update.timestamp) this.diff_latency.push(ws_recv_ts - update.timestamp);
 
@@ -836,13 +848,33 @@ class Synchronizer {
 
   apply_orderbook_upd (upd, __ws, _prom, ws_recv_ts) {
     // Validate updates.
-    // console.log('Book upd:',upd);
+
     if ((this.orderbook.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce)) ||
     (this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
     (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
       return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
       
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
+    
+    if (this.last_book_updates.length > 0) {
+      let msg_str = JSON.stringify(upd);
+      let idx;
+  
+      for (idx = this.last_book_updates_nonce - 1; idx >= 0; --idx) {
+        if (this.last_book_updates[idx] == msg_str)
+          return; // Already aplied this update message.
+      }
+  
+      for (idx = this.last_book_updates.length - 1; idx >= this.last_book_updates_nonce; --idx) {
+        if (this.last_book_updates[idx] == msg_str)
+          return; // Already aplied this update message.
+      }
+        
+      this.last_book_updates_nonce = (++this.last_book_updates_nonce % this.last_book_updates.length)
+      this.last_book_updates[this.last_book_updates_nonce] = msg_str;
+    }
+    
+    // if (this.is_ob_test) console.log('Book upd:',upd);
 
     if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
@@ -928,6 +960,10 @@ class Synchronizer {
       // this.orderbook_upd_cache = [];
       conn.info.orderbook = {};
       conn.info.orderbook_snap = {};
+
+      if (_ws.subcriptions.orderbook.update.avoid_repetition && 
+      (this.last_book_updates == null || this.last_book_updates.length == 0))
+        this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 100);
       
       // If no 'orderbook.response', 'info.orderbook.channel_id' should be defined here.
       if (_ws.subcriptions?.orderbook != undefined && _ws.subcriptions.orderbook?.response == undefined) 
@@ -1785,10 +1821,26 @@ class Synchronizer {
         second: this.data_time,
       };
 
-      if (this.is_test)
-        console.log(obj); // Just log the object.
-      else
+      if (this.is_test) {
+        if (this.is_ob_test) {
+          let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
+          let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
+
+          // console.log('Orderbook:');
+          // console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(2) + '\t' + q).join('\n'),'\n');
+          // console.dlog(_bids.map(([p, q]) => Big(p).toFixed(2) + '\t' + q).join('\n'),'\n');
+
+          if (Big(_asks[0][0]).lte(_bids[0][0])) {
+            console.log('[E] Orderbook > ASK lower or equal BID.');
+            process.exit(1);
+          }
+
+        } else {
+          console.log(obj); // Just log the object.
+        }
+      } else {
         this.seconds_data.push(obj); // Save in memory.
+      }
       
       this.saved_first_second = true;
       
@@ -1984,7 +2036,7 @@ class Synchronizer {
         await this.initiate()
         .then(() => this.already_initiated = true)
         .catch(error => {
-          // console.log('Failed to initate synchronization:',error);
+          console.log('Failed to initate synchronization:',error);
           console.log('Not completely synced, initiating again...');
         });
       }

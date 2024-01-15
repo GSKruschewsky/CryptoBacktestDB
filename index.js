@@ -3,7 +3,8 @@ import Synchronizer from "./Synchronizer/index.js";
 // Get and validate parameters/arguments.
 let args = process.argv.slice(2); // Get command-line arguments, starting from index 2
 
-let is_test = (args[0].toLowerCase() == 'test');
+let is_ob_test = (args[0].toLowerCase() == 'ob-test');
+let is_test = (args[0].toLowerCase() == 'test' || is_ob_test);
 if (is_test) args = args.slice(1);
 
 if (args.length !== 3 && args.length !== 4) {
@@ -24,7 +25,13 @@ let sync = new Synchronizer(...args);
 
 if (is_test) {
   sync.is_test = true;
-  sync.orderbook_depth = 5;
+  
+  if (is_ob_test) {
+    sync.is_ob_test = true;
+    sync.orderbook_depth = 10;
+  } else {
+    sync.orderbook_depth = 5;
+  }
 }
 
 sync.keep_synced()

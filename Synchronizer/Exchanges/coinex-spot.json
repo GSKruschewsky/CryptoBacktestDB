@@ -92,6 +92,7 @@
           "get_timestamp_us_from_iso": null
         },
         "update": {
+          "avoid_repetition": true,
           "ignore_if": null,
           "channel_id_key": "method",
           "channel_id": "depth.update",
