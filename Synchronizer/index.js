@@ -982,7 +982,7 @@ class Synchronizer {
       conn.info.orderbook = {};
       conn.info.orderbook_snap = {};
 
-      if (_ws.subcriptions.orderbook.update.avoid_repetition && 
+      if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition && 
       (this.last_book_updates == null || this.last_book_updates.length == 0))
         this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 100);
       
