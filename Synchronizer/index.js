@@ -885,7 +885,7 @@ class Synchronizer {
 
     if (upd.first_update_nonce) {
       if (this.orderbook.received_first_update) {
-        if (upd.first_update_nonce != this.orderbook.last_update_nonce + 1 && this.orderbook.last_first_update_nonce == null || upd.first_update_nonce < this.orderbook.last_first_update_nonce) {
+        if (upd.first_update_nonce != this.orderbook.last_update_nonce + 1) {
           const _at = 'apply_orderbook_upd:';
           const _error = 'upd.first_update_nonce ('+upd.first_update_nonce+') != orderbook.last_update_nonce + 1 ('+(this.orderbook.last_update_nonce + 1)+').';
 
@@ -932,7 +932,6 @@ class Synchronizer {
     this.orderbook.timestamp = upd.timestamp;
     this.orderbook.timestamp_us = upd.timestamp_us;
     this.orderbook.last_update_nonce = upd.last_update_nonce;
-    this.orderbook.last_first_update_nonce = upd.first_update_nonce;
 
     // console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     // console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');

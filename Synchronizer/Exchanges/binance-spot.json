@@ -48,7 +48,7 @@
     }
   },
   "ws": {
-    "url": [ "wss://stream.binance.com:9443/stream", "wss://stream.binance.com:443/stream" ],
+    "url": "wss://stream.binance.com:9443/stream",
     "timeout": 15000,
     "is_market_upper": false,
     "error": { 
