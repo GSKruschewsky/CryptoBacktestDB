@@ -879,6 +879,7 @@ class Synchronizer {
     }
     
     // if (this.is_ob_test) console.log('Book upd:',upd);
+    console.log('Book upd:',upd);
 
     if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
