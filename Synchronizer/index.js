@@ -519,7 +519,7 @@ class Synchronizer {
     
     if (this.is_ob_test) {
       let _msg = (_ob_sub.update.data_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
-      _msg = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
+      _msg = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], _msg) || _msg);
       console.log('Book msg:',_msg);
     }
 
@@ -728,7 +728,7 @@ class Synchronizer {
     if (update == null) return; // Ignore.
 
     if (update.is_snapshot) {
-      this.apply_orderbook_snap(update, __ws, _prom, ws_recv_ts);
+      this.apply_orderbook_snap(update, _ws, __ws, _prom, ws_recv_ts);
 
     } else {
       if (this.orderbook == null) {
@@ -741,7 +741,7 @@ class Synchronizer {
   
       } else {
         // Just apply update.
-        this.apply_orderbook_upd(update, __ws, _prom, ws_recv_ts);
+        this.apply_orderbook_upd(update, _ws, __ws, _prom, ws_recv_ts);
       }
     }
   }
@@ -794,7 +794,7 @@ class Synchronizer {
     }
   }
 
-  apply_orderbook_snap (update, __ws, _prom, ws_recv_ts) {
+  apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts) {
     // Validate snapshot update.
 
     // console.log('snap upd:',(update.last_update_nonce || update.timestamp_us || update.timestamp), (update.last_update_nonce && "last_update_nonce") || (update.timestamp_us && "timestamp_us") || (update.timestamp && "timestamp"));
@@ -845,18 +845,21 @@ class Synchronizer {
 
     // Apply cached orderbook updates.
     while (this.orderbook_upd_cache.length > 0) {
-      this.apply_orderbook_upd(this.orderbook_upd_cache[0], __ws, _prom, ws_recv_ts);
+      this.apply_orderbook_upd(this.orderbook_upd_cache[0], _ws, __ws, _prom, ws_recv_ts);
       this.orderbook_upd_cache.shift();
     }
   }
 
-  apply_orderbook_upd (upd, __ws, _prom, ws_recv_ts) {
+  apply_orderbook_upd (upd, _ws, __ws, _prom, ws_recv_ts) {
     // Validate updates.
+    if (this.orderbook.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce))
+      return;
 
-    if ((this.orderbook.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce)) ||
-    (this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
-    (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
-      return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
+    if (!_ws.subcriptions.orderbook.update.do_not_validate_by_ts) {
+      if ((this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
+      (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
+        return;
+    }
       
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
     
@@ -879,7 +882,6 @@ class Synchronizer {
     }
     
     // if (this.is_ob_test) console.log('Book upd:',upd);
-    console.log('Book upd:',upd);
 
     if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
@@ -1800,7 +1802,7 @@ class Synchronizer {
     // console.log('init_orderbook:',init_orderbook);
 
     // Set 'orderbook' from 'init_orderbook'.
-    this.apply_orderbook_snap(init_orderbook, null, null, ws_recv_ts);
+    this.apply_orderbook_snap(init_orderbook, _b_ws, null, null, ws_recv_ts);
   }
 
   save_to_s3 () {
