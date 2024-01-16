@@ -1040,7 +1040,9 @@ class Synchronizer {
       this.connections[conn_idx][ctype].ws.terminate();
       delete this.connections[conn_idx][ctype];
 
-      if (this.__working == false || this.connections.every(conn => !(conn.primary && (this.exc.ws2 == null || conn.secondary)))) {
+      if (this.__working == false || 
+      this.connections.every(conn => !conn.primary) || 
+      (this.exc.ws2 != null && this.connections.every(conn => !conn.secondary))) {
         // All connections are closed.
         this.completely_synced = false;
         console.log('_connect > "completely_synced" SET TO FALSE!');
@@ -2034,7 +2036,7 @@ class Synchronizer {
         });
       }
       
-      await new Promise(r => setTimeout(r, 250)); // Waits 250ms beteen each loop cycle.
+      await new Promise(r => setTimeout(r, 250)); // Waits 250ms between each loop cycle.
     }
   }
 

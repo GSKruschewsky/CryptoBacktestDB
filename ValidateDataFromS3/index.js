@@ -158,8 +158,8 @@ const assets = [
 
       // Push only essential data to 'reduced'.
       reduced[exchange][market].push({
-        asks: asks.slice(0, 10), 
-        bids: bids.slice(0, 10),
+        // asks: asks.slice(0, 10), 
+        // bids: bids.slice(0, 10),
         mid_price: second_data.mid_price,
         imb_mid_price: second_data.imb_mid_price,
         book_imb_value: second_data.book_imb_value,
