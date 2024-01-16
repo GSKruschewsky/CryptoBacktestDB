@@ -520,7 +520,7 @@ class Synchronizer {
     if (this.is_ob_test) {
       let _msg = (_ob_sub.update.data_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
       _msg = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], _msg) || _msg);
-      console.log('Book msg:',_msg);
+      console.log('('+conn._idx+') Book msg:',_msg);
     }
 
     // Checks if its the first update.
@@ -894,39 +894,11 @@ class Synchronizer {
           _prom.reject({ At: _at, error: _error });
         } else {
           console.log('[E]',_at,_error,'\n\nEnding connection...');
-          process.exit();
+          // process.exit();
+          __ws.terminate();
         }
         return;
       }
-      /*
-      if (this.orderbook.received_first_update) {
-        if (upd.first_update_nonce <= this.orderbook.last_update_nonce + 1) {
-          const _at = 'apply_orderbook_upd:';
-          const _error = 'upd.first_update_nonce ('+upd.first_update_nonce+') <= orderbook.last_update_nonce + 1 ('+(this.orderbook.last_update_nonce + 1)+').';
-
-          if (_prom) {
-            _prom.reject({ At: _at, error: _error });
-          } else {
-            console.log('[E]',_at,_error,'\n\nEnding connection...');
-            process.exit();
-          }
-          return;
-        }
-      } else {
-        if (upd.first_update_nonce > this.orderbook.last_update_nonce + 1) {
-          const _at = 'apply_orderbook_upd:';
-          const _error = 'upd.first_update_nonce ('+upd.first_update_nonce+') > orderbook.last_update_nonce + 1 ('+(this.orderbook.last_update_nonce + 1)+').';
-
-          if (_prom) {
-            _prom.reject({ At: _at, error: _error });
-          } else {
-            console.log('[E]',_at,_error,'\n\nEnding connection...');
-            process.exit();
-          }
-          return;
-        }
-      }
-      */
     }
 
     // Updates 'delayed_orderbook' if its the case.
