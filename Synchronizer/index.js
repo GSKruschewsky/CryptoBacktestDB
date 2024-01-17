@@ -791,6 +791,8 @@ class Synchronizer {
           this.orderbooks = this.orderbooks.filter((ob, idx) => idx == 0 || ob.timestamp > (this.data_time - 1) * 1e3);
         }
       }
+    } else if (this.orderbook == null || this.delayed_orderbook == null) {
+      if (!this.is_test) console.log('this.orderbook == null ('+(this.orderbook == null)+') or this.delayed_orderbook == null ('+(this.delayed_orderbook == null)+')');
     }
   }
 
