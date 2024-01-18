@@ -1036,12 +1036,6 @@ class Synchronizer {
     __ws.on('close', () => {
       if (!this.silent_mode) console.log('[!] WebSocket '+ctype+' connection '+conn_idx+' is closed.');
 
-      // Kills the process in 5mins
-      setTimeout(() => { // carlos
-        console.log('[@@@] KILLING PROCESS 5 MIN AFTER WEBSOCKET CLOSE.');
-        process.exit();
-      }, 60e3*5)
-
       clearInterval(__ws.ping_loop_interval);
       clearInterval(__ws.ws_ping_loop_interval);
       
@@ -1160,7 +1154,7 @@ class Synchronizer {
       // Try to JSON parse the mesage.
       try { msg = JSON.parse(msg); } catch (e) { msg = msg.toString(); }
 
-      console.log('('+conn._idx+') WebSocket '+ctype+' message:',msg); // carlos
+      // console.log('('+conn._idx+') WebSocket '+ctype+' message:',msg);
 
       // Checks if message is an error.
       if (msg?.[_ws.error.key] != undefined && 
