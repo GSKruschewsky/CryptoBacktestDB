@@ -3,3 +3,4 @@ node_modules
 latency-test_*
 reduced_*
 data_*
+*.log

@@ -99,7 +99,7 @@
           },
           "timestamp": "3",
           "first_upd_nonce_key": null,
-          "last_upd_nonce_key": "2"
+          "last_upd_nonce_key": null
         }
       },
       "trades": {
