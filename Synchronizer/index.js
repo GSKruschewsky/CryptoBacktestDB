@@ -883,7 +883,7 @@ class Synchronizer {
       this.last_book_updates[this.last_book_updates_nonce] = msg_str;
     }
     
-    // if (this.is_ob_test) console.log('Book upd:',upd);
+    // console.log('Book upd:',upd);
 
     if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
@@ -895,9 +895,20 @@ class Synchronizer {
         if (_prom) {
           _prom.reject({ At: _at, error: _error });
         } else {
-          console.log('[E]',_at,_error,'\n\nEnding connection...');
-          // process.exit();
-          __ws.terminate();
+          console.log('[E]',_at,_error);
+          
+          if (this.exc.rest.endpoints?.orderbook != undefined) {
+            // Re-sincroniza orderbook aravés de cache e requisição REST.
+            console.log('/!\\ Resynchronizing orderbook through REST snapshot...');
+            this.orderbook_upd_cache.push(upd); // Salva update atual em cache.
+            this.orderbook = null;
+            this.get_orderbook_snapshot();
+
+          } else {
+            // Re-sincroniza orderbook aravés de reconexão.
+            console.log('/!\\ Resynchronizing orderbook through websocket reconnection...');
+            __ws.terminate();
+          }
         }
         return;
       }
@@ -1100,7 +1111,7 @@ class Synchronizer {
       // Initiate 'ping loop'.
       __ws.ping_loop_interval = setInterval(() => {
         if (!__ws.keep_alive) {
-          console.log('[E] WebSocket '+ctype+' ping_loop: Server did not pong back in '+((_ws.timeout || 5000) / 1e3)+' seconds, ending connection...');
+          console.log('[E] ('+conn._idx+') WebSocket '+ctype+' ping_loop: Server did not pong back in '+((_ws.timeout || 5000) / 1e3)+' seconds, ending connection...');
           __ws.terminate();
           clearInterval(__ws.ping_loop_interval);
         
