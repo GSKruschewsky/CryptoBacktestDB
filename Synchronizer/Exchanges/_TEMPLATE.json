@@ -112,6 +112,8 @@
         "is_subscribed_from_scratch": null,
         "request": "",
         "response": {
+          "error_key": null,
+          "error_val": null,
           "include_snapshot": null,
           "acum_list": null,
           "is_object": null,
@@ -160,6 +162,8 @@
         "is_subscribed_from_scratch": null,
         "request": "",
         "response": {
+          "error_key": null,
+          "error_val": null,
           "acum_list": null,
           "is_object": null,
           "object_id_key": null,

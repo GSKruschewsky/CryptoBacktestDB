@@ -271,6 +271,16 @@ class Synchronizer {
   handle_trades_sub_resp (msg, _ws, __ws, _prom, conn, ws_recv_ts) {
     const _id_val = _ws.subcriptions.trades?.response?.channel_id_key?.split('.').reduce((f, k) => f?.[k], msg);
 
+    if (_ws.subcriptions.trades?.response?.error_key) {
+      const _err_val = _ws.subcriptions.trades?.response.error_key.split('.').reduce((f, k) => f?.[k], msg);
+      if (_err_val != undefined && (_ws.subcriptions.trades?.response?.error_val == null || _err_val == _ws.subcriptions.trades?.response?.error_val)) {
+        console.log('[E] ('+conn._idx+') Trades subscription error:',msg);
+        console.log('/!\\ Trying again by reseting the conecction...');
+        __ws.terminate();
+        return;
+      }
+    }
+
     if (_ws.subcriptions.trades.update.channel_id) {
       conn.info.trades.channel_id = _ws.subcriptions.trades.update.channel_id.replaceAll('<market>', this.market.ws);
 
@@ -447,6 +457,16 @@ class Synchronizer {
     const _sub = _ws.subcriptions?.[_ob];
     const _info = conn.info[_ob];
     const _id_val = _sub?.response?.channel_id_key?.split('.').reduce((f, k) => f?.[k], msg);
+
+    if (_sub?.response?.error_key) {
+      const _err_val = _sub.response.error_key.split('.').reduce((f, k) => f?.[k], msg);
+      if (_err_val != undefined && (_sub?.response?.error_val == null || _err_val == _sub?.response?.error_val)) {
+        console.log('[E] ('+conn._idx+') Orderbook subscription error:',msg);
+        console.log('/!\\ Trying again by reseting the conecction...');
+        __ws.terminate();
+        return;
+      }
+    }
 
     if (_sub?.update?.channel_id) {
       _info.channel_id = _sub.update.channel_id.replaceAll('<market>', this.market.ws);

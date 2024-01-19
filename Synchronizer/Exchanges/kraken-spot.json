@@ -57,7 +57,9 @@
         "request": "{\"event\":\"subscribe\",\"reqid\":<ws_req_id>,\"pair\":[\"<market>\"],\"subscription\":{\"name\":\"book\",\"depth\":1000}}",
         "response": {
           "id": "reqid",
-          "channel_id_key": "channelName"
+          "channel_id_key": "channelName",
+          "error_key": "status",
+          "error_val": "error"
         },
         "snapshot": {
           "identifier_key": "bs",
@@ -83,7 +85,9 @@
         "request": "{\"event\":\"subscribe\",\"reqid\":<ws_req_id>,\"pair\":[\"<market>\"],\"subscription\":{\"name\":\"trade\"}}",
         "response": {
           "id": "reqid",
-          "channel_id_key": "channelName"
+          "channel_id_key": "channelName",
+          "error_key": "status",
+          "error_val": "error"
         },
         "update": {
           "data_inside": "1",
