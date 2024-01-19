@@ -458,6 +458,8 @@ class Synchronizer {
       _info.channel_id = _id_val;
 
     } else {
+      console.log('Book_sub_resp:',msg);
+      
       if (_prom) {
         _prom.reject({ 
           At: "Handling "+_ob+" subcription response:", 
