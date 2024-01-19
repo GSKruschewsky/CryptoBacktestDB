@@ -1,4 +1,4 @@
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { JsonStreamStringify } from 'json-stream-stringify';
 import Big from 'big.js';
 import fs from 'fs';
@@ -69,15 +69,72 @@ const assets = [
 ];
 
 (async () => {
+  // List bucket objects
+  const command = new ListObjectsV2Command({
+    Bucket: process.env['AWS-S3_BUCKET_NAME'],
+    MaxKeys: 1000,
+  });
+  let bucket_objects = [];
+
+  try {
+    let r;
+    do {
+      r = await client.send(command);
+      bucket_objects = [ ...bucket_objects, ...r.Contents.map(c => c.Key) ];
+      command.input.ContinuationToken = r.NextContinuationToken;
+    } while (r.IsTruncated);
+    
+  } catch (error) {
+    console.log('[E] Failed to list bucket objects:',error,'\n');
+  }
+
+  // Format bucket objects
+  bucket_objects = bucket_objects
+  .reduce((s, obj) => {
+    let date = obj.slice(0, -8).split('_')[2].split('');
+    date[13] = ':';
+    date = date.join('');
+    let ts = new Date(date).getTime();
+
+    let idx = s.findIndex(x => x.ts == ts);
+    if (idx == -1) idx = s.push({ date, ts, objects: [] }) - 1;
+
+    s[idx].objects.push(obj);
+
+    return s;
+  }, [])
+  .sort((a, b) => a.ts - b.ts);
+
+  // Validate bucket objects.
+  console.log('Bucket has objects from "'+bucket_objects[0].date+'" to "'+bucket_objects.slice(-1)[0].date+'".\n');
+  let _continue = true;
+  for (const { date, objects } of bucket_objects) {
+    if (objects.length != 77) {
+      // Someone did not post data.
+
+      for (const quote of Object.keys(exchanges)) {
+        for (const exchange of exchanges[quote]) {
+          for (const base of assets) {
+            if (base == quote) continue; // Avoids 'USDT-USDT'.
+            if (!objects.includes([ exchange, base+'-'+quote, date.replace(':', '-') ].join('_')+'.json.gz')) {
+              console.log('[E]', exchange, base+'-'+quote, 'did not post data at',date+'.');
+              _continue = false;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (!_continue) process.exit();
+
   console.log('Getting "'+datestr+'" data from S3...');
 
   let promises = [];
-  
   for (const quote of Object.keys(exchanges)) {
     for (const exchange of exchanges[quote]) {
       for (const base of assets) {
         if (base == quote) continue; // Avoids 'USDT-USDT'.
-        // if (exchange == 'mexc-spot') continue; // 18/12 Mexc not working.
         promises.push(getFromBucket(exchange, base, quote));
       }
     }

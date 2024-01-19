@@ -1732,6 +1732,8 @@ class Synchronizer {
     const _b_rt_rsp = this.exc.rest.endpoints?.orderbook?.response;
     let ws_recv_ts;
 
+    let book_failed_to_get = false;
+
     do {
       // Do not repeat the rest request just beacause we did not receive any ws orderbook update, instead just wait for 50ms.
       if (init_orderbook != null && this.orderbook_upd_cache[0] == undefined) {
@@ -1745,7 +1747,8 @@ class Synchronizer {
         ws_recv_ts = Date.now();
         if (!success) {
           console.log('[E] Initial orderbook snapshot request:',r);
-          throw 'Initial orderbook snapshot request failed.'
+          book_failed_to_get = true;
+          // throw 'Initial orderbook snapshot request failed.'
         }
 
         // Format orderbook snapshot from 'r' to 'init_orderbook' as an orderbook update.
@@ -1779,10 +1782,12 @@ class Synchronizer {
       // console.log('init_orderbook.last_update_nonce:',init_orderbook.last_update_nonce,'\n');
 
     } while (
-      _b_rt_rsp?.last_update_nonce != undefined &&
-      _b_ws_upd?.last_upd_nonce_key != undefined &&
-      (this.orderbook_upd_cache[0] == undefined ||
-      Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce))
+      book_failed_to_get || (
+        _b_rt_rsp?.last_update_nonce != undefined &&
+        _b_ws_upd?.last_upd_nonce_key != undefined &&
+        (this.orderbook_upd_cache[0] == undefined ||
+        Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce))
+      )
     );
 
     // console.log('[!] Book synced.');
