@@ -1072,7 +1072,7 @@ class Synchronizer {
       clearInterval(__ws.ping_loop_interval);
       clearInterval(__ws.ws_ping_loop_interval);
       
-      this.connections[conn_idx][ctype].ws.terminate();
+      this.connections[conn_idx][ctype]?.ws?.terminate();
       delete this.connections[conn_idx][ctype];
 
       if (this.__working == false || 
@@ -1108,7 +1108,8 @@ class Synchronizer {
           if (!this.attemp_delay[conn_idx]) this.attemp_delay[conn_idx] = {};
           this.attemp_delay[conn_idx][ctype] = (async () => {
             await new Promise(r => setTimeout(r, this.conn_attemp_delay));
-            delete this.attemp_delay[conn_idx][ctype];
+            if (this.attemp_delay[conn_idx][ctype])
+              delete this.attemp_delay[conn_idx][ctype];
           })();
         }
 
