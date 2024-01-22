@@ -1134,7 +1134,7 @@ class Synchronizer {
       // Initiate 'ping loop'.
       __ws.ping_loop_interval = setInterval(() => {
         if (!__ws.keep_alive) {
-          console.log('[E] ('+conn._idx+') WebSocket '+ctype+' ping_loop: Server did not pong back in '+((_ws.timeout || 5000) / 1e3)+' seconds, ending connection...');
+          console.log('[E] ('+conn._idx+') WebSocket '+ctype+' ping_loop: Server did not pong back in '+(((_ws.timeout || 5000) > 60e3 ? (_ws.timeout || 5000) : 60e3) / 1e3)+' seconds, ending connection...');
           __ws.terminate();
           clearInterval(__ws.ping_loop_interval);
         
@@ -1146,19 +1146,19 @@ class Synchronizer {
             __ws.send(_ws.ping.request);
         }
 
-      }, (_ws.timeout || 5000));
+      }, (_ws.timeout || 5000) > 60e3 ? (_ws.timeout || 5000) : 60e3);
 
       // Initiate 'ws ping loop'.
       if (_ws.ping?.request != undefined && _ws.ping.response != undefined) {
         __ws.ws_ping_loop_interval = setInterval(() => {
           if (!__ws.ws_keep_alive) {
-            console.log('[E] WebSocket '+ctype+' ws_ping_loop: Server did not pong back in '+((_ws.ping.interval || _ws.timeout || 5000) / 1e3)+' seconds, ending connection...');
+            console.log('[E] WebSocket '+ctype+' ws_ping_loop: Server did not pong back in '+(((_ws.ping.interval || _ws.timeout || 5000) > 60e3 ? (_ws.ping.interval || _ws.timeout || 5000) : 60e3) / 1e3)+' seconds, ending connection...');
             __ws.terminate();
           }
           __ws.ws_keep_alive = false;
           __ws.send(_ws.ping.request.replace('<ws_req_id>', ++this.ws_req_nonce));
 
-        }, (_ws.ping.interval || _ws.timeout || 5000));
+        }, (_ws.ping.interval || _ws.timeout || 5000) > 60e3 ? (_ws.ping.interval || _ws.timeout || 5000) : 60e3);
       }
 
       // Checks if login is required.
@@ -1772,31 +1772,34 @@ class Synchronizer {
           console.log('[E] Initial orderbook snapshot request:',r);
           book_failed_to_get = true;
           // throw 'Initial orderbook snapshot request failed.'
-        }
 
-        // Format orderbook snapshot from 'r' to 'init_orderbook' as an orderbook update.
-        const _ts = _b_rt_rsp?.timestamp?.split('.')?.reduce((f, k) => f?.[k], r);
-        init_orderbook = {
-          asks: _b_rt_rsp.asks?.split('.')?.reduce((f, k) => f?.[k], r)?.slice(0, this.orderbook_depth)?.map(([ p, q ]) => [ Big(p).toFixed(), Big(q).toFixed() ]),
-          bids: _b_rt_rsp.bids?.split('.')?.reduce((f, k) => f?.[k], r)?.slice(0, this.orderbook_depth)?.map(([ p, q ]) => [ Big(p).toFixed(), Big(q).toFixed() ]),
-          timestamp: this.format_timestamp(_ts, _b_rt_rsp),
-          is_snapshot: true,
-          last_update_nonce: _b_rt_rsp.last_update_nonce?.split('.')?.reduce((f, k) => f?.[k], r)
-        };
+        } else {
+          // Format orderbook snapshot from 'r' to 'init_orderbook' as an orderbook update.
+          const _ts = _b_rt_rsp?.timestamp?.split('.')?.reduce((f, k) => f?.[k], r);
+          init_orderbook = {
+            asks: _b_rt_rsp.asks?.split('.')?.reduce((f, k) => f?.[k], r)?.slice(0, this.orderbook_depth)?.map(([ p, q ]) => [ Big(p).toFixed(), Big(q).toFixed() ]),
+            bids: _b_rt_rsp.bids?.split('.')?.reduce((f, k) => f?.[k], r)?.slice(0, this.orderbook_depth)?.map(([ p, q ]) => [ Big(p).toFixed(), Big(q).toFixed() ]),
+            timestamp: this.format_timestamp(_ts, _b_rt_rsp),
+            is_snapshot: true,
+            last_update_nonce: _b_rt_rsp.last_update_nonce?.split('.')?.reduce((f, k) => f?.[k], r)
+          };
 
-        // Try to define 'timestamp_us'.
-        if (_b_rt_rsp.get_timestamp_us_from_iso) {
-          obj.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
-        } else if (this.exc.timestamp_in_micro || _b_rt_rsp.timestamp_in_micro) {
-          obj.timestamp_us = _ts;
+          // Try to define 'timestamp_us'.
+          if (_b_rt_rsp.get_timestamp_us_from_iso) {
+            obj.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+          } else if (this.exc.timestamp_in_micro || _b_rt_rsp.timestamp_in_micro) {
+            obj.timestamp_us = _ts;
+          }
         }
       }
 
-      if (_b_rt_rsp?.last_update_nonce != undefined &&
-      _b_ws_upd?.last_upd_nonce_key != undefined &&
-      this.orderbook_upd_cache[0] != undefined &&
-      Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce) &&
-      _b_rt_rsp.slow_cache) {
+      if (book_failed_to_get || (
+        _b_rt_rsp?.last_update_nonce != undefined &&
+        _b_ws_upd?.last_upd_nonce_key != undefined &&
+        this.orderbook_upd_cache[0] != undefined &&
+        Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce) &&
+        _b_rt_rsp.slow_cache
+      )) {
         // Rest 'orderbook' request have a slow cache, flooding the API won't help, in this case wait 'slow_cache_delay' or 1 second.
         await new Promise(r => setTimeout(r, (_b_rt_rsp.slow_cache_delay || 1e3)));
       }

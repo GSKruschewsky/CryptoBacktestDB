@@ -11,7 +11,7 @@ if (!args[0]) {
   process.exit();
 }
 
-const datestr = args[0];
+let datestr = args[0];
 
 // Commonjs importing 
 import pkg from 'node-gzip';
@@ -125,10 +125,29 @@ const assets = [
       }
     }
   }
+  
+  let _date = (datestr+'').split('');
+  _date[13] = ':';
+  _date = _date.join('')
+
+  let _date_ts = new Date(_date).getTime();
+
+  if (_date_ts < new Date(bucket_objects[0].date).getTime()) {
+    console.log('[E] A data que você passou é menor do que a primeira data disponível no bucket.');
+    _continue = false;
+  }
+  
+  if (_date_ts > new Date(bucket_objects.slice(-1)[0].date).getTime()) {
+    console.log('[E] A data que você passou é maior do que a ultima data disponível no bucket.');
+    _continue = false;
+  }
 
   if (!_continue) process.exit();
 
-  console.log('Getting "'+datestr+'" data from S3...');
+  console.log('Getting "'+_date+'" data from S3...');
+  // console.log(bucket_objects.find(x => x.date == _date));
+
+  datestr = datestr.replace(':', '-');
 
   let promises = [];
   for (const quote of Object.keys(exchanges)) {
