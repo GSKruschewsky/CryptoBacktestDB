@@ -4,6 +4,7 @@ import fetch from 'node-fetch';
 import crypto from 'crypto';
 import exchanges from './Exchanges/index.js';
 import { CompressAndSendBigJSONToS3 } from "../helper/sendToS3.js";
+import fs from 'fs';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -67,6 +68,10 @@ class Synchronizer {
     this.conn_latency = [];
     this.subr_latency = [];
     this.diff_latency = [];
+
+    // Orderbook test log vars
+    this._ob_log_file = null;
+    this._ob_log_cache = null;
   }
 
   async rest_request (endpoint, url_replaces = [], is_pagination = false) {
@@ -539,11 +544,11 @@ class Synchronizer {
     const _ob_sub = _ws.subcriptions[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     
-    if (this.is_ob_test) {
-      let _msg = (_ob_sub.update.data_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
-      _msg = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], _msg) || _msg);
-      console.log('('+conn._idx+') Book msg:',_msg);
-    }
+    // if (this.is_ob_test) {
+    //   let _msg = (_ob_sub.update.data_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
+    //   _msg = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], _msg) || _msg);
+    //   console.log('('+conn._idx+') Book msg:',_msg);
+    // }
 
     // Checks if its the first update.
     if (_info.received_first_update !== true) {
@@ -641,12 +646,24 @@ class Synchronizer {
     } else {
       asks = (updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks] || [])
       .map(upd => {
-        const _key = (is_snapshot && _ob_sub.snapshot?.pl?.timestamp) || _ob_sub.update.pl?.timestamp;
+        const _key = (is_snapshot && _ob_sub?.snapshot?.pl?.timestamp) || _ob_sub?.update?.pl?.timestamp;
         const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], upd);
+
         if (_ts != undefined) {
           let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
-          if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
-            higher_timestamp = { formatted_ts, upd };
+
+          if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_micro) || _ob_sub?.update?.timestamp_in_micro)) {
+            let _ts_us = _ts;
+            if ((is_snapshot && _ob_sub?.snapshot?.get_timestamp_us_from_iso) || _ob_sub?.update?.get_timestamp_us_from_iso)
+              _ts_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+            
+            if (higher_timestamp == null || Big(_ts_us).gt(higher_timestamp._ts_us))
+              higher_timestamp = { _ts_us, formatted_ts };
+
+          } else {
+            if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
+              higher_timestamp = { formatted_ts };
+          }
         }
 
         return [ 
@@ -657,12 +674,24 @@ class Synchronizer {
       
       bids = (updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids] || [])
       .map(upd => {
-        const _key = (is_snapshot && _ob_sub.snapshot?.pl?.timestamp) || _ob_sub.update.pl?.timestamp;
+        const _key = (is_snapshot && _ob_sub?.snapshot?.pl?.timestamp) || _ob_sub?.update?.pl?.timestamp;
         const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], upd);
+
         if (_ts != undefined) {
           let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
-          if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
-            higher_timestamp = { formatted_ts, upd };
+    
+          if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_micro) || _ob_sub?.update?.timestamp_in_micro)) {
+            let _ts_us = _ts;
+            if ((is_snapshot && _ob_sub?.snapshot?.get_timestamp_us_from_iso) || _ob_sub?.update?.get_timestamp_us_from_iso)
+              _ts_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+            
+            if (higher_timestamp == null || Big(_ts_us).gt(higher_timestamp._ts_us))
+              higher_timestamp = { _ts_us, formatted_ts };
+    
+          } else {
+            if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
+              higher_timestamp = { formatted_ts };
+          }
         }
 
         return [ 
@@ -697,23 +726,7 @@ class Synchronizer {
 
     } else if (higher_timestamp != null) {
       formatted.timestamp = higher_timestamp.formatted_ts;
-
-      // Try to define 'timestamp_us'.
-      const _pl =  ((is_snapshot && _ob_sub.snapshot?.pl) || _ob_sub.update.pl);
-      const _ts = _pl?.timestamp?.split('.')?.reduce((f, k) => f?.[k], higher_timestamp.upd);
-      if (is_snapshot) {
-        if (_ob_sub.snapshot?.get_timestamp_us_from_iso) {
-          formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
-        } else if (this.exc.timestamp_in_micro || _ob_sub.snapshot?.timestamp_in_micro) {
-          formatted.timestamp_us = _ts;
-        }
-      } else {
-        if (_ob_sub.update?.get_timestamp_us_from_iso) {
-          formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
-        } else if (this.exc.timestamp_in_micro || _ob_sub.update?.timestamp_in_micro) {
-          formatted.timestamp_us = _ts;
-        }
-      }
+      formatted.timestamp_us = higher_timestamp._ts_us;
 
     } else {
       // Neighter 'update/snapshot.timestamp' or 'update/snapshot.pl.timestmap' defined.
@@ -789,6 +802,17 @@ class Synchronizer {
         timestamp: this.orderbook.timestamp,
         first: !save_it
       };
+
+      // Simple book validation to avoid saving wrong data.
+      if (Big(this.delayed_orderbook.asks[0][0]).lte(this.delayed_orderbook.bids[0][0])) {
+        console.log('[E] before_apply_to_orderbook: Invalid orderbook ASK <= BID!\n');
+        
+        console.log('Orderbook:');
+        console.dlog(this.delayed_orderbook.asks.slice(0, 5).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+        console.dlog(this.delayed_orderbook.bids.slice(0, 5).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+
+        process.exit();
+      }
 
       if (save_it && this.delayed_orderbook.timestamp != undefined) {
         this.orderbooks.unshift(this.delayed_orderbook);
@@ -905,7 +929,7 @@ class Synchronizer {
       this.last_book_updates[this.last_book_updates_nonce] = msg_str;
     }
     
-    // console.log('Book upd:',upd);
+    // if (this.is_ob_test) console.log('Book upd:',upd);
 
     if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
@@ -1867,11 +1891,19 @@ class Synchronizer {
 
           if (Big(_asks[0][0]).lte(_bids[0][0])) {
             console.log('Orderbook:');
-            console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(2) + '\t' + q).join('\n'),'\n');
-            console.dlog(_bids.map(([p, q]) => Big(p).toFixed(2) + '\t' + q).join('\n'),'\n');
+            console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+            console.dlog(_bids.map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
 
             console.log('[E] Orderbook > ASK lower or equal BID.');
+
+            fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
+
             process.exit(1);
+
+          } else {
+            console.log('Orderbook:');
+            console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+            console.dlog(_bids.map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
           }
 
         } else {

@@ -7,18 +7,9 @@ let is_ob_test = (args[0].toLowerCase() == 'ob-test');
 let is_test = (args[0].toLowerCase() == 'test' || is_ob_test);
 if (is_test) args = args.slice(1);
 
-if (args.length !== 3 && args.length !== 4) {
+if ((!is_test) && args.length !== 3 && args.length !== 4) {
   console.log("Usage: npm sync <exchange> <base> <quote> <delay_time_in_seconds (optional, default= 1)>");
   process.exit(1);
-}
-
-// 'console.log' start printing the current time (UTC-3).
-const dlog = console.log;
-console.dlog = dlog;
-console.log = (...args) => {
-  const ts = Date.now()-60e3*60*3;
-  const strtime = new Date(ts).toLocaleString('pt-BR', { timeZone: 'UTC' }).replace(',', '') + '.' + (ts%1e3+'').padStart(3, 0);
-  return dlog(...[ strtime, '-', ...args ]);
 }
 
 let sync = new Synchronizer(...args);
@@ -29,9 +20,40 @@ if (is_test) {
   if (is_ob_test) {
     sync.is_ob_test = true;
     sync.orderbook_depth = 10;
+    if (args[3]) {
+      console.log('Setting log file to "'+args[3]+'"...');
+      sync._ob_log_file = args[3];
+    }
+
   } else {
     sync.orderbook_depth = 5;
   }
+}
+
+// 'console.log' start printing the current time (UTC-3).
+let _dlog = null;
+let dlog = null;
+
+if (is_ob_test) {
+  _dlog = console.log;
+  dlog = (...args) => {
+    if (sync._ob_log_file) {
+      if (!sync._ob_log_cache) sync._ob_log_cache = [];
+      
+      let _ob_log_cache_len = sync._ob_log_cache.push(args.map(x => typeof x == 'object' ? JSON.stringify(x, null, 2) : x).join(' '));
+      if (_ob_log_cache_len > 381250) sync._ob_log_cache.shift();
+    }
+    _dlog(...args);
+  }
+} else {
+  dlog = console.log;
+}
+
+console.dlog = dlog;
+console.log = (...args) => {
+  const ts = Date.now()-60e3*60*3;
+  const strtime = new Date(ts).toLocaleString('pt-BR', { timeZone: 'UTC' }).replace(',', '') + '.' + (ts%1e3+'').padStart(3, 0);
+  return dlog(...[ strtime, '-', ...args ]);
 }
 
 sync.keep_synced()
