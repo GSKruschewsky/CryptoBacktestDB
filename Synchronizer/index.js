@@ -545,9 +545,10 @@ class Synchronizer {
     const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     
     // if (this.is_ob_test) {
-    //   let _msg = (_ob_sub.update.data_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
-    //   _msg = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], _msg) || _msg);
-    //   console.log('('+conn._idx+') Book msg:',_msg);
+    //   console.log('('+conn._idx+') Book msg:',msg);
+    //   // let _msg = (_ob_sub.update.data_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
+    //   // _msg = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], _msg) || _msg);
+    //   // console.log('('+conn._idx+') Book msg:',_msg);
     // }
 
     // Checks if its the first update.
@@ -1874,13 +1875,27 @@ class Synchronizer {
         }
       }
 
-      if (book_failed_to_get || (
-        _b_rt_rsp?.last_update_nonce != undefined &&
-        _b_ws_upd?.last_upd_nonce_key != undefined &&
-        this.orderbook_upd_cache[0] != undefined &&
-        Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce) &&
+      if (book_failed_to_get || 
+        (
+          _b_rt_rsp?.last_update_nonce != undefined &&
+          _b_ws_upd?.last_upd_nonce_key != undefined &&
+          this.orderbook_upd_cache[0] != undefined &&
+          Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce)
+        ) || 
+        (
+          _b_rt_rsp?.timestamp_in_micro &&
+          _b_ws_upd?.timestamp_in_micro &&
+          (this.orderbook_upd_cache[0] == undefined ||
+          Big(this.orderbook_upd_cache[0].timestamp_us).gt(init_orderbook.timestamp_us))
+        ) || 
+        (
+          _b_rt_rsp?.timestamp != undefined &&
+          _b_ws_upd?.timestamp != undefined &&
+          (this.orderbook_upd_cache[0] == undefined ||
+          Big(this.orderbook_upd_cache[0].timestamp).gt(init_orderbook.timestamp))
+        ) &&
         _b_rt_rsp.slow_cache
-      )) {
+      ) {
         // Rest 'orderbook' request have a slow cache, flooding the API won't help, in this case wait 'slow_cache_delay' or 1 second.
         await new Promise(r => setTimeout(r, (_b_rt_rsp.slow_cache_delay || 1e3)));
       }
@@ -1889,11 +1904,23 @@ class Synchronizer {
       // console.log('init_orderbook.last_update_nonce:',init_orderbook.last_update_nonce,'\n');
 
     } while (
-      book_failed_to_get || (
+      book_failed_to_get || 
+      (
         _b_rt_rsp?.last_update_nonce != undefined &&
         _b_ws_upd?.last_upd_nonce_key != undefined &&
         (this.orderbook_upd_cache[0] == undefined ||
         Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce))
+      ) || 
+      (
+        (this.exc.timestamp_in_micro || (_b_rt_rsp?.timestamp_in_micro && _b_ws_upd?.timestamp_in_micro)) &&
+        (this.orderbook_upd_cache[0] == undefined ||
+        Big(this.orderbook_upd_cache[0].timestamp_us).gt(init_orderbook.timestamp_us))
+      ) || 
+      (
+        _b_rt_rsp?.timestamp != undefined &&
+        _b_ws_upd?.timestamp != undefined &&
+        (this.orderbook_upd_cache[0] == undefined ||
+        Big(this.orderbook_upd_cache[0].timestamp).gt(init_orderbook.timestamp))
       )
     );
 
