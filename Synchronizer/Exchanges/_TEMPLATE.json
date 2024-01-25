@@ -33,6 +33,7 @@
           "asks": "",
           "bids": "",
           "timestamp": "",
+          "timestamp_in_micro": null,
           "get_timestamp_us_from_iso": null,
           "last_update_nonce": "",
           "slow_cache": null,

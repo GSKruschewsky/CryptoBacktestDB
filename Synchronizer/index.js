@@ -1867,9 +1867,9 @@ class Synchronizer {
 
           // Try to define 'timestamp_us'.
           if (_b_rt_rsp.get_timestamp_us_from_iso) {
-            obj.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+            init_orderbook.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
           } else if (this.exc.timestamp_in_micro || _b_rt_rsp.timestamp_in_micro) {
-            obj.timestamp_us = _ts;
+            init_orderbook.timestamp_us = _ts;
           }
         }
       }
