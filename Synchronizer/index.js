@@ -954,7 +954,7 @@ class Synchronizer {
       return;
 
     if (!_ws.subcriptions.orderbook.update.do_not_validate_by_ts) {
-      if ((this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
+      if (((!do_not_validate_by_micro_ts) && this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
       (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
         return;
     }
