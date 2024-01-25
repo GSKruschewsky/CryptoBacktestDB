@@ -34,7 +34,7 @@ if (is_test) {
 let _dlog = null;
 let dlog = null;
 
-if (is_ob_test) {
+if (is_ob_test && sync._ob_log_file != null) {
   _dlog = console.log;
   dlog = (...args) => {
     if (sync._ob_log_file) {

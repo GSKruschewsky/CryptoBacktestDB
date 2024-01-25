@@ -710,19 +710,24 @@ class Synchronizer {
       formatted.timestamp = this.format_timestamp(_ts, _ob_sub.update);
 
       // Try to define 'timestamp_us'.
-      if (is_snapshot) {
-        if (_ob_sub.snapshot?.get_timestamp_us_from_iso) {
-          formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
-        } else if (this.exc.timestamp_in_micro || _ob_sub.snapshot?.timestamp_in_micro) {
-          formatted.timestamp_us = _ts;
-        }
-      } else {
-        if (_ob_sub.update?.get_timestamp_us_from_iso) {
-          formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
-        } else if (this.exc.timestamp_in_micro || _ob_sub.update?.timestamp_in_micro) {
-          formatted.timestamp_us = _ts;
-        }
+      if ((is_snapshot && _ob_sub.snapshot?.get_timestamp_us_from_iso) || _ob_sub.update?.get_timestamp_us_from_iso) {
+        formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+      } else if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub.snapshot?.timestamp_in_micro) || _ob_sub.update?.timestamp_in_micro)) {
+        formatted.timestamp_us = _ts;
       }
+      // if (is_snapshot) {
+      //   if ((is_snapshot && _ob_sub.snapshot?.get_timestamp_us_from_iso) || _ob_sub.update?.get_timestamp_us_from_iso) {
+      //     formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+      //   } else if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub.snapshot?.timestamp_in_micro) || _ob_sub.update?.timestamp_in_micro)) {
+      //     formatted.timestamp_us = _ts;
+      //   }
+      // } else {
+      //   if (_ob_sub.update?.get_timestamp_us_from_iso) {
+      //     formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+      //   } else if (this.exc.timestamp_in_micro || _ob_sub.update?.timestamp_in_micro) {
+      //     formatted.timestamp_us = _ts;
+      //   }
+      // }
 
     } else if (higher_timestamp != null) {
       formatted.timestamp = higher_timestamp.formatted_ts;
@@ -754,6 +759,33 @@ class Synchronizer {
     // Set 'last_update_nonce' if possible.
     if (_ob_sub.update.last_upd_nonce_key)
       formatted.last_update_nonce = (msg[_ob_sub.update.last_upd_nonce_key] || updates[_ob_sub.update.last_upd_nonce_key]);
+
+    // 'msg' will not be used since here so we can wo wathever we want with it.
+    // if (this.is_ob_test) {
+    //   if (is_snapshot) {
+    //     if (is_snap && _ob_sub.update?.asks_and_bids_together || _ob_sub.snapshot?.asks_and_bids_together) {
+    //       // Need to remove the whole '_ob_sub.update.updates_inside' from the message.
+    //       let keys = _ob_sub.update.updates_inside?.split('.');
+    //       let _nav = msg;
+    //       keys.forEach((key, idx) => {
+    //         if (idx == keys.length - 1) {
+    //           delete _nav[key];
+    //         } else {
+    //           _nav = _nav[key];
+    //         }
+    //       });
+
+    //     } else {
+    //       // Need to remove 'asks' and 'bids' from the message and add '__ = SNAPSHOT'.
+    //       delete updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks];
+    //       delete updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids];
+    //       msg['__'] = 'SNAPSHOT';
+
+    //     }
+    //   }
+      
+    //   console.log('('+conn._idx+') Book msg:',msg);
+    // }
     
     // Returns the formatted message.
     return formatted;
@@ -811,7 +843,13 @@ class Synchronizer {
         console.dlog(this.delayed_orderbook.asks.slice(0, 5).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
         console.dlog(this.delayed_orderbook.bids.slice(0, 5).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
 
-        process.exit();
+        // if (this.is_ob_test && this._ob_log_file != null) {
+        //   console.log('Writing',this._ob_log_cache.length,'lines...');
+        //   fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
+        //   console.log('[!] Log file saved at "'+this._ob_log_file+'".');
+        // }
+
+        process.exit(1);
       }
 
       if (save_it && this.delayed_orderbook.timestamp != undefined) {
@@ -873,7 +911,10 @@ class Synchronizer {
       this.last_book_updates[this.last_book_updates_nonce] = msg_str;
     }
     
-    // if (this.is_ob_test) console.log('Book snap:',update);
+    // if (this.is_ob_test) {
+    //   const { asks, bids, ...updRest } = update;
+    //   console.log('Book snap:',updRest);
+    // }
 
     if (this.is_lantecy_test && update.timestamp) this.diff_latency.push(ws_recv_ts - update.timestamp);
 
@@ -892,14 +933,22 @@ class Synchronizer {
     };
 
     // Apply cached orderbook updates.
-    while (this.orderbook_upd_cache.length > 0) {
+    while (this.orderbook != null && this.orderbook_upd_cache.length > 0) {
       this.apply_orderbook_upd(this.orderbook_upd_cache[0], _ws, __ws, _prom, ws_recv_ts);
       this.orderbook_upd_cache.shift();
     }
+
+    // if (this.is_ob_test) {
+    //   console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    //   console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    // }
+
   }
 
   apply_orderbook_upd (upd, _ws, __ws, _prom, ws_recv_ts) {
     // Validate updates.
+    if (this.orderbook == null) return; // Just in case
+
     if (this.orderbook.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce))
       return;
 
@@ -946,8 +995,8 @@ class Synchronizer {
           if (this.exc.rest.endpoints?.orderbook != undefined) {
             // Re-sincroniza orderbook aravés de cache e requisição REST.
             console.log('/!\\ Resynchronizing orderbook through REST snapshot...');
-            this.orderbook_upd_cache.push(upd); // Salva update atual em cache.
             this.orderbook = null;
+            this.orderbook_upd_cache.push(upd); // Salva update atual em cache.
             this.get_orderbook_snapshot();
 
           } else {
@@ -1090,7 +1139,7 @@ class Synchronizer {
     });
 
     // On disconnection reset vars.
-    __ws.on('close', () => {
+    __ws.on('close', async () => {
       if (!this.silent_mode) console.log('[!] WebSocket '+ctype+' connection '+conn_idx+' is closed.');
 
       clearInterval(__ws.ping_loop_interval);
@@ -1122,22 +1171,30 @@ class Synchronizer {
 
       } else {
         // Only this connection has ended, try reconnection respecting the established attempt limits.
-        
-        // Filter 'connection_tries' to only attemps that happened on the last minute.
-        this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
 
-        // Checks if the number of connetion attemps in the last minute is greater then 'max_attemps_per_min'.
-        if (this.connection_tries.length > this.max_attemps_per_min) {
-          // In this case we should wait 'conn_attemp_delay' before the connection.
-          if (!this.attemp_delay[conn_idx]) this.attemp_delay[conn_idx] = {};
-          this.attemp_delay[conn_idx][ctype] = (async () => {
-            await new Promise(r => setTimeout(r, this.conn_attemp_delay));
-            if (this.attemp_delay[conn_idx][ctype])
-              delete this.attemp_delay[conn_idx][ctype];
-          })();
+        while (true) {
+          // Filter 'connection_tries' to only attemps that happened on the last minute.
+          this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
+
+          // Checks if the number of connetion attemps in the last minute is greater then 'max_attemps_per_min'.
+          if (this.connection_tries.length > this.max_attemps_per_min) {
+            // In this case we should wait 'conn_attemp_delay' before the connection.
+            if (!this.attemp_delay[conn_idx]) this.attemp_delay[conn_idx] = {};
+            this.attemp_delay[conn_idx][ctype] = (async () => {
+              await new Promise(r => setTimeout(r, this.conn_attemp_delay));
+              if (this.attemp_delay[conn_idx][ctype])
+                delete this.attemp_delay[conn_idx][ctype];
+            })();
+          }
+
+          try {
+            await this.connect(conn_idx, ctype);
+            break;
+          } catch (error) {
+            delete this.connections[conn_idx][ctype];
+            console.log('[E] on_close > Restablishing closed connecion:',error);
+          }
         }
-
-        this.connect(conn_idx, ctype);
       }
     });
 
@@ -1896,7 +1953,9 @@ class Synchronizer {
 
             console.log('[E] Orderbook > ASK lower or equal BID.');
 
+            console.log('Writing',this._ob_log_cache.length,'lines...');
             fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
+            console.log('[!] Log file saved at "'+this._ob_log_file+'".');
 
             process.exit(1);
 

@@ -63,30 +63,6 @@
           "timestamp_in_micro": true
         }
       },
-      "orderbook": {
-        "request": "{\"event\":\"bts:subscribe\",\"data\":{\"channel\":\"diff_order_book_<market>\"}}",
-        "response": {
-          "is_object": true,
-          "object_id_key": "event",
-          "object_id_value": "bts:subscription_succeeded",
-          "id": "channel",
-          "id_value": "diff_order_book_<market>",
-          "channel_id_key": "channel"
-        },
-        "update": {
-          "avoid_repetition": true,
-          "channel_id_key": "channel",
-          "data_inside": "data",
-          "asks": "asks",
-          "bids": "bids",
-          "pl": {
-            "price": "0",
-            "amount": "1"
-          },
-          "timestamp": "microtimestamp",
-          "timestamp_in_micro": true
-        }
-      },
       "trades": {
         "request": "{\"event\":\"bts:subscribe\",\"data\":{\"channel\":\"live_trades_<market>\"}}",
         "response": {
