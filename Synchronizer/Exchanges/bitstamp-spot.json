@@ -23,6 +23,7 @@
           "asks": "asks",
           "bids": "bids",
           "timestamp": "microtimestamp",
+          "safe_ts_distance": 1e3,
           "timestamp_in_micro": true,
           "get_timestamp_us_from_iso": null,
           "last_update_nonce": null,

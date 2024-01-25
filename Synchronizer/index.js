@@ -1889,8 +1889,8 @@ class Synchronizer {
           Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce)
         ) || 
         (
-          _b_rt_rsp?.timestamp_in_micro &&
-          _b_ws_upd?.timestamp_in_micro &&
+          (!_b_rt_rsp?.safe_ts_distance) &&
+          (this.exc.timestamp_in_micro || (_b_rt_rsp?.timestamp_in_micro && _b_ws_upd?.timestamp_in_micro)) &&
           (this.orderbook_upd_cache[0] == undefined ||
           Big(this.orderbook_upd_cache[0].timestamp_us).gt(init_orderbook.timestamp_us))
         ) || 
@@ -1918,6 +1918,7 @@ class Synchronizer {
         Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce))
       ) || 
       (
+        (!_b_rt_rsp?.safe_ts_distance) &&
         (this.exc.timestamp_in_micro || (_b_rt_rsp?.timestamp_in_micro && _b_ws_upd?.timestamp_in_micro)) &&
         (this.orderbook_upd_cache[0] == undefined ||
         Big(this.orderbook_upd_cache[0].timestamp_us).gt(init_orderbook.timestamp_us))
@@ -1926,7 +1927,7 @@ class Synchronizer {
         _b_rt_rsp?.timestamp != undefined &&
         _b_ws_upd?.timestamp != undefined &&
         (this.orderbook_upd_cache[0] == undefined ||
-        Big(this.orderbook_upd_cache[0].timestamp).gt(init_orderbook.timestamp))
+        Big(this.orderbook_upd_cache[0].timestamp).plus(_b_rt_rsp?.safe_ts_distance || 0).gt(init_orderbook.timestamp))
       )
     );
 
