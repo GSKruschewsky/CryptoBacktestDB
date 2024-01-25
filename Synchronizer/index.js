@@ -884,11 +884,17 @@ class Synchronizer {
   apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts) {
     // Validate snapshot update.
 
+    const _ws_upd = _ws.subcriptions?.['orderbook-snap'] != null ? _ws.subcriptions['orderbook-snap'].update : _ws.subcriptions['orderbook'].snapshot;
+
     // console.log('snap upd:',(update.last_update_nonce || update.timestamp_us || update.timestamp), (update.last_update_nonce && "last_update_nonce") || (update.timestamp_us && "timestamp_us") || (update.timestamp && "timestamp"));
     if (this.orderbook != null && (
       (this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce)) ||
-      (this.orderbook.timestamp_us && update.timestamp_us && Big(update.timestamp_us).lt(this.orderbook.timestamp_us)) ||
-      (this.orderbook.timestamp && update.timestamp && Big(update.timestamp).lt(this.orderbook.timestamp))
+      (
+        (!_ws_upd.do_not_validate_by_ts) && (
+          ((!_ws_upd.do_not_validate_by_micro_ts) && this.orderbook.timestamp_us && update.timestamp_us && Big(update.timestamp_us).lt(this.orderbook.timestamp_us)) ||
+          (this.orderbook.timestamp && update.timestamp && Big(update.timestamp).lt(this.orderbook.timestamp))
+        )
+      )
     ))
       return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
 
@@ -954,7 +960,7 @@ class Synchronizer {
       return;
 
     if (!_ws.subcriptions.orderbook.update.do_not_validate_by_ts) {
-      if (((!do_not_validate_by_micro_ts) && this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
+      if (((!_ws.subcriptions.orderbook.update.do_not_validate_by_micro_ts) && this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
       (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
         return;
     }
