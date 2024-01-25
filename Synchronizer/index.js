@@ -884,7 +884,7 @@ class Synchronizer {
   apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts) {
     // Validate snapshot update.
 
-    const _ws_upd = _ws.subcriptions?.['orderbook-snap'] != null ? _ws.subcriptions['orderbook-snap'].update : _ws.subcriptions['orderbook'].snapshot;
+    const _ws_upd = _ws.subcriptions?.['orderbook_snap'] != null ? _ws.subcriptions['orderbook_snap'].update : _ws.subcriptions['orderbook'].snapshot;
 
     // console.log('snap upd:',(update.last_update_nonce || update.timestamp_us || update.timestamp), (update.last_update_nonce && "last_update_nonce") || (update.timestamp_us && "timestamp_us") || (update.timestamp && "timestamp"));
     if (this.orderbook != null && (
