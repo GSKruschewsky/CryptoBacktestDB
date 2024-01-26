@@ -941,15 +941,20 @@ class Synchronizer {
       let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
       let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
 
+      console.log('ORDERBOOK:');
+      console.dlog(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+      console.dlog(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+      console.dlog('timestamp=',this.orderbook.timestamp);
+      console.dlog('timestamp_us=',this.orderbook.timestamp_us);
+      console.dlog('last_update_nonce=',this.orderbook.last_update_nonce,'\n');
+
       if (Big(_asks[0][0]).lte(_bids[0][0])) {
-        console.log('ASK <= BID after snapshot:');
-        console.log(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-        console.log(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-
+        console.log('[E] ASK <= BID after snapshot.');
         console.log('this._last_ob_msg:',this._last_ob_msg);
-
         process.exit();
       }
+    } else {
+      console.log('this.exchange:',this.exchange);
     }
 
   }
