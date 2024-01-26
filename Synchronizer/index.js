@@ -840,25 +840,6 @@ class Synchronizer {
         first: !save_it
       };
 
-      // Simple book validation to avoid saving wrong data.
-      if (Big(this.delayed_orderbook.asks[0][0]).lte(this.delayed_orderbook.bids[0][0])) {
-        console.log('[E] before_apply_to_orderbook: Invalid orderbook ASK <= BID!\n');
-        
-        console.log('Orderbook:');
-        console.dlog(this.delayed_orderbook.asks.slice(0, 5).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-        console.dlog(this.delayed_orderbook.bids.slice(0, 5).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-
-        console.log('this._last_ob_msg:',this._last_ob_msg,'\n');
-
-        if (this.is_ob_test && this._ob_log_file != null) {
-          console.log('Writing',this._ob_log_cache.length,'lines...');
-          fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
-          console.log('[!] Log file saved at "'+this._ob_log_file+'".');
-        }
-
-        process.exit(1);
-      }
-
       if (save_it && this.delayed_orderbook.timestamp != undefined) {
         this.orderbooks.unshift(this.delayed_orderbook);
 
@@ -1981,6 +1962,23 @@ class Synchronizer {
         second: this.data_time,
       };
 
+      // Simple book validation before posting it.
+      if (Big(obj.asks[0][0]).lte(obj.bids[0][0])) {
+        console.log('Orderbook:');
+        console.dlog(obj.asks.slice(0, 5).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+        console.dlog(obj.bids.slice(0, 5).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+
+        console.log('[E] save_second > Orderbook to post ASK lower or equal BID.');
+
+        if (this.is_ob_test && this._ob_log_file != null) {
+          console.log('Writing',this._ob_log_cache.length,'lines...');
+          fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
+          console.log('[!] Log file saved at "'+this._ob_log_file+'".');
+        }
+
+        process.exit(1);
+      }
+
       if (this.is_test) {
         if (this.is_ob_test) {
           let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
@@ -1993,9 +1991,11 @@ class Synchronizer {
 
             console.log('[E] Orderbook > ASK lower or equal BID.');
 
-            console.log('Writing',this._ob_log_cache.length,'lines...');
-            fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
-            console.log('[!] Log file saved at "'+this._ob_log_file+'".');
+            if (this.is_ob_test && this._ob_log_file != null) {
+              console.log('Writing',this._ob_log_cache.length,'lines...');
+              fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
+              console.log('[!] Log file saved at "'+this._ob_log_file+'".');
+            }
 
             process.exit(1);
 
