@@ -943,10 +943,13 @@ class Synchronizer {
 
       console.log('ORDERBOOK:');
       console.dlog(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+      console.dlog(' ');
       console.dlog(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+      console.dlog(' ');
       console.dlog('timestamp=',this.orderbook.timestamp);
       console.dlog('timestamp_us=',this.orderbook.timestamp_us);
       console.dlog('last_update_nonce=',this.orderbook.last_update_nonce,'\n');
+      console.dlog(' ');
 
       if (Big(_asks[0][0]).lte(_bids[0][0])) {
         console.log('[E] ASK <= BID after snapshot.');
