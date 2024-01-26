@@ -1042,13 +1042,16 @@ class Synchronizer {
       let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
       let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
 
+      console.log('ORDERBOOK:');
+      console.dlog(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+      console.dlog(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+      console.dlog('timestamp=',this.orderbook.timestamp);
+      console.dlog('timestamp_us=',this.orderbook.timestamp_us);
+      console.dlog('last_update_nonce=',this.orderbook.last_update_nonce,'\n');
+
       if (Big(_asks[0][0]).lte(_bids[0][0])) {
-        console.log('ASK <= BID after update:');
-        console.log(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-        console.log(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-
+        console.log('[E] ASK <= BID after update.');
         console.log('this._last_ob_msg:',this._last_ob_msg);
-
         process.exit();
       }
     }
@@ -1997,6 +2000,11 @@ class Synchronizer {
         console.log('Orderbook:');
         console.dlog(obj.asks.slice(0, 5).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
         console.dlog(obj.bids.slice(0, 5).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+        console.dlog('timestamp=',orderbook_to_post?.timestamp);
+        console.dlog('timestamp_us=',orderbook_to_post?.timestamp_us);
+        console.dlog('last_update_nonce=',orderbook_to_post?.last_update_nonce,'\n');
+
+        console.log('orderbook_to_post:',orderbook_to_post);
 
         console.log('[E] save_second > Orderbook to post ASK lower or equal BID.');
 
