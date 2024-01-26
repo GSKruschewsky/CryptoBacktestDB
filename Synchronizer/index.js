@@ -905,9 +905,9 @@ class Synchronizer {
       this.last_book_updates[this.last_book_updates_nonce] = msg_str;
     }
     
-    if (this.is_ob_test) {
+    if (this.is_ob_test || this.exchange == 'bitstamp-spot') {
       const { asks, bids, ...updRest } = update;
-      console.log('Book snap:',updRest);
+      console.log('Book snap ('+this.orderbook_upd_cache.length+'):',updRest);
     }
 
     if (this.is_lantecy_test && update.timestamp) this.diff_latency.push(ws_recv_ts - update.timestamp);
@@ -935,6 +935,19 @@ class Synchronizer {
     if (this.is_ob_test) {
       console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
       console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    }
+
+    if (this.exchange == 'bitstamp-spot') {
+      let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
+      let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
+
+      if (Big(_asks[0][0]).lte(_bids[0][0])) {
+        console.log('ASK <= BID after snapshot:');
+        console.log(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+        console.log(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+
+        process.exit();
+      }
     }
 
   }
@@ -1022,6 +1035,19 @@ class Synchronizer {
     this.orderbook.timestamp = upd.timestamp;
     this.orderbook.timestamp_us = upd.timestamp_us;
     this.orderbook.last_update_nonce = upd.last_update_nonce;
+
+    if (this.exchange == 'bitstamp-spot') {
+      let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
+      let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
+
+      if (Big(_asks[0][0]).lte(_bids[0][0])) {
+        console.log('ASK <= BID after update:');
+        console.log(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+        console.log(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+
+        process.exit();
+      }
+    }
 
     // console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     // console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
