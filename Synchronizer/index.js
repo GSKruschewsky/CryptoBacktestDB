@@ -946,6 +946,8 @@ class Synchronizer {
         console.log(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
         console.log(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
 
+        console.log('this._last_ob_msg:',this._last_ob_msg);
+
         process.exit();
       }
     }
@@ -1044,6 +1046,8 @@ class Synchronizer {
         console.log('ASK <= BID after update:');
         console.log(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
         console.log(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+
+        console.log('this._last_ob_msg:',this._last_ob_msg);
 
         process.exit();
       }
