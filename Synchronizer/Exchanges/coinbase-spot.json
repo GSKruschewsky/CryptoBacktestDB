@@ -79,6 +79,7 @@
         },
         "update": {
           "avoid_repetition": true,
+          "do_not_validate_by_micro_ts": true,
           "updates_inside": "changes",
           "channel_id_key": "type",
           "channel_id": "l2update",
