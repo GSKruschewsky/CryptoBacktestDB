@@ -544,16 +544,16 @@ class Synchronizer {
     const _ob_sub = _ws.subcriptions[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
 
-    if (this.exchange == 'bitstamp-spot')
-      this._last_ob_msg = JSON.stringify(msg);
+    // if (this.exchange == 'bitstamp-spot')
+    //   this._last_ob_msg = JSON.stringify(msg);
     
-    if (this.is_ob_test) {
-      this._last_ob_msg = JSON.stringify(msg);
-      // console.log('('+conn._idx+') Book msg:',msg);
-      // let _msg = (_ob_sub.update.data_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
-      // _msg = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], _msg) || _msg);
-      // console.log('('+conn._idx+') Book msg:',_msg);
-    }
+    // if (this.is_ob_test) {
+    //   this._last_ob_msg = JSON.stringify(msg);
+    //   // console.log('('+conn._idx+') Book msg:',msg);
+    //   // let _msg = (_ob_sub.update.data_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
+    //   // _msg = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], _msg) || _msg);
+    //   // console.log('('+conn._idx+') Book msg:',_msg);
+    // }
 
     // Checks if its the first update.
     if (_info.received_first_update !== true) {
@@ -766,31 +766,31 @@ class Synchronizer {
       formatted.last_update_nonce = (msg[_ob_sub.update.last_upd_nonce_key] || updates[_ob_sub.update.last_upd_nonce_key]);
 
     // 'msg' will not be used since here so we can wo wathever we want with it.
-    if (this.is_ob_test) {
-      if (is_snapshot) {
-        if (is_snap && _ob_sub.update?.asks_and_bids_together || _ob_sub.snapshot?.asks_and_bids_together) {
-          // Need to remove the whole '_ob_sub.update.updates_inside' from the message.
-          let keys = _ob_sub.update.updates_inside?.split('.');
-          let _nav = msg;
-          keys.forEach((key, idx) => {
-            if (idx == keys.length - 1) {
-              delete _nav[key];
-            } else {
-              _nav = _nav[key];
-            }
-          });
+    // if (this.is_ob_test) {
+    //   if (is_snapshot) {
+    //     if (is_snap && _ob_sub.update?.asks_and_bids_together || _ob_sub.snapshot?.asks_and_bids_together) {
+    //       // Need to remove the whole '_ob_sub.update.updates_inside' from the message.
+    //       let keys = _ob_sub.update.updates_inside?.split('.');
+    //       let _nav = msg;
+    //       keys.forEach((key, idx) => {
+    //         if (idx == keys.length - 1) {
+    //           delete _nav[key];
+    //         } else {
+    //           _nav = _nav[key];
+    //         }
+    //       });
 
-        } else {
-          // Need to remove 'asks' and 'bids' from the message and add '__ = SNAPSHOT'.
-          delete updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks];
-          delete updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids];
-          msg['__'] = 'SNAPSHOT';
+    //     } else {
+    //       // Need to remove 'asks' and 'bids' from the message and add '__ = SNAPSHOT'.
+    //       delete updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks];
+    //       delete updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids];
+    //       msg['__'] = 'SNAPSHOT';
 
-        }
-      }
+    //     }
+    //   }
       
-      console.log('('+conn._idx+') Book msg:',msg);
-    }
+    //   console.log('('+conn._idx+') Book msg:',msg);
+    // }
     
     // Returns the formatted message.
     return formatted;
@@ -905,10 +905,10 @@ class Synchronizer {
       this.last_book_updates[this.last_book_updates_nonce] = msg_str;
     }
     
-    if (this.is_ob_test || this.exchange == 'bitstamp-spot') {
-      const { asks, bids, ...updRest } = update;
-      console.log('Book snap ('+this.orderbook_upd_cache.length+'):',updRest);
-    }
+    // if (this.is_ob_test || this.exchange == 'bitstamp-spot') {
+    //   const { asks, bids, ...updRest } = update;
+    //   console.log('Book snap ('+this.orderbook_upd_cache.length+'):',updRest);
+    // }
 
     if (this.is_lantecy_test && update.timestamp) this.diff_latency.push(ws_recv_ts - update.timestamp);
 
@@ -932,31 +932,31 @@ class Synchronizer {
       this.orderbook_upd_cache.shift();
     }
 
-    if (this.is_ob_test) {
-      console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-      console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-    }
+    // if (this.is_ob_test) {
+    //   console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    //   console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    // }
 
-    if (this.exchange == 'bitstamp-spot') {
-      let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
-      let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
+    // if (this.exchange == 'bitstamp-spot') {
+    //   let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
+    //   let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
 
-      console.log('ORDERBOOK:');
-      console.dlog(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-      console.dlog(' ');
-      console.dlog(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-      console.dlog(' ');
-      console.dlog('timestamp=',this.orderbook.timestamp);
-      console.dlog('timestamp_us=',this.orderbook.timestamp_us);
-      console.dlog('last_update_nonce=',this.orderbook.last_update_nonce,'\n');
-      console.dlog(' ');
+    //   console.log('ORDERBOOK:');
+    //   console.dlog(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    //   console.dlog(' ');
+    //   console.dlog(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    //   console.dlog(' ');
+    //   console.dlog('timestamp=',this.orderbook.timestamp);
+    //   console.dlog('timestamp_us=',this.orderbook.timestamp_us);
+    //   console.dlog('last_update_nonce=',this.orderbook.last_update_nonce,'\n');
+    //   console.dlog(' ');
 
-      if (Big(_asks[0][0]).lte(_bids[0][0])) {
-        console.log('[E] ASK <= BID after snapshot.');
-        console.log('this._last_ob_msg:',this._last_ob_msg);
-        process.exit();
-      }
-    }
+    //   if (Big(_asks[0][0]).lte(_bids[0][0])) {
+    //     console.log('[E] ASK <= BID after snapshot.');
+    //     console.log('this._last_ob_msg:',this._last_ob_msg);
+    //     process.exit();
+    //   }
+    // }
 
   }
 
@@ -993,7 +993,7 @@ class Synchronizer {
       this.last_book_updates[this.last_book_updates_nonce] = msg_str;
     }
     
-    if (this.is_ob_test) console.log('Book upd:',upd);
+    // if (this.is_ob_test) console.log('Book upd:',upd);
 
     if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
@@ -1044,23 +1044,23 @@ class Synchronizer {
     this.orderbook.timestamp_us = upd.timestamp_us;
     this.orderbook.last_update_nonce = upd.last_update_nonce;
 
-    if (this.exchange == 'bitstamp-spot') {
-      let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
-      let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
+    // if (this.exchange == 'bitstamp-spot') {
+    //   let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
+    //   let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
 
-      console.log('ORDERBOOK:');
-      console.dlog(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-      console.dlog(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-      console.dlog('timestamp=',this.orderbook.timestamp);
-      console.dlog('timestamp_us=',this.orderbook.timestamp_us);
-      console.dlog('last_update_nonce=',this.orderbook.last_update_nonce,'\n');
+    //   console.log('ORDERBOOK:');
+    //   console.dlog(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    //   console.dlog(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    //   console.dlog('timestamp=',this.orderbook.timestamp);
+    //   console.dlog('timestamp_us=',this.orderbook.timestamp_us);
+    //   console.dlog('last_update_nonce=',this.orderbook.last_update_nonce,'\n');
 
-      if (Big(_asks[0][0]).lte(_bids[0][0])) {
-        console.log('[E] ASK <= BID after update.');
-        console.log('this._last_ob_msg:',this._last_ob_msg);
-        process.exit();
-      }
-    }
+    //   if (Big(_asks[0][0]).lte(_bids[0][0])) {
+    //     console.log('[E] ASK <= BID after update.');
+    //     console.log('this._last_ob_msg:',this._last_ob_msg);
+    //     process.exit();
+    //   }
+    // }
 
     // console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     // console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
@@ -2014,11 +2014,11 @@ class Synchronizer {
 
         console.log('[E] save_second > Orderbook to post ASK lower or equal BID.');
 
-        if (this.is_ob_test && this._ob_log_file != null) {
-          console.log('Writing',this._ob_log_cache.length,'lines...');
-          fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
-          console.log('[!] Log file saved at "'+this._ob_log_file+'".');
-        }
+        // if (this.is_ob_test && this._ob_log_file != null) {
+        //   console.log('Writing',this._ob_log_cache.length,'lines...');
+        //   fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
+        //   console.log('[!] Log file saved at "'+this._ob_log_file+'".');
+        // }
 
         process.exit(1);
       }
