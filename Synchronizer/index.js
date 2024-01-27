@@ -956,8 +956,6 @@ class Synchronizer {
         console.log('this._last_ob_msg:',this._last_ob_msg);
         process.exit();
       }
-    } else {
-      console.log('this.exchange:',this.exchange);
     }
 
   }
@@ -1062,8 +1060,6 @@ class Synchronizer {
         console.log('this._last_ob_msg:',this._last_ob_msg);
         process.exit();
       }
-    } else {
-      console.log('this.exchange:',this.exchange);
     }
 
     // console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
