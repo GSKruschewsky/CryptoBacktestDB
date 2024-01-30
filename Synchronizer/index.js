@@ -1074,7 +1074,7 @@ class Synchronizer {
     if (this.attemp_delay[conn_idx]?.[ctype]) {
       console.log(' ('+conn_idx+') WebSocket '+ctype+' Waiting "attemp_delay"...');
       await this.attemp_delay[conn_idx][ctype];
-      console.log('[!]  ('+conn_idx+') WebSocket '+ctype+' "attemp_delay" Done.');
+      console.log('[!] ('+conn_idx+') WebSocket '+ctype+' "attemp_delay" Done.');
     }
     
     if (!this.connections[conn_idx]) this.connections[conn_idx] = {};
@@ -1233,7 +1233,7 @@ class Synchronizer {
 
     // On WebSocket error, we log the error and then diconnect.
     __ws.on('error', error => {
-      console.log('[E] WebSocket '+ctype+' connection error:',error);
+      console.log('[E] ('+conn_idx+') WebSocket '+ctype+' connection error:',error);
       __ws.terminate();
     });
 
