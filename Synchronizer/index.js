@@ -1070,19 +1070,20 @@ class Synchronizer {
     // If connection not null returns the connection promise.
     if (this.connections[conn_idx]?.[ctype]) return this.connections[conn_idx][ctype].main_prom;
     
+    // If there is an 'attemp delay' to this connection waits the delay.
+    if (this.attemp_delay[conn_idx]?.[ctype]) await this.attemp_delay[conn_idx][ctype];
+    
     if (!this.connections[conn_idx]) this.connections[conn_idx] = {};
     this.connections[conn_idx][ctype] = { info: {} };  // Create the connection object.
     let conn = this.connections[conn_idx][ctype];      // Create a reference to the connection object.
     conn._idx = conn_idx;
 
     // Create the connection main promise and a control variable to it.
-    let main_prom_funcs;
-    conn.main_prom = new Promise((resolve, reject) => main_prom_funcs = { resolve, reject }).finally(() => main_prom_funcs = null);
-    
-    // If there is an 'attemp delay' to this connection waits the delay.
-    if (this.attemp_delay[conn_idx]?.[ctype]) await this.attemp_delay[conn_idx][ctype];
-
-    let _min_promises = [];
+    let _prom = null;
+    conn.main_prom = Promise.race([
+      new Promise((resolve, reject) => setTimeout(reject, _ws.timeout || 15000, "[E] Timeout connecting to conn "+conn._idx+" "+ctype+" websocket.")),
+      new Promise((resolve, reject) => _prom = { resolve, reject }).finally(() => _prom = null)
+    ]);
     
     const is_secondary = (ctype == 'secondary');
     const _ws = is_secondary ? this.exc.ws2 : this.exc.ws;
@@ -1115,15 +1116,6 @@ class Synchronizer {
       if (_ws.subcriptions?.trades != undefined && _ws.subcriptions.trades?.response == undefined) 
         conn.info.trades.channel_id = _ws.subcriptions.trades?.update?.channel_id.replaceAll('<market>', this.market.ws);
     }
-    
-    // Create an control var and a promise to indicate if we have succeed on the websocket connection.
-    let _prom = null;
-    _min_promises.push(
-      Promise.race([
-        new Promise((resolve, reject) => setTimeout(reject, _ws.timeout || 15000, "[E] Timeout connecting to conn "+conn._idx+" "+ctype+" websocket.")),
-        new Promise((resolve, reject) => _prom = { resolve, reject }).finally(() => _prom = null)
-      ])
-    );
 
     // Checks if websocket conection require any preparation before connection.
     if (this.exc.rest.endpoints?.prepare_for_ws != undefined) {
@@ -1178,7 +1170,7 @@ class Synchronizer {
       clearInterval(__ws.ping_loop_interval);
       clearInterval(__ws.ws_ping_loop_interval);
       
-      this.connections[conn_idx][ctype]?.ws?.terminate();
+      // this.connections[conn_idx][ctype]?.ws?.terminate();
       delete this.connections[conn_idx][ctype];
 
       if (this.__working == false || 
@@ -1204,20 +1196,22 @@ class Synchronizer {
 
       } else {
         // Only this connection has ended, try reconnection respecting the established attempt limits.
-
         while (true) {
           // Filter 'connection_tries' to only attemps that happened on the last minute.
           this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
+          console.log('('+conn_idx+') WebSocket '+ctype+' reconnecting... (attemps= '+this.connection_tries.length+') ');
 
           // Checks if the number of connetion attemps in the last minute is greater then 'max_attemps_per_min'.
           if (this.connection_tries.length > this.max_attemps_per_min) {
             // In this case we should wait 'conn_attemp_delay' before the connection.
             if (!this.attemp_delay[conn_idx]) this.attemp_delay[conn_idx] = {};
-            this.attemp_delay[conn_idx][ctype] = (async () => {
-              await new Promise(r => setTimeout(r, this.conn_attemp_delay));
-              if (this.attemp_delay[conn_idx][ctype])
-                delete this.attemp_delay[conn_idx][ctype];
-            })();
+
+            this.attemp_delay[conn_idx][ctype] = new Promise(r => setTimeout(r, this.conn_attemp_delay));
+            // (async () => {
+            //   await new Promise(r => setTimeout(r, this.conn_attemp_delay));
+            //   if (this.attemp_delay[conn_idx][ctype])
+            //     delete this.attemp_delay[conn_idx][ctype];
+            // })();
           }
 
           try {
@@ -1587,10 +1581,6 @@ class Synchronizer {
       }
       __ws.terminate();
     });
-
-    Promise.all(_min_promises)
-    .then(r => main_prom_funcs.resolve(r))
-    .catch(e => main_prom_funcs.reject(e));
 
     return conn.main_prom;
   }
