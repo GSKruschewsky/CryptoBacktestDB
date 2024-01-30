@@ -1072,9 +1072,9 @@ class Synchronizer {
     
     // If there is an 'attemp delay' to this connection waits the delay.
     if (this.attemp_delay[conn_idx]?.[ctype]) {
-      console.log('Waiting "attemp_delay"...');
+      console.log(' ('+conn_idx+') WebSocket '+ctype+' Waiting "attemp_delay"...');
       await this.attemp_delay[conn_idx][ctype];
-      console.log('[!] "attemp_delay" Done.');
+      console.log('[!]  ('+conn_idx+') WebSocket '+ctype+' "attemp_delay" Done.');
     }
     
     if (!this.connections[conn_idx]) this.connections[conn_idx] = {};
@@ -1182,7 +1182,7 @@ class Synchronizer {
       (this.exc.ws2 != null && this.connections.every(conn => !conn.secondary))) {
         // All connections are closed.
         this.completely_synced = false;
-        console.log('_connect > "completely_synced" SET TO FALSE!');
+        console.log(' ('+conn_idx+') WebSocket '+ctype+' _connect > "completely_synced" SET TO FALSE!');
 
         // Reset global variables.
         clearTimeout(this.process_second_timeout);
@@ -1206,12 +1206,12 @@ class Synchronizer {
           console.log('('+conn_idx+') WebSocket '+ctype+' reconnecting... (attemps= '+this.connection_tries.length+', max_attemps= '+this.max_attemps_per_min+')');
 
           // Checks if the number of connetion attemps in the last minute is greater then 'max_attemps_per_min'.
-          if (this.connection_tries.length > this.max_attemps_per_min) {
+          if (this.connection_tries.length >= this.max_attemps_per_min) {
             // In this case we should wait 'conn_attemp_delay' before the connection.
             if (!this.attemp_delay[conn_idx]) this.attemp_delay[conn_idx] = {};
 
             this.attemp_delay[conn_idx][ctype] = new Promise(r => setTimeout(r, this.conn_attemp_delay));
-            console.log('[!] SET attemp_delay.');
+            console.log('[!] ('+conn_idx+') WebSocket '+ctype+' SET attemp_delay.');
             // (async () => {
             //   await new Promise(r => setTimeout(r, this.conn_attemp_delay));
             //   if (this.attemp_delay[conn_idx][ctype])
@@ -1225,7 +1225,7 @@ class Synchronizer {
           } catch (error) {
             if (this.connections?.[conn_idx]?.[ctype])
               delete this.connections[conn_idx][ctype];
-            console.log('[E] on_close > Restablishing closed connecion:',error);
+            console.log('[E] ('+conn_idx+') WebSocket '+ctype+' on_close > Restablishing closed connecion:',error);
           }
         }
       }
