@@ -2216,19 +2216,20 @@ class Synchronizer {
       }
 
     } catch (error) {
-      console.log("[E] Initiating synchronization:",error);
+      throw error;
+      // console.log("[E] Initiating synchronization:",error);
       
-      // Reset all connections.
-      for (const conn of this.connections) {
-        if (conn?.ws?.terminate) conn.ws.terminate();
-        if (conn?.ws2?.terminate) conn.ws2.terminate();
-        conn.ws = null;
-        conn.ws2 = null;
-      }
-      this.connections = [];
-      this.attemp_delay = {};
+      // // Reset all connections.
+      // for (const conn of this.connections) {
+      //   if (conn?.ws?.terminate) conn.ws.terminate();
+      //   if (conn?.ws2?.terminate) conn.ws2.terminate();
+      //   conn.ws = null;
+      //   conn.ws2 = null;
+      // }
+      // this.connections = [];
+      // this.attemp_delay = {};
 
-      throw "Failed to synchronize with the exchange";
+      // throw "Failed to synchronize with the exchange";
     }
 
     this.completely_synced = true;
@@ -2246,7 +2247,7 @@ class Synchronizer {
         await this.initiate()
         .then(() => this.already_initiated = true)
         .catch(error => {
-          console.log('Failed to initate synchronization:',error);
+          console.log('[E] keep_synced > Failed to initate synchronization:',error);
           console.log('Not completely synced, initiating again...');
         });
       }
