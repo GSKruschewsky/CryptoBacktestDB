@@ -342,7 +342,7 @@ class Synchronizer {
     //   },
     //   ...
     // ]
-    // console.log('Trades msg:',msg.params[1]);
+    // console.log('Trades msg:',msg);
 
     const _t_upd = _ws.subcriptions.trades.update;
 
@@ -429,6 +429,7 @@ class Synchronizer {
 
     if (this.trades == null || this.trades_upd_cache.length > 0) {
       // Add to 'trades_upd_cache' trades that not already in 'trades_upd_cache'.
+      // console.log('Adding to cache...');
 
       const _last = this.trades_upd_cache?.slice(-1)?.[0];
 
@@ -443,6 +444,7 @@ class Synchronizer {
 
     } else {
       // Add to 'trades' trades that not already in 'trades'.
+      // console.log('Adding to trades...');
 
       const _last = this.trades?.slice(-1)?.[0];
                                                               /* Can be a trade coming from REST snapshot wo/ 'trade_id' or not. */
@@ -800,6 +802,7 @@ class Synchronizer {
     if (update == null) return; // Ignore.
 
     if (update.is_snapshot) {
+      // console.log('Applying orderbook snapshot...');
       this.apply_orderbook_snap(update, _ws, __ws, _prom, ws_recv_ts);
 
     } else {
@@ -809,10 +812,12 @@ class Synchronizer {
         // if (this.orderbook_upd_cache.length == 0)
         //   console.log('[!!] Got first orderbook update at',update.timestamp);
 
+        // console.log('Caching update...');
         this.orderbook_upd_cache.push(update);
   
       } else {
         // Just apply update.
+        // console.log('Applying update...');
         this.apply_orderbook_upd(update, _ws, __ws, _prom, ws_recv_ts);
       }
     }
@@ -1079,7 +1084,7 @@ class Synchronizer {
     let _prom = null;
     conn.main_prom = new Promise((resolve, reject) => _prom = { resolve, reject })
     .finally(() => {
-      console.log('/!\\ ('+conn_idx+') WebSocket '+ctype+' promessa finalizada.');
+      // console.log('/!\\ ('+conn_idx+') WebSocket '+ctype+' promessa finalizada.');
       clearTimeout(conn._main_prom_timeout);
       delete conn._main_prom_timeout;
       _prom = null;
@@ -1203,16 +1208,16 @@ class Synchronizer {
         this.orderbook_upd_cache = [];
         // this.orderbooks = [];
         this.delayed_orderbook = null;
-        // this.trades = null;
+        this.trades = null;
         this.trades_upd_cache = [];
         this.synced_trades_since = null;
         this.ws_req_nonce = 0;
         this.saved_first_second = false;
 
       } else {
-        console.log(' ------------------------ ');
-        console.log('this.connections:',this.connections);
-        console.log(' ------------------------ ');
+        // console.log(' ------------------------ ');
+        // console.log('this.connections:',this.connections);
+        // console.log(' ------------------------ ');
 
         // Only this connection has ended, try reconnection respecting the established attempt limits.
         while (!(
@@ -1875,6 +1880,7 @@ class Synchronizer {
   }
 
   async get_orderbook_snapshot () {
+    // console.log('Getting REST orderbook...');
     // Define variable to store the initial snapshot.
     let init_orderbook = null;
 
@@ -2217,13 +2223,17 @@ class Synchronizer {
     // Try to connect with websocket and subscribe to market updates.
     try {
       await this.validate_market();
+      // console.log('[!] Validated market.');
       
       await this.connect();
+      // console.log('[!] Fully Connected.');
 
       // Try to make the initial 'trades' request.
       // (proceed only when last snapshot trade (timestamp) <= first trade in 'trades_upd_cache')
       if (this.exc.rest.endpoints?.trades != undefined) {
+        // console.log('Getting trades snapshot...');
         await this.get_trades_snapshot(initiated_at_sec);
+        // console.log('[!] Got trades snapshot.');
       } else {
         if (!this.trades) this.trades = [];
       }
@@ -2231,7 +2241,9 @@ class Synchronizer {
       // Try to make an initial request for the orderbook snapshot, if necessary.
       // (proceed only when orderbook snapshot (last_update_nonce) <= first update in 'orderbook_upd_cache')
       if (this.exc.rest.endpoints?.orderbook != undefined) {
+        // console.log('Getting orderbook snapshot...');
         await this.get_orderbook_snapshot();
+        // console.log('[!] Got orderbook snapshot.');
       }
 
     } catch (error) {
