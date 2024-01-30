@@ -1214,6 +1214,18 @@ class Synchronizer {
         this.ws_req_nonce = 0;
         this.saved_first_second = false;
 
+        // Filter 'connection_tries' to only attemps that happened on the last minute.
+        this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
+        console.log('('+conn_idx+') WebSocket '+ctype+' reconnecting... (attemps= '+this.connection_tries.length+', max_attemps= '+this.max_attemps_per_min+')');
+
+        // Checks if the number of connetion attemps in the last minute is greater then 'max_attemps_per_min'.
+        if (this.connection_tries.length >= this.max_attemps_per_min) {
+          // In this case we should wait 'conn_attemp_delay' before the connection.
+          if (!this.attemp_delay[conn_idx]) this.attemp_delay[conn_idx] = {};
+          this.attemp_delay[conn_idx][ctype] = new Promise(r => setTimeout(r, this.conn_attemp_delay));
+          console.log('[!] ('+conn_idx+') WebSocket '+ctype+' SET attemp_delay [2].');
+        }
+
       } else {
         // console.log(' ------------------------ ');
         // console.log('this.connections:',this.connections);
@@ -1358,9 +1370,9 @@ class Synchronizer {
 
         } else {
           if (_prom) {
-            _prom.reject({ At: '[E] '+ctype+' WebSocket failed to login:', error: msg });
+            _prom.reject({ At: '[E] ('+conn._idx+') '+ctype+' WebSocket failed to login:', error: msg });
           } else {
-            console.log('[E] '+ctype+' WebSocket failed to login:',msg,'\n\nEnding connection...');
+            console.log('[E] ('+conn._idx+') '+ctype+' WebSocket failed to login:',msg,'\n\nEnding connection...');
             __ws.terminate();
           }
         }
@@ -1605,9 +1617,9 @@ class Synchronizer {
   
       // Received an unexpected message from the server.
       if (_prom) {
-        _prom.reject({ At: '[E] WebSocket '+ctype+' unexpected message:', error: msg });
+        _prom.reject({ At: '[E] ('+conn._idx+') WebSocket '+ctype+' unexpected message:', error: msg });
       } else {
-        console.log('[E] WebSocket '+ctype+' unexpected message:',msg,'\nEnding connection...\n');
+        console.log('[E] ('+conn._idx+') WebSocket '+ctype+' unexpected message:',msg,'\nEnding connection...\n');
       }
       __ws.terminate();
     });
