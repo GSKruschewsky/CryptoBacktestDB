@@ -1071,7 +1071,11 @@ class Synchronizer {
     if (this.connections[conn_idx]?.[ctype]) return this.connections[conn_idx][ctype].main_prom;
     
     // If there is an 'attemp delay' to this connection waits the delay.
-    if (this.attemp_delay[conn_idx]?.[ctype]) await this.attemp_delay[conn_idx][ctype];
+    if (this.attemp_delay[conn_idx]?.[ctype]) {
+      console.log('Waiting "attemp_delay"...');
+      await this.attemp_delay[conn_idx][ctype];
+      console.log('[!] "attemp_delay" Done.');
+    }
     
     if (!this.connections[conn_idx]) this.connections[conn_idx] = {};
     this.connections[conn_idx][ctype] = { info: {} };  // Create the connection object.
@@ -1199,7 +1203,7 @@ class Synchronizer {
         while (true) {
           // Filter 'connection_tries' to only attemps that happened on the last minute.
           this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
-          console.log('('+conn_idx+') WebSocket '+ctype+' reconnecting... (attemps= '+this.connection_tries.length+') ');
+          console.log('('+conn_idx+') WebSocket '+ctype+' reconnecting... (attemps= '+this.connection_tries.length+', max_attemps= '+this.max_attemps_per_min+')');
 
           // Checks if the number of connetion attemps in the last minute is greater then 'max_attemps_per_min'.
           if (this.connection_tries.length > this.max_attemps_per_min) {
@@ -1207,6 +1211,7 @@ class Synchronizer {
             if (!this.attemp_delay[conn_idx]) this.attemp_delay[conn_idx] = {};
 
             this.attemp_delay[conn_idx][ctype] = new Promise(r => setTimeout(r, this.conn_attemp_delay));
+            console.log('[!] SET attemp_delay.');
             // (async () => {
             //   await new Promise(r => setTimeout(r, this.conn_attemp_delay));
             //   if (this.attemp_delay[conn_idx][ctype])
@@ -1218,7 +1223,8 @@ class Synchronizer {
             await this.connect(conn_idx, ctype);
             break;
           } catch (error) {
-            delete this.connections[conn_idx][ctype];
+            if (this.connections?.[conn_idx]?.[ctype])
+              delete this.connections[conn_idx][ctype];
             console.log('[E] on_close > Restablishing closed connecion:',error);
           }
         }
