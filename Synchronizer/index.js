@@ -1077,11 +1077,17 @@ class Synchronizer {
 
     // Create the connection main promise and a control variable to it.
     let _prom = null;
-    conn.main_prom = new Promise((resolve, reject) => _prom = { resolve, reject }).finally(() => _prom = null);
+    conn.main_prom = new Promise((resolve, reject) => _prom = { resolve, reject })
+    .finally(() => {
+      console.log('/!\\ ('+conn_idx+') WebSocket '+ctype+' promessa finalizada.');
+      clearTimeout(conn._main_prom_timeout);
+      delete conn._main_prom_timeout;
+      _prom = null;
+    });
     
     // If there is an 'attemp delay' to this connection waits the delay.
     if (this.attemp_delay[conn_idx]?.[ctype]) {
-      console.log(' ('+conn_idx+') WebSocket '+ctype+' Waiting "attemp_delay"...');
+      console.log('('+conn_idx+') WebSocket '+ctype+' Waiting "attemp_delay"...');
       await this.attemp_delay[conn_idx][ctype];
       console.log('[!] ('+conn_idx+') WebSocket '+ctype+' "attemp_delay" Done.');
     }
@@ -1090,10 +1096,9 @@ class Synchronizer {
     const _ws = is_secondary ? this.exc.ws2 : this.exc.ws;
 
     // Create a timeout for the 'main_prom'
-    setTimeout(() => {
+    conn._main_prom_timeout = setTimeout(() => {
       if (_prom?.reject)
         _prom.reject("[E] Timeout connecting to conn "+conn._idx+" "+ctype+" websocket.");
-
     }, _ws.timeout || 15000);
 
     // Check if this connection will handle orderbook updates.
@@ -1177,16 +1182,18 @@ class Synchronizer {
 
       clearInterval(__ws.ping_loop_interval);
       clearInterval(__ws.ws_ping_loop_interval);
+
+      clearTimeout(conn._main_prom_timeout);
       
       // this.connections[conn_idx][ctype]?.ws?.terminate();
       delete this.connections[conn_idx][ctype];
 
       if (this.__working == false || 
-      this.connections.every(conn => !conn.primary) || 
-      (this.exc.ws2 != null && this.connections.every(conn => !conn.secondary))) {
+      this.connections.every(conn => conn?.primary?.ws?.readyState !== WebSocket.OPEN) || 
+      (this.exc.ws2 != null && this.connections.every(conn => conn?.primary?.ws?.readyState !== WebSocket.OPEN))) {
         // All connections are closed.
         this.completely_synced = false;
-        console.log(' ('+conn_idx+') WebSocket '+ctype+' _connect > "completely_synced" SET TO FALSE!');
+        console.log('('+conn_idx+') WebSocket '+ctype+' _connect > "completely_synced" SET TO FALSE!');
 
         // Reset global variables.
         clearTimeout(this.process_second_timeout);
@@ -1203,8 +1210,16 @@ class Synchronizer {
         this.saved_first_second = false;
 
       } else {
+        console.log(' ------------------------ ');
+        console.log('this.connections:',this.connections);
+        console.log(' ------------------------ ');
+
         // Only this connection has ended, try reconnection respecting the established attempt limits.
-        while (true) {
+        while (!(
+          this.__working == false || 
+          this.connections.every(conn => !conn?.primary?.ws) || 
+          (this.exc.ws2 != null && this.connections.every(conn => !conn?.secondary?.ws))
+        )) {
           // Filter 'connection_tries' to only attemps that happened on the last minute.
           this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
           console.log('('+conn_idx+') WebSocket '+ctype+' reconnecting... (attemps= '+this.connection_tries.length+', max_attemps= '+this.max_attemps_per_min+')');
@@ -2246,13 +2261,20 @@ class Synchronizer {
     if (this.already_keeping_sync) return;
     this.already_keeping_sync = true;
 
+    let _failures_in_a_row = 0;
+    let _last_failed_sync = 0;
+
     while (this.__working) {
-      if (!this.completely_synced) {
+      if ((!this.completely_synced) && (_failures_in_a_row++ < 3 || Date.now() - _last_failed_sync > 5e3)) {
         await this.initiate()
-        .then(() => this.already_initiated = true)
+        .then(() => {
+          this.already_initiated = true
+          _failures_in_a_row = 0;
+        })
         .catch(error => {
           console.log('[E] keep_synced > Failed to initate synchronization:',error);
           console.log('Not completely synced, initiating again...');
+          _last_failed_sync = Date.now();
         });
       }
       
