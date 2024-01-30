@@ -1070,27 +1070,31 @@ class Synchronizer {
     // If connection not null returns the connection promise.
     if (this.connections[conn_idx]?.[ctype]) return this.connections[conn_idx][ctype].main_prom;
     
+    const is_secondary = (ctype == 'secondary');
+    const _ws = is_secondary ? this.exc.ws2 : this.exc.ws;
+
+    // Create the connection main promise and a control variable to it.
+    let _prom = null;
+    conn.main_prom = new Promise((resolve, reject) => _prom = { resolve, reject }).finally(() => _prom = null);
+    
     // If there is an 'attemp delay' to this connection waits the delay.
     if (this.attemp_delay[conn_idx]?.[ctype]) {
       console.log(' ('+conn_idx+') WebSocket '+ctype+' Waiting "attemp_delay"...');
       await this.attemp_delay[conn_idx][ctype];
       console.log('[!] ('+conn_idx+') WebSocket '+ctype+' "attemp_delay" Done.');
     }
+
+    // Create a timeout for the 'main_prom'
+    setTimeout(() => {
+      if (_prom?.reject)
+        _prom.reject("[E] Timeout connecting to conn "+conn._idx+" "+ctype+" websocket.");
+
+    }, _ws.timeout || 15000);
     
     if (!this.connections[conn_idx]) this.connections[conn_idx] = {};
     this.connections[conn_idx][ctype] = { info: {} };  // Create the connection object.
     let conn = this.connections[conn_idx][ctype];      // Create a reference to the connection object.
     conn._idx = conn_idx;
-    
-    const is_secondary = (ctype == 'secondary');
-    const _ws = is_secondary ? this.exc.ws2 : this.exc.ws;
-
-    // Create the connection main promise and a control variable to it.
-    let _prom = null;
-    conn.main_prom = Promise.race([
-      new Promise((resolve, reject) => setTimeout(reject, _ws.timeout || 15000, "[E] Timeout connecting to conn "+conn._idx+" "+ctype+" websocket.")),
-      new Promise((resolve, reject) => _prom = { resolve, reject }).finally(() => _prom = null)
-    ]);
 
     // Check if this connection will handle orderbook updates.
     if (_ws.not_handle_orderbook !== true) {
