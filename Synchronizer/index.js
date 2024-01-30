@@ -1077,6 +1077,9 @@ class Synchronizer {
     this.connections[conn_idx][ctype] = { info: {} };  // Create the connection object.
     let conn = this.connections[conn_idx][ctype];      // Create a reference to the connection object.
     conn._idx = conn_idx;
+    
+    const is_secondary = (ctype == 'secondary');
+    const _ws = is_secondary ? this.exc.ws2 : this.exc.ws;
 
     // Create the connection main promise and a control variable to it.
     let _prom = null;
@@ -1084,9 +1087,6 @@ class Synchronizer {
       new Promise((resolve, reject) => setTimeout(reject, _ws.timeout || 15000, "[E] Timeout connecting to conn "+conn._idx+" "+ctype+" websocket.")),
       new Promise((resolve, reject) => _prom = { resolve, reject }).finally(() => _prom = null)
     ]);
-    
-    const is_secondary = (ctype == 'secondary');
-    const _ws = is_secondary ? this.exc.ws2 : this.exc.ws;
 
     // Check if this connection will handle orderbook updates.
     if (_ws.not_handle_orderbook !== true) {
