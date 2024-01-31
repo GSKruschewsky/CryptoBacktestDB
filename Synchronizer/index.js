@@ -72,21 +72,41 @@ class Synchronizer {
     // Orderbook test log vars
     this._ob_log_file = './orderbook_logs/'+this.exchange+'_'+this.base+'-'+this.quote+'_orderbook.log';
     fs.mkdirSync(this._ob_log_file.split('/').slice(0, -1).join('/'), { recursive: true });
-
-    this._ob_log_write_stream = fs.createWriteStream(this._ob_log_file, { flags : 'w', flush: true });
-
-    this._ob_log_write_stream.on('error', error => {
-      console.log('[E] _ob_log_write_stream:',error);
-    });
-
-    this._ob_log_write_stream.on('close', () => {
-      console.log('[E] _ob_log_write_stream is closed.');
-      process.exit(1);
-    })
+    this._ob_log_file_cache = [];
+    this._ob_log_file_cache_max = 1000;
   }
 
   orderbook_log (...args) {
-    this._ob_log_write_stream.write(args.map(x => typeof x == 'object' ? JSON.stringify(x, null, 2) : x).join(' ')+'\n');
+    let cache_len = _ob_log_file_cache.push(args.map(x => typeof x == 'object' ? JSON.stringify(x, null, 2) : x).join(' '));
+
+    if (cache_len == this._ob_log_file_cache_max) {
+      fs.writeFile(log_file, this._ob_log_file_cache.join('\n')+'\n', { flag: 'a' }, err => {
+        if (err) {
+          console.log('[E] orderbook_log > Writing to file:',err);
+          process.exit();
+        } else {
+          this._ob_log_file_cache.splice(0, this._ob_log_file_cache_max);
+        }
+      });
+    }
+  }
+
+  async end_orderbook_log () {
+    // Waits until all the cache gets writed.
+    while (this._ob_log_file_cache.length >= this._ob_log_file_cache_max) {
+      await new Promise(r => setTimeout(r, 1));
+    };
+
+    // Write the rest of the cache if needed.
+    if (log_file_cache.length > 0) {
+      try {
+        fs.writeFileSync(log_file, log_file_cache.join('\n')+'\n', { flag: 'a' });
+      } catch (error) {
+        console.log('[E] end_orderbook_log > Writing last cache before ending:',error);
+      }
+    }
+
+    console.log('[!] orderbook_log > Finalizado com sucesso.');
   }
 
   async rest_request (endpoint, url_replaces = [], is_pagination = false) {
@@ -826,7 +846,7 @@ class Synchronizer {
     }
   }
 
-  before_apply_to_orderbook (upd_time) {
+  async before_apply_to_orderbook (upd_time) {
     const upd_sec = Math.floor(upd_time / 1e3);
     const book_sec = Math.floor(this.orderbook?.timestamp / 1e3);
 
@@ -867,8 +887,8 @@ class Synchronizer {
         //   console.log('[!] Log file saved at "'+this._ob_log_file+'".');
         // }
 
-        console.log('Closing "_ob_log_write_stream"...');
-        this._ob_log_write_stream.close();
+        console.log('Ending orderbook log...');
+        await this.end_orderbook_log();
         process.exit(1);
       }
 
