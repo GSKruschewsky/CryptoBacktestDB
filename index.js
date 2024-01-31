@@ -16,39 +16,16 @@ let sync = new Synchronizer(...args);
 
 if (is_test) {
   sync.is_test = true;
-  
   if (is_ob_test) {
     sync.is_ob_test = true;
     sync.orderbook_depth = 10;
-    if (args[3]) {
-      console.log('Setting log file to "'+args[3]+'"...');
-      sync._ob_log_file = args[3];
-    }
-
   } else {
     sync.orderbook_depth = 5;
   }
 }
 
 // 'console.log' start printing the current time (UTC-3).
-let _dlog = null;
-let dlog = null;
-
-if (is_ob_test && sync._ob_log_file != null) {
-  _dlog = console.log;
-  dlog = (...args) => {
-    if (sync._ob_log_file) {
-      if (!sync._ob_log_cache) sync._ob_log_cache = [];
-      
-      let _ob_log_cache_len = sync._ob_log_cache.push(args.map(x => typeof x == 'object' ? JSON.stringify(x, null, 2) : x).join(' '));
-      if (_ob_log_cache_len > 381250) sync._ob_log_cache.shift();
-    }
-    _dlog(...args);
-  }
-} else {
-  dlog = console.log;
-}
-
+let dlog = console.log;
 console.dlog = dlog;
 console.log = (...args) => {
   const ts = Date.now()-60e3*60*3;

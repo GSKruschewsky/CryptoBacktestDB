@@ -70,8 +70,13 @@ class Synchronizer {
     this.diff_latency = [];
 
     // Orderbook test log vars
-    this._ob_log_file = null;
-    this._ob_log_cache = null;
+    this._ob_log_file = './'+this.exchange+'_'+this.base+'-'+this.quote+'_orderbook.log';
+    this._ob_log_cache = [];
+  }
+
+  orderbook_log (...args) {
+    let _ob_log_cache_len = this._ob_log_cache.push(args.map(x => typeof x == 'object' ? JSON.stringify(x, null, 2) : x).join(' '));
+    if (_ob_log_cache_len > 381250) this._ob_log_cache.shift();
   }
 
   async rest_request (endpoint, url_replaces = [], is_pagination = false) {
@@ -545,17 +550,8 @@ class Synchronizer {
 
     const _ob_sub = _ws.subcriptions[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
-
-    // if (this.exchange == 'bitstamp-spot')
-    //   this._last_ob_msg = JSON.stringify(msg);
     
-    // if (this.is_ob_test) {
-    //   this._last_ob_msg = JSON.stringify(msg);
-    //   // console.log('('+conn._idx+') Book msg:',msg);
-    //   // let _msg = (_ob_sub.update.data_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
-    //   // _msg = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], _msg) || _msg);
-    //   // console.log('('+conn._idx+') Book msg:',_msg);
-    // }
+    this._last_ob_msg = JSON.stringify(msg, null, 2);
 
     // Checks if its the first update.
     if (_info.received_first_update !== true) {
@@ -766,33 +762,30 @@ class Synchronizer {
     // Set 'last_update_nonce' if possible.
     if (_ob_sub.update.last_upd_nonce_key)
       formatted.last_update_nonce = (msg[_ob_sub.update.last_upd_nonce_key] || updates[_ob_sub.update.last_upd_nonce_key]);
+    
+    // Log book message
+    if (is_snapshot) {
+      if (is_snap && _ob_sub.update?.asks_and_bids_together || _ob_sub.snapshot?.asks_and_bids_together) {
+        // Need to remove the whole '_ob_sub.update.updates_inside' from the message.
+        let keys = _ob_sub.update.updates_inside?.split('.');
+        let _nav = msg;
+        keys.forEach((key, idx) => {
+          if (idx == keys.length - 1) {
+            delete _nav[key];
+          } else {
+            _nav = _nav[key];
+          }
+        });
 
-    // 'msg' will not be used since here so we can wo wathever we want with it.
-    // if (this.is_ob_test) {
-    //   if (is_snapshot) {
-    //     if (is_snap && _ob_sub.update?.asks_and_bids_together || _ob_sub.snapshot?.asks_and_bids_together) {
-    //       // Need to remove the whole '_ob_sub.update.updates_inside' from the message.
-    //       let keys = _ob_sub.update.updates_inside?.split('.');
-    //       let _nav = msg;
-    //       keys.forEach((key, idx) => {
-    //         if (idx == keys.length - 1) {
-    //           delete _nav[key];
-    //         } else {
-    //           _nav = _nav[key];
-    //         }
-    //       });
+      } else {
+        // Need to remove 'asks' and 'bids' from the message and add '__ = SNAPSHOT'.
+        delete updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks];
+        delete updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids];
+      }
 
-    //     } else {
-    //       // Need to remove 'asks' and 'bids' from the message and add '__ = SNAPSHOT'.
-    //       delete updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks];
-    //       delete updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids];
-    //       msg['__'] = 'SNAPSHOT';
-
-    //     }
-    //   }
-      
-    //   console.log('('+conn._idx+') Book msg:',msg);
-    // }
+      msg['__'] = 'SNAPSHOT';
+    }
+    this.orderbook_log('('+conn._idx+') Book msg:',msg);
     
     // Returns the formatted message.
     return formatted;
@@ -831,16 +824,44 @@ class Synchronizer {
       this.delayed_orderbook == null || 
       book_sec != Math.floor(upd_time / 1e3)
     )) {
-      if (!this.is_test) console.log('[!] New second, book_sec ('+book_sec+') upd_sec ('+upd_sec+')');
+      // if (!this.is_test) console.log('[!] New second, book_sec ('+book_sec+') upd_sec ('+upd_sec+')');
       const save_it = (this.delayed_orderbook != null);
 
       if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 
       Math.floor(this.delayed_orderbook.timestamp / 1e3) != book_sec)
         this.orderbooks.unshift(this.delayed_orderbook);
+        
+      // Simple orderbook validation before saving it.
+      let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
+      let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
+
+      if (Big(_asks[0][0]).lte(_bids[0][0])) {
+        console.log('Orderbook:');
+        this.orderbook_log('Orderbook:');
+
+        console.dlog(_asks.slice(0, 10).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+        this.orderbook_log(_asks.slice(0, 10).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+
+        console.dlog(_bids.slice(0, 10).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+        this.orderbook_log(_bids.slice(0, 10).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+
+        console.log('[E] Orderbook > ASK lower or equal BID.');
+        this.orderbook_log('[E] Orderbook > ASK lower or equal BID.');
+
+        console.log('Last orderbook message:',this._last_ob_msg);
+
+        if (this._ob_log_file != null) {
+          console.log('Writing',this._ob_log_cache.length,'lines...');
+          fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
+          console.log('[!] Log file saved at "'+this._ob_log_file+'".');
+        }
+
+        process.exit(1);
+      }
 
       this.delayed_orderbook = {
-        asks: Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth),
-        bids: Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth),
+        asks: _asks,
+        bids: _bids,
         timestamp: this.orderbook.timestamp,
         first: !save_it
       };
@@ -910,10 +931,8 @@ class Synchronizer {
       this.last_book_updates[this.last_book_updates_nonce] = msg_str;
     }
     
-    // if (this.is_ob_test || this.exchange == 'bitstamp-spot') {
-    //   const { asks, bids, ...updRest } = update;
-    //   console.log('Book snap ('+this.orderbook_upd_cache.length+'):',updRest);
-    // }
+    const { asks, bids, ...updRest } = update;
+    this.orderbook_log('Book snap ('+this.orderbook_upd_cache.length+'):',updRest);
 
     if (this.is_lantecy_test && update.timestamp) this.diff_latency.push(ws_recv_ts - update.timestamp);
 
@@ -937,32 +956,8 @@ class Synchronizer {
       this.orderbook_upd_cache.shift();
     }
 
-    // if (this.is_ob_test) {
-    //   console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-    //   console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-    // }
-
-    // if (this.exchange == 'bitstamp-spot') {
-    //   let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
-    //   let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
-
-    //   console.log('ORDERBOOK:');
-    //   console.dlog(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-    //   console.dlog(' ');
-    //   console.dlog(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-    //   console.dlog(' ');
-    //   console.dlog('timestamp=',this.orderbook.timestamp);
-    //   console.dlog('timestamp_us=',this.orderbook.timestamp_us);
-    //   console.dlog('last_update_nonce=',this.orderbook.last_update_nonce,'\n');
-    //   console.dlog(' ');
-
-    //   if (Big(_asks[0][0]).lte(_bids[0][0])) {
-    //     console.log('[E] ASK <= BID after snapshot.');
-    //     console.log('this._last_ob_msg:',this._last_ob_msg);
-    //     process.exit();
-    //   }
-    // }
-
+    this.orderbook_log(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    this.orderbook_log(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
   }
 
   apply_orderbook_upd (upd, _ws, __ws, _prom, ws_recv_ts) {
@@ -998,7 +993,7 @@ class Synchronizer {
       this.last_book_updates[this.last_book_updates_nonce] = msg_str;
     }
     
-    // if (this.is_ob_test) console.log('Book upd:',upd);
+    this.orderbook_log('Book upd:',upd);
 
     if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
@@ -1048,24 +1043,6 @@ class Synchronizer {
     this.orderbook.timestamp = upd.timestamp;
     this.orderbook.timestamp_us = upd.timestamp_us;
     this.orderbook.last_update_nonce = upd.last_update_nonce;
-
-    // if (this.exchange == 'bitstamp-spot') {
-    //   let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
-    //   let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10);
-
-    //   console.log('ORDERBOOK:');
-    //   console.dlog(_asks.reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-    //   console.dlog(_bids.map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-    //   console.dlog('timestamp=',this.orderbook.timestamp);
-    //   console.dlog('timestamp_us=',this.orderbook.timestamp_us);
-    //   console.dlog('last_update_nonce=',this.orderbook.last_update_nonce,'\n');
-
-    //   if (Big(_asks[0][0]).lte(_bids[0][0])) {
-    //     console.log('[E] ASK <= BID after update.');
-    //     console.log('this._last_ob_msg:',this._last_ob_msg);
-    //     process.exit();
-    //   }
-    // }
 
     // console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     // console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
@@ -2034,53 +2011,14 @@ class Synchronizer {
         second: this.data_time,
       };
 
-      // Simple book validation before posting it.
-      if (Big(obj.asks[0][0]).lte(obj.bids[0][0])) {
-        console.log('Orderbook:');
-        console.dlog(obj.asks.slice(0, 5).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-        console.dlog(obj.bids.slice(0, 5).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-        console.dlog('timestamp=',orderbook_to_post?.timestamp);
-        console.dlog('timestamp_us=',orderbook_to_post?.timestamp_us);
-        console.dlog('last_update_nonce=',orderbook_to_post?.last_update_nonce,'\n');
-
-        console.log('orderbook_to_post:',orderbook_to_post);
-
-        console.log('[E] save_second > Orderbook to post ASK lower or equal BID.');
-
-        // if (this.is_ob_test && this._ob_log_file != null) {
-        //   console.log('Writing',this._ob_log_cache.length,'lines...');
-        //   fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
-        //   console.log('[!] Log file saved at "'+this._ob_log_file+'".');
-        // }
-
-        process.exit(1);
-      }
-
       if (this.is_test) {
         if (this.is_ob_test) {
           let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
           let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
 
-          if (Big(_asks[0][0]).lte(_bids[0][0])) {
-            console.log('Orderbook:');
-            console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-            console.dlog(_bids.map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-
-            console.log('[E] Orderbook > ASK lower or equal BID.');
-
-            if (this.is_ob_test && this._ob_log_file != null) {
-              console.log('Writing',this._ob_log_cache.length,'lines...');
-              fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
-              console.log('[!] Log file saved at "'+this._ob_log_file+'".');
-            }
-
-            process.exit(1);
-
-          } else {
-            console.log('Orderbook:');
-            console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-            console.dlog(_bids.map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-          }
+          console.log('Orderbook:');
+          console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+          console.dlog(_bids.map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
 
         } else {
           console.log(obj); // Just log the object.
