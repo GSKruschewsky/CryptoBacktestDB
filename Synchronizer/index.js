@@ -75,7 +75,9 @@ class Synchronizer {
 
     // Delete last log file
     fs.unlinkSync(this._ob_log_file);
-    fs.unlinkSync(this._ob_log_file.split('/').slice(0, -1).join('/')+'/old_logs/'+this._ob_log_file.split('/').slice(-1)[0]);
+
+    const old_logs_file = this._ob_log_file.split('/').slice(0, -1).join('/')+'/old_logs/'+this._ob_log_file.split('/').slice(-1)[0];
+    if (fs.existsSync(old_logs_file)) fs.unlinkSync();
 
     this._ob_log_file_cache = [];
     this._ob_log_file_cache_max = 1000;
