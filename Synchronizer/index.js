@@ -74,7 +74,7 @@ class Synchronizer {
     fs.mkdirSync(this._ob_log_file.split('/').slice(0, -1).join('/'), { recursive: true });
 
     // Delete last log file
-    fs.unlinkSync(this._ob_log_file);
+    if (fs.existsSync(this._ob_log_file)) fs.unlinkSync(this._ob_log_file);
 
     const old_logs_file = this._ob_log_file.split('/').slice(0, -1).join('/')+'/old_logs/'+this._ob_log_file.split('/').slice(-1)[0];
     if (fs.existsSync(old_logs_file)) fs.unlinkSync();
