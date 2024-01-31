@@ -80,14 +80,23 @@ class Synchronizer {
     let cache_len = this._ob_log_file_cache.push(args.map(x => typeof x == 'object' ? JSON.stringify(x, null, 2) : x).join(' '));
 
     if (cache_len == this._ob_log_file_cache_max) {
-      fs.writeFile(this._ob_log_file, this._ob_log_file_cache.join('\n')+'\n', { flag: 'a' }, err => {
-        if (err) {
-          console.log('[E] orderbook_log > Writing to file:',err);
-          process.exit();
-        } else {
-          this._ob_log_file_cache.splice(0, this._ob_log_file_cache_max);
-        }
-      });
+      // // Async
+      // fs.writeFile(this._ob_log_file, this._ob_log_file_cache.join('\n')+'\n', { flag: 'a' }, err => {
+      //   if (err) {
+      //     console.log('[E] orderbook_log > Writing to file:',err);
+      //     process.exit();
+      //   } else {
+      //     this._ob_log_file_cache.splice(0, this._ob_log_file_cache_max);
+      //   }
+      // });
+
+      // Sync
+      try {
+        fs.writeFileSync(this._ob_log_file, this._ob_log_file_cache.join('\n')+'\n', { flag: 'a' });
+      } catch (error) {
+        console.log('[E] orderbook_log > Writing to file:',err);
+        process.exit();
+      }
     }
   }
 

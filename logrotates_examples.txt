@@ -1,0 +1,26 @@
+On "/etc/logrotate.d/cryptodb_orderbook_logs" file:
+
+/home/ec2-user/CryptoBacktestDB/orderbook_logs/*.log {
+        su ec2-user ec2-user
+        rotate 1
+        nocompress
+        size 100M
+        olddir old_logs/
+        createolddir
+}
+On "/etc/logrotate.d/pm2_logs" file:
+
+/home/ec2-user/.pm2/logs/*.log {
+        su ec2-user ec2-user
+        rotate 1
+        nocompress
+        size 10M
+        olddir old_logs/
+        createolddir
+        daily
+}
+
+On ROOT crontab:
+
+*/5 * * * * /usr/sbin/logrotate /etc/logrotate.d/cryptodb_orderbook_logs
+0 0 * * * /usr/sbin/logrotate /etc/logrotate.d/pm2_logs
