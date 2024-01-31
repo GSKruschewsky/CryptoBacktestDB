@@ -77,10 +77,10 @@ class Synchronizer {
   }
 
   orderbook_log (...args) {
-    let cache_len = _ob_log_file_cache.push(args.map(x => typeof x == 'object' ? JSON.stringify(x, null, 2) : x).join(' '));
+    let cache_len = this._ob_log_file_cache.push(args.map(x => typeof x == 'object' ? JSON.stringify(x, null, 2) : x).join(' '));
 
     if (cache_len == this._ob_log_file_cache_max) {
-      fs.writeFile(log_file, this._ob_log_file_cache.join('\n')+'\n', { flag: 'a' }, err => {
+      fs.writeFile(this._ob_log_file, this._ob_log_file_cache.join('\n')+'\n', { flag: 'a' }, err => {
         if (err) {
           console.log('[E] orderbook_log > Writing to file:',err);
           process.exit();
