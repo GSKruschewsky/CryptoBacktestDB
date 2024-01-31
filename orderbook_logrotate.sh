@@ -1,0 +1,1 @@
+find ~/CryptoBacktestDB/orderbook_logs/* -name '*.log' -exec sh ./logrotate.sh {} 1000000 \;

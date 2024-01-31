@@ -70,7 +70,8 @@ class Synchronizer {
     this.diff_latency = [];
 
     // Orderbook test log vars
-    this._ob_log_file = './'+this.exchange+'_'+this.base+'-'+this.quote+'_orderbook.log';
+    this._ob_log_file = './orderbook_logs/'+this.exchange+'_'+this.base+'-'+this.quote+'_orderbook.log';
+    fs.mkdirSync(this._ob_log_file.split('/').slice(0, -1).join('/'), { recursive: true });
 
     this._ob_log_write_stream = fs.createWriteStream(this._ob_log_file, { flags : 'w', flush: true });
 
