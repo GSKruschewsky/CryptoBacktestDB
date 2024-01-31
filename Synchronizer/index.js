@@ -71,12 +71,21 @@ class Synchronizer {
 
     // Orderbook test log vars
     this._ob_log_file = './'+this.exchange+'_'+this.base+'-'+this.quote+'_orderbook.log';
-    this._ob_log_cache = [];
+
+    this._ob_log_write_stream = fs.createWriteStream(this._ob_log_file, { flags : 'w', flush: true });
+
+    this._ob_log_write_stream.on('error', error => {
+      console.log('[E] _ob_log_write_stream:',error);
+    });
+
+    this._ob_log_write_stream.on('close', () => {
+      console.log('[E] _ob_log_write_stream is closed.');
+      process.exit(1);
+    })
   }
 
   orderbook_log (...args) {
-    let _ob_log_cache_len = this._ob_log_cache.push(args.map(x => typeof x == 'object' ? JSON.stringify(x, null, 2) : x).join(' '));
-    if (_ob_log_cache_len > 381250) this._ob_log_cache.shift();
+    this._ob_log_write_stream.write(args.map(x => typeof x == 'object' ? JSON.stringify(x, null, 2) : x).join(' ')+'\n');
   }
 
   async rest_request (endpoint, url_replaces = [], is_pagination = false) {
@@ -849,13 +858,16 @@ class Synchronizer {
         this.orderbook_log('[E] Orderbook > ASK lower or equal BID.');
 
         console.log('Last orderbook message:',this._last_ob_msg);
+        this.orderbook_log('Last orderbook message:',this._last_ob_msg);
 
-        if (this._ob_log_file != null) {
-          console.log('Writing',this._ob_log_cache.length,'lines...');
-          fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
-          console.log('[!] Log file saved at "'+this._ob_log_file+'".');
-        }
+        // if (this._ob_log_file != null) {
+        //   console.log('Writing',this._ob_log_cache.length,'lines...');
+        //   fs.writeFileSync(this._ob_log_file, this._ob_log_cache.join('\n'));
+        //   console.log('[!] Log file saved at "'+this._ob_log_file+'".');
+        // }
 
+        console.log('Closing "_ob_log_write_stream"...');
+        this._ob_log_write_stream.close();
         process.exit(1);
       }
 
