@@ -72,6 +72,11 @@ class Synchronizer {
     // Orderbook test log vars
     this._ob_log_file = './orderbook_logs/'+this.exchange+'_'+this.base+'-'+this.quote+'_orderbook.log';
     fs.mkdirSync(this._ob_log_file.split('/').slice(0, -1).join('/'), { recursive: true });
+
+    // Delete last log file
+    fs.unlinkSync(this._ob_log_file);
+    fs.unlinkSync(this._ob_log_file.split('/').slice(0, -1).join('/')+'/old_logs/'+this._ob_log_file.split('/').slice(-1)[0]);
+
     this._ob_log_file_cache = [];
     this._ob_log_file_cache_max = 1000;
   }
