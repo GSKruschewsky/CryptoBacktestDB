@@ -100,6 +100,7 @@ class Synchronizer {
       // Sync
       try {
         fs.writeFileSync(this._ob_log_file, this._ob_log_file_cache.join('\n')+'\n', { flag: 'a' });
+        this._ob_log_file_cache = []
       } catch (error) {
         console.log('[E] orderbook_log > Writing to file:',err);
         process.exit();
