@@ -43,6 +43,7 @@ sync.keep_synced()
 
 // Do not end...
 (async () => {
+  console.log('Final de tudo...');
   while (true) {
     await new Promise(r => setTimeout(r, 5e3));
   }

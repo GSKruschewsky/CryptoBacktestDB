@@ -54,7 +54,7 @@ const exchanges = {
     'coinbase-spot',
     'kraken-spot',
     'bitfinex-spot',
-    'bitstamp-spot'
+    // 'bitstamp-spot'
   ]
 };
 

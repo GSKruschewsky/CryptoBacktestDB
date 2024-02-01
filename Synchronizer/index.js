@@ -109,17 +109,21 @@ class Synchronizer {
   }
 
   async end_orderbook_log () {
-    // Waits until all the cache gets writed.
+    // Waits until all the cache is writed.
+    console.log('Waiting until all the orderbook log cache is writed to file...');
     while (this._ob_log_file_cache.length >= this._ob_log_file_cache_max) {
       await new Promise(r => setTimeout(r, 1));
     };
+    console.log('[!] Done.');
 
     // Write the rest of the cache if needed.
     if (log_file_cache.length > 0) {
+      console.log('Writing the remaning orderbook log cache...');
       try {
         fs.writeFileSync(log_file, log_file_cache.join('\n')+'\n', { flag: 'a' });
+        console.log('[!] Done.');
       } catch (error) {
-        console.log('[E] end_orderbook_log > Writing last cache before ending:',error);
+        console.log('[E] end_orderbook_log > Writing remaning cache before ending:',error);
       }
     }
 
@@ -2278,7 +2282,10 @@ class Synchronizer {
 
     while (this.__working) {
       if ((!this.completely_synced) && (_failures_in_a_row++ < 3 || Date.now() - _last_failed_sync > 5e3)) {
-        await this.initiate()
+        await Promise.race([
+          this.initiate(),
+          new Promise((resolve, reject) => setTimeout(60e3*5, reject, '5 MINUTES TIMEOUT.'))
+        ])
         .then(() => {
           this.already_initiated = true
           _failures_in_a_row = 0;
