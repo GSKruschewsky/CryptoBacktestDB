@@ -2284,7 +2284,7 @@ class Synchronizer {
       if ((!this.completely_synced) && (_failures_in_a_row++ < 3 || Date.now() - _last_failed_sync > 5e3)) {
         await Promise.race([
           this.initiate(),
-          new Promise((resolve, reject) => setTimeout(60e3*5, reject, '5 MINUTES TIMEOUT.'))
+          new Promise((resolve, reject) => setTimeout(reject, 60e3*5, '5 MINUTES TIMEOUT.'))
         ])
         .then(() => {
           this.already_initiated = true
