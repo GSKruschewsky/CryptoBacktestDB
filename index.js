@@ -41,10 +41,10 @@ sync.keep_synced()
   console.log('[E] "sync.keep_synced()" finally.');
 });
 
-// Do not end...
-(async () => {
-  console.log('Final de tudo...');
-  while (true) {
-    await new Promise(r => setTimeout(r, 5e3));
-  }
-})();
+// // Do not end...
+// (async () => {
+//   console.log('Final de tudo...');
+//   while (true) {
+//     await new Promise(r => setTimeout(r, 5e3));
+//   }
+// })();
