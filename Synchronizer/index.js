@@ -989,7 +989,7 @@ class Synchronizer {
     // if (!this.orderbook) 
     //   console.log('[!!] Got first orderbook snapshot from',((this.exc.rest?.endpoints?.orderbook != null) ? "REST" : "WS"),'at',update.timestamp);
 
-    if (_ws.subcriptions.orderbook.snapshot.reset_avoid_repetition_cache)
+    if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache)
       this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 256);
 
     this.orderbook = {
