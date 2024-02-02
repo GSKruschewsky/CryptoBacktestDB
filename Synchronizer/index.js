@@ -989,6 +989,9 @@ class Synchronizer {
     // if (!this.orderbook) 
     //   console.log('[!!] Got first orderbook snapshot from',((this.exc.rest?.endpoints?.orderbook != null) ? "REST" : "WS"),'at',update.timestamp);
 
+    if (_ws.subcriptions.orderbook.snapshot.reset_avoid_repetition_cache)
+      this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 256);
+
     this.orderbook = {
       asks: Object.fromEntries(update.asks),
       bids: Object.fromEntries(update.bids),
@@ -1140,7 +1143,7 @@ class Synchronizer {
 
       if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition && 
       (this.last_book_updates == null || this.last_book_updates.length == 0))
-        this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 100);
+        this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 256);
       
       // If no 'orderbook.response', 'info.orderbook.channel_id' should be defined here.
       if (_ws.subcriptions?.orderbook != undefined && _ws.subcriptions.orderbook?.response == undefined) 

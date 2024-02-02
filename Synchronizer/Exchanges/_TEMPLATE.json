@@ -126,6 +126,7 @@
           "channel_id_val": null
         },
         "snapshot": {
+          "reset_avoid_repetition_cache": null,
           "its_first_update": null,
           "identifier_key": null,
           "identifier_value": null,
@@ -134,7 +135,7 @@
         },
         "update": {
           "avoid_repetition": null,
-          "avoid_repetition_size": 100,
+          "avoid_repetition_size": 256,
           "ignore_if": null,
           "channel_id_key": "",
           "channel_id": "",

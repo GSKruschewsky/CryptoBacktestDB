@@ -66,6 +66,7 @@
           "id_value": "level2"
         },
         "snapshot": {
+          "reset_avoid_repetition_cache": true,
           "channel_id": "snapshot",
           "identifier_key": "type",
           "identifier_value": "snapshot",
