@@ -61,7 +61,6 @@
           "id": "id"
         },
         "update": {
-          "do_not_validate_by_ts": true,
           "channel_id_key": "stream",
           "channel_id": "<market>@depth@100ms",
           "data_inside": "data",

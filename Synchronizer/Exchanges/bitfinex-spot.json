@@ -83,7 +83,6 @@
         },
         "update": {
           "avoid_repetition": true,
-          "do_not_validate_by_ts": true,
           "ignore_if": [ [ "1" , "hb"] ],
           "channel_id_key": "0",
           "channel_id": null,

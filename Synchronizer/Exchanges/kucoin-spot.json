@@ -113,7 +113,6 @@
         },
         "snapshot": null,
         "update": {
-          "do_not_validate_by_ts": true,
           "ignore_if": null,
           "channel_id_key": "topic",
           "channel_id": "/market/level2:<market>",

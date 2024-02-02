@@ -69,7 +69,6 @@
         },
         "update": {
           "avoid_repetition": true,
-          "do_not_validate_by_ts": true,
           "data_inside": "1,-2",
           "channel_id_key": "-2",
           "asks": "a",

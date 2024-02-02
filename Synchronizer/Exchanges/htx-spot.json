@@ -63,7 +63,6 @@
           "channel_id_key": "subbed"
         },
         "update": {
-          "do_not_validate_by_ts": true,
           "channel_id_key": "ch",
           "channel_id": "market.<market>.mbp.400",
           "updates_inside": "tick",

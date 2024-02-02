@@ -77,7 +77,6 @@
         },
         "update": {
           "avoid_repetition": true,
-          "do_not_validate_by_ts": true,
           "data_inside_arr": true,
           "data_inside_arr_inside": "data",
           "channel_id_key": "action",

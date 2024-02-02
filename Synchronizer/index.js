@@ -914,7 +914,7 @@ class Synchronizer {
         } catch (error) {
           console.log('[E] Failed to end orderbook log:',error);
         }
-        
+
         process.exit(1);
       }
 
@@ -955,19 +955,10 @@ class Synchronizer {
 
   apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts) {
     // Validate snapshot update.
-
-    const _ws_upd = _ws.subcriptions?.['orderbook_snap'] != null ? _ws.subcriptions['orderbook_snap'].update : _ws.subcriptions['orderbook'].snapshot;
+    if (this.orderbook == null) return; // Just in case
 
     // console.log('snap upd:',(update.last_update_nonce || update.timestamp_us || update.timestamp), (update.last_update_nonce && "last_update_nonce") || (update.timestamp_us && "timestamp_us") || (update.timestamp && "timestamp"));
-    if (this.orderbook != null && (
-      (this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce)) ||
-      (
-        (!_ws_upd.do_not_validate_by_ts) && (
-          ((!_ws_upd.do_not_validate_by_micro_ts) && this.orderbook.timestamp_us && update.timestamp_us && Big(update.timestamp_us).lt(this.orderbook.timestamp_us)) ||
-          (this.orderbook.timestamp && update.timestamp && Big(update.timestamp).lt(this.orderbook.timestamp))
-        )
-      )
-    ))
+    if (this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce))
       return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
 
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
@@ -989,6 +980,8 @@ class Synchronizer {
       this.last_book_updates_nonce = (++this.last_book_updates_nonce % this.last_book_updates.length)
       this.last_book_updates[this.last_book_updates_nonce] = msg_str;
     }
+
+    // const _ws_upd = _ws.subcriptions?.['orderbook_snap'] != null ? _ws.subcriptions['orderbook_snap'].update : _ws.subcriptions['orderbook'].snapshot;
     
     const { asks, bids, ...updRest } = update;
     this.orderbook_log('Book snap ('+this.orderbook_upd_cache.length+'):',updRest);
@@ -1023,14 +1016,14 @@ class Synchronizer {
     // Validate updates.
     if (this.orderbook == null) return; // Just in case
 
-    if (this.orderbook.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce))
+    if (this.orderbook.last_update_nonce && upd.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce))
       return;
 
-    if (!_ws.subcriptions.orderbook.update.do_not_validate_by_ts) {
-      if (((!_ws.subcriptions.orderbook.update.do_not_validate_by_micro_ts) && this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
-      (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
-        return;
-    }
+    // if (!_ws.subcriptions.orderbook.update.do_not_validate_by_ts) {
+    //   if (((!_ws.subcriptions.orderbook.update.do_not_validate_by_micro_ts) && this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
+    //   (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
+    //     return;
+    // }
       
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
     

@@ -133,8 +133,6 @@
           "get_timestamp_us_from_iso": null
         },
         "update": {
-          "do_not_validate_by_ts": null,
-          "do_not_validate_by_micro_ts": null,
           "avoid_repetition": null,
           "avoid_repetition_size": 100,
           "ignore_if": null,

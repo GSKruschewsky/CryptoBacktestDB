@@ -65,7 +65,6 @@
         },
         "update": {
           "avoid_repetition": true,
-          "do_not_validate_by_micro_ts": true,
           "channel_id_key": "channel",
           "data_inside": "data",
           "asks": "asks",
