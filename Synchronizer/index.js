@@ -117,10 +117,10 @@ class Synchronizer {
     console.log('[!] Done.');
 
     // Write the rest of the cache if needed.
-    if (log_file_cache.length > 0) {
+    if (this._ob_log_file_cache.length > 0) {
       console.log('Writing the remaning orderbook log cache...');
       try {
-        fs.writeFileSync(log_file, log_file_cache.join('\n')+'\n', { flag: 'a' });
+        fs.writeFileSync(this._ob_log_file, this._ob_log_file_cache.join('\n')+'\n', { flag: 'a' });
         console.log('[!] Done.');
       } catch (error) {
         console.log('[E] end_orderbook_log > Writing remaning cache before ending:',error);
