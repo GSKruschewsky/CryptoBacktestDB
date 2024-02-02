@@ -956,6 +956,20 @@ class Synchronizer {
     if (this.orderbook != null && this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce))
       return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
 
+    if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && (
+      (
+        update.timestamp && 
+        this.orderbook.last_snapshot_ts && 
+        Big(update.timestamp).lt(this.orderbook.last_snapshot_ts)
+      ) ||
+      (
+        update.timestamp_us && 
+        this.orderbook.last_snapshot_ts_us && 
+        Big(update.timestamp_us).lt(this.orderbook.last_snapshot_ts_us)
+      )
+    ))
+      return;
+
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
 
     if (this.last_book_updates.length > 0) {
@@ -992,13 +1006,17 @@ class Synchronizer {
     if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache)
       this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 256);
 
+    this.orderbook_log(update.asks.slice(0, 10).reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    this.orderbook_log(update.bids.slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+
     this.orderbook = {
       asks: Object.fromEntries(update.asks),
       bids: Object.fromEntries(update.bids),
       timestamp: update.timestamp,
       timestamp_us: update.timestamp_us,
       last_update_nonce: update.last_update_nonce,
-      last_snapshot_ts: update.timestamp
+      last_snapshot_ts: update.timestamp,
+      last_snapshot_ts_us: update.timestamp_us
     };
 
     // Apply cached orderbook updates.
@@ -1024,10 +1042,18 @@ class Synchronizer {
     //     return;
     // }
 
-    if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && 
-    upd.timestamp && 
-    this.orderbook.last_snapshot_ts && 
-    Big(upd.timestamp).lt(this.orderbook.last_snapshot_ts))
+    if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && (
+      (
+        update.timestamp && 
+        this.orderbook.last_snapshot_ts && 
+        Big(update.timestamp).lt(this.orderbook.last_snapshot_ts)
+      ) ||
+      (
+        update.timestamp_us && 
+        this.orderbook.last_snapshot_ts_us && 
+        Big(update.timestamp_us).lt(this.orderbook.last_snapshot_ts_us)
+      )
+    ))
       return;
       
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
