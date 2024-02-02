@@ -1008,7 +1008,6 @@ class Synchronizer {
   }
 
   apply_orderbook_upd (upd, _ws, __ws, _prom, ws_recv_ts) {
-    console.log('Book upd:',upd);
     // Validate updates.
     if (this.orderbook == null) return; // Just in case
 
