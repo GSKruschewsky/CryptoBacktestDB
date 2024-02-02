@@ -951,10 +951,9 @@ class Synchronizer {
 
   apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts) {
     // Validate snapshot update.
-    if (this.orderbook == null) return; // Just in case
 
     // console.log('snap upd:',(update.last_update_nonce || update.timestamp_us || update.timestamp), (update.last_update_nonce && "last_update_nonce") || (update.timestamp_us && "timestamp_us") || (update.timestamp && "timestamp"));
-    if (this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce))
+    if (this.orderbook != null && this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce))
       return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
 
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
@@ -1009,6 +1008,7 @@ class Synchronizer {
   }
 
   apply_orderbook_upd (upd, _ws, __ws, _prom, ws_recv_ts) {
+    console.log('Book upd:',upd);
     // Validate updates.
     if (this.orderbook == null) return; // Just in case
 
