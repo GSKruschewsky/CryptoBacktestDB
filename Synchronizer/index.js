@@ -985,12 +985,12 @@ class Synchronizer {
       (
         update.timestamp && 
         this.orderbook.last_snapshot_ts && 
-        Big(update.timestamp).lt(this.orderbook.last_snapshot_ts)
+        Big(update.timestamp).lt(this.orderbook.timestamp)
       ) ||
       (
         update.timestamp_us && 
         this.orderbook.last_snapshot_ts_us && 
-        Big(update.timestamp_us).lt(this.orderbook.last_snapshot_ts_us)
+        Big(update.timestamp_us).lt(this.orderbook.timestamp_us)
       )
     ))
       return;
