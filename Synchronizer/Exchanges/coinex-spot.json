@@ -93,6 +93,7 @@
         },
         "update": {
           "avoid_repetition": true,
+          "do_not_validate_by_ts": true,
           "ignore_if": null,
           "channel_id_key": "method",
           "channel_id": "depth.update",

@@ -1,4 +1,7 @@
-On ROOT crontab:
+# Before setting the crontab remeber to set the ownership of the config file to root:
+sudo chown root:root pm2_logs.conf
+sudo chown root:root orderbook_logs.conf
 
+# On ROOT crontab:
 */5 * * * * /usr/sbin/logrotate /home/ec2-user/CryptoBacktestDB/logrotates_conf/orderbook_logs.conf
 0 0 * * * /usr/sbin/logrotate /home/ec2-user/CryptoBacktestDB/logrotates_conf/pm2_logs.conf

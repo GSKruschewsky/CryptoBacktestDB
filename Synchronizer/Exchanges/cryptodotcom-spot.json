@@ -70,6 +70,7 @@
           "channel_id_val": null
         },
         "update": {
+          "do_not_validate_by_ts": true,
           "channel_id_key": "result.channel",
           "channel_id": "book",
           "data_inside": "result.data.0",
