@@ -1047,14 +1047,14 @@ class Synchronizer {
     if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && 
     (
       (
-        update.timestamp && 
+        upd.timestamp && 
         this.orderbook.last_snapshot_ts && 
-        Big(update.timestamp).lt(this.orderbook.last_snapshot_ts)
+        Big(upd.timestamp).lt(this.orderbook.last_snapshot_ts)
       ) ||
       (
-        update.timestamp_us && 
+        upd.timestamp_us && 
         this.orderbook.last_snapshot_ts_us && 
-        Big(update.timestamp_us).lt(this.orderbook.last_snapshot_ts_us)
+        Big(upd.timestamp_us).lt(this.orderbook.last_snapshot_ts_us)
       )
     ))
       return;
