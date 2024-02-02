@@ -76,6 +76,7 @@ class Synchronizer {
     // Delete last log file
     if (fs.existsSync(this._ob_log_file)) fs.unlinkSync(this._ob_log_file);
 
+    // Delete last 'old' log file
     const old_logs_file = this._ob_log_file.split('/').slice(0, -1).join('/')+'/old_logs/'+this._ob_log_file.split('/').slice(-1)[0]+'.1';
     if (fs.existsSync(old_logs_file)) fs.unlinkSync(old_logs_file);
 
@@ -601,8 +602,6 @@ class Synchronizer {
 
     const _ob_sub = _ws.subcriptions[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
-    
-    this._last_ob_msg = JSON.stringify(msg, null, 2);
 
     // Checks if its the first update.
     if (_info.received_first_update !== true) {
@@ -896,11 +895,8 @@ class Synchronizer {
         console.dlog(_bids.slice(0, 10).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
         this.orderbook_log(_bids.slice(0, 10).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
 
-        console.log('[E] Orderbook > ASK lower or equal BID.');
-        this.orderbook_log('[E] Orderbook > ASK lower or equal BID.');
-
-        console.log('Last orderbook message:',this._last_ob_msg);
-        this.orderbook_log('Last orderbook message:',this._last_ob_msg);
+        console.log('[E] before_apply_to_orderbook > Orderbook ASK lower or equal BID.');
+        this.orderbook_log('[E] before_apply_to_orderbook > Orderbook  ASK lower or equal BID.');
 
         // if (this._ob_log_file != null) {
         //   console.log('Writing',this._ob_log_cache.length,'lines...');
