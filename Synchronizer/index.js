@@ -1008,9 +1008,6 @@ class Synchronizer {
     if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache)
       this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 256);
 
-    this.orderbook_log(update.asks.slice(0, 10).reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-    this.orderbook_log(update.bids.slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-
     this.orderbook = {
       asks: Object.fromEntries(update.asks),
       bids: Object.fromEntries(update.bids),
@@ -1020,6 +1017,9 @@ class Synchronizer {
       last_snapshot_ts: update.timestamp,
       last_snapshot_ts_us: update.timestamp_us
     };
+
+    this.orderbook_log(update.asks.slice(0, 10).reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    this.orderbook_log(update.bids.slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
 
     // Apply cached orderbook updates.
     while (this.orderbook != null && this.orderbook_upd_cache.length > 0) {
