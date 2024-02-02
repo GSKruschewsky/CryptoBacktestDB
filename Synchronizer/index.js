@@ -956,7 +956,9 @@ class Synchronizer {
     if (this.orderbook != null && this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce))
       return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
 
-    if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && (
+    if (this.orderbook != null &&
+    _ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && 
+    (
       (
         update.timestamp && 
         this.orderbook.last_snapshot_ts && 
@@ -1042,7 +1044,8 @@ class Synchronizer {
     //     return;
     // }
 
-    if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && (
+    if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && 
+    (
       (
         update.timestamp && 
         this.orderbook.last_snapshot_ts && 
