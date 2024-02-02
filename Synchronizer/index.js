@@ -909,7 +909,12 @@ class Synchronizer {
         // }
 
         console.log('Ending orderbook log...');
-        await this.end_orderbook_log();
+        try {
+          await this.end_orderbook_log();
+        } catch (error) {
+          console.log('[E] Failed to end orderbook log:',error);
+        }
+        
         process.exit(1);
       }
 
