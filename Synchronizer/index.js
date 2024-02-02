@@ -866,7 +866,7 @@ class Synchronizer {
     }
   }
 
-  async before_apply_to_orderbook (upd_time) {
+  async before_apply_to_orderbook (upd_time, _ws) {
     const upd_sec = Math.floor(upd_time / 1e3);
     const book_sec = Math.floor(this.orderbook?.timestamp / 1e3);
 
@@ -886,6 +886,29 @@ class Synchronizer {
       let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
 
       if (Big(_asks[0][0]).lte(_bids[0][0])) {
+        if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot) {
+          // Verifica se o 'timestamp' do ultimo update é igual ao 'last_snapshot_ts'.
+          if (Big(this.orderbook.timestamp).eq(this.orderbook.last_snapshot_ts) && 
+          (
+            this.orderbook.last_snapshot_ts_us == null ||
+            Big(this.orderbook.timestamp_us).eq(this.orderbook.last_snapshot_ts_us)
+          )) {
+            // Aplicou um update que não deveria devido ao timestamp do update ser igual ao 'last_snapshot_ts'.
+            // Reinicia todas as conexões e inicia a sincronização novamente.
+            console.log('[E] Applied an orderbook update that should not be applied! Closing all the conecctions for start the resynchronization process...');
+
+            for (let c_idx = 0; c_idx < this.connections_num; ++c_idx) {
+              if (this.connections?.[c_idx]?.primary?.ws?.readyState === WebSocket.OPEN)
+                this.connections[c_idx].primary.ws.terminate();
+
+              if (this.connections?.[c_idx]?.secondary?.ws?.readyState === WebSocket.OPEN)
+                this.connections[c_idx].secondary.ws.terminate();
+            }
+
+            return;
+          }
+        }
+
         console.log('Orderbook:');
         this.orderbook_log('Orderbook:');
 
