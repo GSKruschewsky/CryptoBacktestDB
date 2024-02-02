@@ -997,7 +997,8 @@ class Synchronizer {
       bids: Object.fromEntries(update.bids),
       timestamp: update.timestamp,
       timestamp_us: update.timestamp_us,
-      last_update_nonce: update.last_update_nonce
+      last_update_nonce: update.last_update_nonce,
+      last_snapshot_ts: update.timestamp
     };
 
     // Apply cached orderbook updates.
@@ -1022,6 +1023,12 @@ class Synchronizer {
     //   (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
     //     return;
     // }
+
+    if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && 
+    upd.timestamp && 
+    this.orderbook.last_snapshot_ts && 
+    Big(upd.timestamp).lt(this.orderbook.last_snapshot_ts))
+      return;
       
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
     

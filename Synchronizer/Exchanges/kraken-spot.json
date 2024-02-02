@@ -62,12 +62,14 @@
           "error_val": "error"
         },
         "snapshot": {
+          "reset_avoid_repetition_cache": true,
           "identifier_key": "bs",
           "channel_id_key": "2",
           "asks": "as",
           "bids": "bs"
         },
         "update": {
+          "apply_only_since_last_snapshot": true,
           "avoid_repetition": true,
           "data_inside": "1,-2",
           "channel_id_key": "-2",
