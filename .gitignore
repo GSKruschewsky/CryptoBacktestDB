@@ -5,4 +5,4 @@ reduced_*
 data_*
 *.log
 *.bat
-orderbook_logs*
+orderbook_logs/
