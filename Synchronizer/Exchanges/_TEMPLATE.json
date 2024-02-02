@@ -136,7 +136,7 @@
         "update": {
           "apply_only_since_last_snapshot": null,
           "avoid_repetition": null,
-          "avoid_repetition_size": 256,
+          "avoid_repetition_size": 512,
           "ignore_if": null,
           "channel_id_key": "",
           "channel_id": "",
