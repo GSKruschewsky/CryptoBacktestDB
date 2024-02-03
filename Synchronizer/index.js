@@ -998,7 +998,13 @@ class Synchronizer {
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
 
     if (this.last_book_updates.length > 0) {
-      let msg_str = JSON.stringify(update);
+      let _upd_to_cache = update;
+      if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition_drop_timestamp) {
+        let { timestamp, timestamp_us, ...no_ts_upd } = update;
+        _upd_to_cache = no_ts_upd;
+      }
+
+      let msg_str = JSON.stringify(_upd_to_cache);
       let idx;
 
       for (idx = this.last_book_updates_nonce - 1; idx >= 0; --idx) {
@@ -1085,7 +1091,13 @@ class Synchronizer {
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
     
     if (this.last_book_updates.length > 0) {
-      let msg_str = JSON.stringify(upd);
+      let _upd_to_cache = upd;
+      if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition_drop_timestamp) {
+        let { timestamp, timestamp_us, ...no_ts_upd } = upd;
+        _upd_to_cache = no_ts_upd;
+      }
+
+      let msg_str = JSON.stringify(_upd_to_cache);
       let idx;
   
       for (idx = this.last_book_updates_nonce - 1; idx >= 0; --idx) {
