@@ -977,7 +977,7 @@ class Synchronizer {
 
     // console.log('snap upd:',(update.last_update_nonce || update.timestamp_us || update.timestamp), (update.last_update_nonce && "last_update_nonce") || (update.timestamp_us && "timestamp_us") || (update.timestamp && "timestamp"));
     if (this.orderbook != null && this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce))
-      return; // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
+      return this.orderbook_log('/!\\ apply_orderbook_snap: update.last_update_nonce <= orderbook.last_update_nonce.'); // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
 
     if (this.orderbook != null &&
     _ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && 
@@ -993,7 +993,7 @@ class Synchronizer {
         Big(update.timestamp_us).lt(this.orderbook.timestamp_us)
       )
     ))
-      return;
+      return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp < this.orderbook.timestamp || update.timestamp_us < this.orderbook.timestamp_us.');
 
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
 
@@ -1009,12 +1009,12 @@ class Synchronizer {
 
       for (idx = this.last_book_updates_nonce - 1; idx >= 0; --idx) {
         if (this.last_book_updates[idx] == msg_str)
-          return; // Already aplied this update message.
+          return this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message.'); // Already aplied this update message.
       }
 
       for (idx = this.last_book_updates.length - 1; idx >= this.last_book_updates_nonce; --idx) {
         if (this.last_book_updates[idx] == msg_str)
-          return; // Already aplied this update message.
+          return this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message.'); // Already aplied this update message.
       }
         
       this.last_book_updates_nonce = (++this.last_book_updates_nonce % this.last_book_updates.length)
@@ -1062,16 +1062,19 @@ class Synchronizer {
 
   apply_orderbook_upd (upd, _ws, __ws, _prom, ws_recv_ts) {
     // Validate updates.
-    if (this.orderbook == null) return; // Just in case
+    if (this.orderbook == null) return this.orderbook_log('/!\\ apply_orderbook_upd: orderbook is null.'); // Just in case
 
     if (this.orderbook.last_update_nonce && upd.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce))
-      return;
+      return this.orderbook_log('/!\\ apply_orderbook_upd: upd.last_update_nonce <= orderbook.last_update_nonce.');
 
     // if (!_ws.subcriptions.orderbook.update.do_not_validate_by_ts) {
     //   if (((!_ws.subcriptions.orderbook.update.do_not_validate_by_micro_ts) && this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
     //   (this.orderbook.timestamp && upd.timestamp && Big(upd.timestamp).lt(this.orderbook.timestamp)))
     //     return;
     // }
+
+    if (_ws?.subcriptions?.orderbook?.update?.dont_apply_too_old && upd.timestamp && this.orderbook.timestamp && Big(upd.timestamp).lt(Big(this.orderbook.timestamp).minus(100)))
+      return this.orderbook_log('/!\\ apply_orderbook_upd: upd.timestamp < orderbook.timestamp - 100. (too old update)');
 
     if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && 
     (
@@ -1086,7 +1089,7 @@ class Synchronizer {
         Big(upd.timestamp_us).lt(this.orderbook.last_snapshot_ts_us)
       )
     ))
-      return;
+      return this.orderbook_log('/!\\ apply_orderbook_upd: upd.timestamp < this.orderbook.last_snapshot_ts || upd.timestamp_us < this.orderbook.last_snapshot_ts_us.');
       
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
     
@@ -1102,12 +1105,12 @@ class Synchronizer {
   
       for (idx = this.last_book_updates_nonce - 1; idx >= 0; --idx) {
         if (this.last_book_updates[idx] == msg_str)
-          return; // Already aplied this update message.
+          return this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update message.'); // Already aplied this update message.
       }
   
       for (idx = this.last_book_updates.length - 1; idx >= this.last_book_updates_nonce; --idx) {
         if (this.last_book_updates[idx] == msg_str)
-          return; // Already aplied this update message.
+          return this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update message.'); // Already aplied this update message.
       }
         
       this.last_book_updates_nonce = (++this.last_book_updates_nonce % this.last_book_updates.length)
