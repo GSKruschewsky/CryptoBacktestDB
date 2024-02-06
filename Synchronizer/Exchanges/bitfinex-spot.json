@@ -99,7 +99,6 @@
             "to_remove_value": 0
           },
           "timestamp": "3",
-          "avoid_repetition_drop_timestamp": true,
           "first_upd_nonce_key": null,
           "last_upd_nonce_key": null
         }
