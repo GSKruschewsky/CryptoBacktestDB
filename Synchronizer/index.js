@@ -2480,8 +2480,8 @@ class Synchronizer {
     for (const conn of this.connections) {
       if (conn?.primary?.ws?.terminate) conn.primary.ws.terminate();
       if (conn?.secondary?.ws?.terminate) conn.secondary.ws.terminate();
-      conn.primary.ws = null;
-      conn.secondary.ws = null;
+      if (conn?.primary?.ws) conn.primary.ws = null;
+      if (conn?.secondary?.ws) conn.secondary.ws = null;
 
       // if (conn?.ws?.terminate) conn.ws.terminate();
       // if (conn?.ws2?.terminate) conn.ws2.terminate();
