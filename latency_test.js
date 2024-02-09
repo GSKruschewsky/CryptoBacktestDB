@@ -37,7 +37,7 @@ async function calcLatency (sync) {
   while (Math.min(sync.conn_latency.length, sync.subr_latency.length, sync.diff_latency.length) < min_latencies) {
     try {
       await sync.initiate(); // Initiate exchange synchronization.
-      await new Promise(r => setTimeout(r, 900e3)); // Then, waits 900 seconds...
+      await new Promise(r => setTimeout(r, 60e3)); // Then, waits 60 seconds...
 
     } catch (error) {
       console.log(sync.exchange,'error:',error);
