@@ -1,6 +1,7 @@
 import Big from 'big.js';
 import fs from 'fs';
-import { Synchronizer, exchanges } from "./Synchronizer/index.js";
+import Synchronizer from "./Synchronizer/index.js";
+import exchanges from './Synchronizer/Exchanges/index.js';
 
 let args = process.argv.slice(2);
 
@@ -24,6 +25,7 @@ function calcMean (arr) {
 }
 
 async function calcLatency (sync) {
+  sync.is_test = true;
   sync.silent_mode = true;
   sync.is_lantecy_test = true;
   while (Math.min(sync.conn_latency.length, sync.subr_latency.length, sync.diff_latency.length) < min_latencies) {
@@ -57,8 +59,11 @@ async function calcLatency (sync) {
   }, { exchange: sync.exchange });
 }
 
+console.dlog = console.log;
+
 console.log('Running latency test...\n(This test may take some minutes to complete)\n');
 Promise.all(Object.keys(exchanges).map(exchange => {
+  console.log('Testing latency for "'+exchange+'"...');
   const [ base, quote ] = exchanges[exchange]["latency-test-symbol"].split('/');
   const sync = new Synchronizer(exchange, base, quote);
   return calcLatency(sync);

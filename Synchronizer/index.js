@@ -888,7 +888,7 @@ class Synchronizer {
       let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
       let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
 
-      if (Big(_asks[0][0]).lte(_bids[0][0])) {
+      if (this.is_lantecy_test != true && Big(_asks[0][0]).lte(_bids[0][0])) {
         if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot) {
           // Verifica se o 'timestamp' do ultimo update é igual ao 'last_snapshot_ts'.
           if (Big(this.orderbook.timestamp).eq(this.orderbook.last_snapshot_ts) && 
@@ -1190,7 +1190,9 @@ class Synchronizer {
     // Apply updates.
     let { __conn_id } = upd;
     for (const side of [ 'asks', 'bids' ]) {
-      for (const [ price, amount ] of upd[side]) {
+      for (const __upd of upd[side]) {
+        const [ price, amount ] = __upd;
+
         if (this.last_book_updates.length > 0 && 
         _ws?.subcriptions?.orderbook?.update?.avoid_each_piece_repetition == true) {
           // this.orderbook_log('price:',price,'amount:',amount);
@@ -1199,6 +1201,11 @@ class Synchronizer {
           if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition_drop_timestamp != true) {
             if (upd.timestamp) _upd_to_cache.push(upd.timestamp);
             if (upd.timestamp_us) _upd_to_cache.push(upd.timestamp_us);
+          }
+
+          if (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add === true) {
+            for (const k of _ws?.subcriptions?.orderbook?.update?.each_piece_to_add)
+              _upd_to_cache.push(__upd[k]);
           }
           
           let msg_str = JSON.stringify(_upd_to_cache);
@@ -2233,7 +2240,7 @@ class Synchronizer {
           console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
           console.dlog(_bids.map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
 
-        } else {
+        } else if (this.is_lantecy_test != true) {
           console.log(obj); // Just log the object.
         }
       } else {
