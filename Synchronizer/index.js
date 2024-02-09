@@ -85,6 +85,8 @@ class Synchronizer {
   }
 
   orderbook_log (...args) {
+    if (this.is_lantecy_test) return;
+
     let cache_len = this._ob_log_file_cache.push(args.map(x => typeof x == 'object' ? JSON.stringify(x, null, 2) : x).join(' '));
 
     if (cache_len == this._ob_log_file_cache_max) {
