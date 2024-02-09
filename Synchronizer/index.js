@@ -1388,7 +1388,8 @@ class Synchronizer {
       clearTimeout(conn._main_prom_timeout);
       
       // this.connections[conn_idx][ctype]?.ws?.terminate();
-      delete this.connections[conn_idx][ctype];
+      if (this.connections?.[conn_idx]?.[ctype])
+        delete this.connections[conn_idx][ctype];
 
       if (this.__working == false || 
       this.connections.every(conn => conn?.primary?.ws?.readyState !== WebSocket.OPEN) || 
