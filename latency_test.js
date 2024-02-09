@@ -10,7 +10,7 @@ if (args[0] == 'us') {
   delete exchanges['bybit-spot'];
 }
 
-const min_latencies = 10;
+const min_latencies = 100;
 
 function calcMean (arr) {
   const mid_arr = Math.floor(arr.length / 2);
@@ -31,7 +31,7 @@ async function calcLatency (sync) {
   while (Math.min(sync.conn_latency.length, sync.subr_latency.length, sync.diff_latency.length) < min_latencies) {
     try {
       await sync.initiate(); // Initiate exchange synchronization.
-      await new Promise(r => setTimeout(r, 10e3)); // Then, waits 10 seconds...
+      await new Promise(r => setTimeout(r, 900e3)); // Then, waits 900 seconds...
 
     } catch (error) {
       console.log(sync.exchange,'error:',error);
