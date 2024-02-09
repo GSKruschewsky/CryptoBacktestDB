@@ -47,13 +47,13 @@ const exchanges = {
     'okx-spot',
     'mexc-spot',
     'htx-spot',
-    'coinex-spot'
+    // 'coinex-spot'
   ],
   'USD': [
     'cryptodotcom-spot',
     'coinbase-spot',
     'kraken-spot',
-    'bitfinex-spot',
+    // 'bitfinex-spot',
     // 'bitstamp-spot'
   ]
 };

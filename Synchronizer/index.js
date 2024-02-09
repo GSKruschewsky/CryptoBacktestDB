@@ -997,7 +997,8 @@ class Synchronizer {
 
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
 
-    if (this.last_book_updates.length > 0) {
+    if (this.last_book_updates.length > 0 && 
+    _ws?.subcriptions?.orderbook?.update?.avoid_each_piece_repetition != true) {
       let _upd_to_cache = update;
       if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition_drop_timestamp) {
         let { timestamp, timestamp_us, ...no_ts_upd } = update;
@@ -1093,7 +1094,8 @@ class Synchronizer {
       
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
     
-    if (this.last_book_updates.length > 0) {
+    if (this.last_book_updates.length > 0 && 
+    _ws?.subcriptions?.orderbook?.update?.avoid_each_piece_repetition != true) {
       let _upd_to_cache = upd;
       if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition_drop_timestamp) {
         let { timestamp, timestamp_us, ...no_ts_upd } = upd;
@@ -1154,6 +1156,42 @@ class Synchronizer {
     // Apply updates.
     for (const side of [ 'asks', 'bids' ]) {
       for (const [ price, amount ] of upd[side]) {
+        if (this.last_book_updates.length > 0 && 
+        _ws?.subcriptions?.orderbook?.update?.avoid_each_piece_repetition == true) {
+          // this.orderbook_log('price:',price,'amount:',amount);
+          let _upd_to_cache = [ price, amount ];
+          // this.orderbook_log('_upd_to_cache:',_upd_to_cache)
+          if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition_drop_timestamp != true) {
+            if (upd.timestamp) _upd_to_cache.push(upd.timestamp);
+            if (upd.timestamp_us) _upd_to_cache.push(upd.timestamp_us);
+          }
+          
+          let msg_str = JSON.stringify(_upd_to_cache);
+
+          let idx;
+          let continue_upd = false;
+          for (idx = this.last_book_updates_nonce - 1; continue_upd == false && idx >= 0; --idx) {
+            if (this.last_book_updates[idx] == msg_str) {
+              this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update piece:',msg_str); // Already aplied this update message.
+              continue_upd = true;
+              break;
+            }
+          }
+      
+          for (idx = this.last_book_updates.length - 1; continue_upd == false && idx >= this.last_book_updates_nonce; --idx) {
+            if (this.last_book_updates[idx] == msg_str) {
+              this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update piece:',msg_str); // Already aplied this update message.
+              continue_upd = true;
+              break;
+            }
+          }
+
+          if (continue_upd) continue;
+            
+          this.last_book_updates_nonce = (++this.last_book_updates_nonce % this.last_book_updates.length)
+          this.last_book_updates[this.last_book_updates_nonce] = msg_str;
+        }
+
         if (Big(amount).eq(0)) {
           delete this.orderbook[side][price];
         } else {
