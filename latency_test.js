@@ -32,16 +32,16 @@ async function calcLatency (sync) {
     try {
       await sync.initiate(); // Initiate exchange synchronization.
       await new Promise(r => setTimeout(r, 10e3)); // Then, waits 10 seconds...
-      
+
     } catch (error) {
       console.log(sync.exchange,'error:',error);
     }
 
-    console.log(sync.exchange+':',
-      '\n\tsync.conn_latency.length:',sync.conn_latency.length,
-      '\n\tsync.subr_latency.length:',sync.subr_latency.length,
-      '\n\tsync.diff_latency.length:',sync.diff_latency.length,
-    '\n');
+    // console.log(sync.exchange+':',
+    //   '\n\tsync.conn_latency.length:',sync.conn_latency.length,
+    //   '\n\tsync.subr_latency.length:',sync.subr_latency.length,
+    //   '\n\tsync.diff_latency.length:',sync.diff_latency.length,
+    // '\n');
 
     sync.end(); // Then, ends synchronization...
   }
