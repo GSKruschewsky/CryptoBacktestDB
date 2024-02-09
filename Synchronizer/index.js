@@ -836,6 +836,9 @@ class Synchronizer {
       msg['__'] = 'SNAPSHOT';
     }
     this.orderbook_log('('+conn._idx+') Book msg:',msg);
+
+    // Stores the connection id that received the update.
+    formatted['__conn_id'] = conn._idx;
     
     // Returns the formatted message.
     return formatted;
@@ -999,27 +1002,42 @@ class Synchronizer {
 
     if (this.last_book_updates.length > 0 && 
     _ws?.subcriptions?.orderbook?.update?.avoid_each_piece_repetition != true) {
-      let _upd_to_cache = update;
+      let { __conn_id, ..._upd_to_cache } = update;
+
       if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition_drop_timestamp) {
-        let { timestamp, timestamp_us, ...no_ts_upd } = update;
+        let { timestamp, timestamp_us, ...no_ts_upd } = _upd_to_cache;
         _upd_to_cache = no_ts_upd;
       }
 
       let msg_str = JSON.stringify(_upd_to_cache);
+      let keep_search = true;
       let idx;
-
-      for (idx = this.last_book_updates_nonce - 1; idx >= 0; --idx) {
-        if (this.last_book_updates[idx] == msg_str)
-          return this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message.'); // Already aplied this update message.
+      for (idx = this.last_book_updates_nonce - 1; keep_search && idx >= 0; --idx) {
+        if (this.last_book_updates[idx]?.[0] == msg_str) {
+          if (_ws?.subcriptions?.orderbook?.update?.conn_dont_repeat != true || this.last_book_updates[idx][1].every(c_id => c_id != __conn_id)) {
+            return this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message.'); // Already aplied this update message.
+          } else {
+            this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message from this connection... Reseting message connections cache...');
+            keep_search = false;
+            break;
+          }
+        }
       }
 
-      for (idx = this.last_book_updates.length - 1; idx >= this.last_book_updates_nonce; --idx) {
-        if (this.last_book_updates[idx] == msg_str)
-          return this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message.'); // Already aplied this update message.
+      for (idx = this.last_book_updates.length - 1; keep_search && idx >= this.last_book_updates_nonce; --idx) {
+        if (this.last_book_updates[idx]?.[0] == msg_str) {
+          if (_ws?.subcriptions?.orderbook?.update?.conn_dont_repeat != true || this.last_book_updates[idx][1].every(c_id => c_id != __conn_id)) {
+            return this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message.'); // Already aplied this update message.
+          } else {
+            this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message from this connection... Reseting message connections cache...');
+            keep_search = false;
+            break;
+          }
+        }
       }
         
       this.last_book_updates_nonce = (++this.last_book_updates_nonce % this.last_book_updates.length)
-      this.last_book_updates[this.last_book_updates_nonce] = msg_str;
+      this.last_book_updates[this.last_book_updates_nonce] = [ msg_str, [ __conn_id ] ];
     }
 
     // const _ws_upd = _ws.subcriptions?.['orderbook_snap'] != null ? _ws.subcriptions['orderbook_snap'].update : _ws.subcriptions['orderbook'].snapshot;
@@ -1035,8 +1053,9 @@ class Synchronizer {
     // if (!this.orderbook) 
     //   console.log('[!!] Got first orderbook snapshot from',((this.exc.rest?.endpoints?.orderbook != null) ? "REST" : "WS"),'at',update.timestamp);
 
-    if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache)
+    if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache) {
       this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512);
+    }
 
     this.orderbook = {
       asks: Object.fromEntries(update.asks),
@@ -1096,27 +1115,42 @@ class Synchronizer {
     
     if (this.last_book_updates.length > 0 && 
     _ws?.subcriptions?.orderbook?.update?.avoid_each_piece_repetition != true) {
-      let _upd_to_cache = upd;
+      let { __conn_id, ..._upd_to_cache } = upd;
+      
       if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition_drop_timestamp) {
-        let { timestamp, timestamp_us, ...no_ts_upd } = upd;
+        let { timestamp, timestamp_us, ...no_ts_upd } = _upd_to_cache;
         _upd_to_cache = no_ts_upd;
       }
 
       let msg_str = JSON.stringify(_upd_to_cache);
+      let keep_search = true;
       let idx;
-  
-      for (idx = this.last_book_updates_nonce - 1; idx >= 0; --idx) {
-        if (this.last_book_updates[idx] == msg_str)
-          return this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update message.'); // Already aplied this update message.
+      for (idx = this.last_book_updates_nonce - 1; keep_search && idx >= 0; --idx) {
+        if (this.last_book_updates[idx]?.[0] == msg_str) {
+          if (_ws?.subcriptions?.orderbook?.update?.conn_dont_repeat != true || this.last_book_updates[idx][1].every(c_id => c_id != __conn_id)) {
+            return this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message.'); // Already aplied this update message.
+          } else {
+            this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message from this connection... Reseting message connections cache...');
+            keep_search = false;
+            break;
+          }
+        }
       }
   
-      for (idx = this.last_book_updates.length - 1; idx >= this.last_book_updates_nonce; --idx) {
-        if (this.last_book_updates[idx] == msg_str)
-          return this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update message.'); // Already aplied this update message.
+      for (idx = this.last_book_updates.length - 1; keep_search && idx >= this.last_book_updates_nonce; --idx) {
+        if (this.last_book_updates[idx]?.[0] == msg_str) {
+          if (_ws?.subcriptions?.orderbook?.update?.conn_dont_repeat != true || this.last_book_updates[idx][1].every(c_id => c_id != __conn_id)) {
+            return this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message.'); // Already aplied this update message.
+          } else {
+            this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message from this connection... Reseting message connections cache...');
+            keep_search = false;
+            break;
+          }
+        }
       }
         
       this.last_book_updates_nonce = (++this.last_book_updates_nonce % this.last_book_updates.length)
-      this.last_book_updates[this.last_book_updates_nonce] = msg_str;
+      this.last_book_updates[this.last_book_updates_nonce] = [ msg_str, [ __conn_id ] ];
     }
     
     this.orderbook_log('Book upd:',upd);
@@ -1154,6 +1188,7 @@ class Synchronizer {
     this.before_apply_to_orderbook(upd.timestamp);
 
     // Apply updates.
+    let { __conn_id } = upd;
     for (const side of [ 'asks', 'bids' ]) {
       for (const [ price, amount ] of upd[side]) {
         if (this.last_book_updates.length > 0 && 
@@ -1170,26 +1205,41 @@ class Synchronizer {
 
           let idx;
           let continue_upd = false;
-          for (idx = this.last_book_updates_nonce - 1; continue_upd == false && idx >= 0; --idx) {
-            if (this.last_book_updates[idx] == msg_str) {
-              this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update piece:',msg_str); // Already aplied this update message.
-              continue_upd = true;
-              break;
+          let keep_search = true;
+          for (idx = this.last_book_updates_nonce - 1; keep_search && continue_upd == false && idx >= 0; --idx) {
+            if (this.last_book_updates[idx]?.[0] == msg_str) {
+              if (_ws?.subcriptions?.orderbook?.update?.conn_dont_repeat != true || this.last_book_updates[idx][1].every(c_id => c_id != __conn_id)) {
+                this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message.'); // Already aplied this update message.
+                continue_upd = true;
+                break;
+                
+              } else {
+                this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update piece from this connection... Reseting message connections cache...');
+                keep_search = false;
+                break;
+              }
             }
           }
       
-          for (idx = this.last_book_updates.length - 1; continue_upd == false && idx >= this.last_book_updates_nonce; --idx) {
-            if (this.last_book_updates[idx] == msg_str) {
-              this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update piece:',msg_str); // Already aplied this update message.
-              continue_upd = true;
-              break;
+          for (idx = this.last_book_updates.length - 1; keep_search && continue_upd == false && idx >= this.last_book_updates_nonce; --idx) {
+            if (this.last_book_updates[idx]?.[0] == msg_str) {
+              if (_ws?.subcriptions?.orderbook?.update?.conn_dont_repeat != true || this.last_book_updates[idx][1].every(c_id => c_id != __conn_id)) {
+                this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update piece:',msg_str); // Already aplied this update message.
+                continue_upd = true;
+                break;
+
+              } else {
+                this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update piece from this connection... Reseting message connections cache...');
+                keep_search = false;
+                break;
+              }
             }
           }
 
           if (continue_upd) continue;
             
           this.last_book_updates_nonce = (++this.last_book_updates_nonce % this.last_book_updates.length)
-          this.last_book_updates[this.last_book_updates_nonce] = msg_str;
+          this.last_book_updates[this.last_book_updates_nonce] = [ msg_str, [ __conn_id ] ];
         }
 
         if (Big(amount).eq(0)) {
@@ -1254,8 +1304,9 @@ class Synchronizer {
       conn.info.orderbook_snap = {};
 
       if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition && 
-      (this.last_book_updates == null || this.last_book_updates.length == 0))
+      (this.last_book_updates == null || this.last_book_updates.length == 0)) {
         this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512);
+      }
       
       // If no 'orderbook.response', 'info.orderbook.channel_id' should be defined here.
       if (_ws.subcriptions?.orderbook != undefined && _ws.subcriptions.orderbook?.response == undefined) 

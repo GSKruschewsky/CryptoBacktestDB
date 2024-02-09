@@ -138,6 +138,7 @@
           "avoid_each_piece_repetition": null,
           "dont_apply_too_old": null,
           "avoid_repetition": null,
+          "conn_dont_repeat": null,
           "avoid_repetition_size": 512,
           "ignore_if": null,
           "channel_id_key": "",
