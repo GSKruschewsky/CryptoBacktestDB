@@ -29,12 +29,20 @@ async function calcLatency (sync) {
   sync.silent_mode = true;
   sync.is_lantecy_test = true;
   while (Math.min(sync.conn_latency.length, sync.subr_latency.length, sync.diff_latency.length) < min_latencies) {
-    await sync.initiate() // Initiate exchange synchronization.
-    .catch(err => {
-      console.log(sync.exchange,'error:',err);
-      process.exit();
-    });
-    await new Promise(r => setTimeout(r, 10e3)); // Then, waits 10 seconds...
+    try {
+      await sync.initiate(); // Initiate exchange synchronization.
+      await new Promise(r => setTimeout(r, 10e3)); // Then, waits 10 seconds...
+      
+    } catch (error) {
+      console.log(sync.exchange,'error:',error);
+    }
+
+    console.log(sync.exchange+':',
+      '\n\tsync.conn_latency.length:',sync.conn_latency.length,
+      '\n\tsync.subr_latency.length:',sync.subr_latency.length,
+      '\n\tsync.diff_latency.length:',sync.diff_latency.length,
+    '\n');
+
     sync.end(); // Then, ends synchronization...
   }
   
@@ -67,6 +75,7 @@ Promise.all(Object.keys(exchanges).map(exchange => {
   const [ base, quote ] = exchanges[exchange]["latency-test-symbol"].split('/');
   const sync = new Synchronizer(exchange, base, quote);
   return calcLatency(sync);
+  console.log('[!] Got latency results for "'+exchange+'".');
 }))
 .then(results => {
   results.sort((a, b) => Big(a.conn_latency.mean).cmp(b.conn_latency.mean));

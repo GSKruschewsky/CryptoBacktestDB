@@ -1544,6 +1544,7 @@ class Synchronizer {
         if (_prom) {
           _prom.reject({ At: '[E] ('+conn._idx+') WebSocket '+ctype+' error message:', error: msg });
         } else {
+          console.log('Essa exchange:',this.exchange);
           console.log('[E] ('+conn._idx+') WebSocket '+ctype+' error message:',msg,'\n\nEnding connection...');
           __ws.terminate();
         }
@@ -2437,7 +2438,7 @@ class Synchronizer {
     if (!this.is_lantecy_test)
       console.log('[!] Completely synchronized.\n');
 
-    this.keep_synced();
+    if (!this.is_lantecy_test) this.keep_synced();
   }
 
   async keep_synced () {
@@ -2477,10 +2478,15 @@ class Synchronizer {
 
     // Close all connections
     for (const conn of this.connections) {
-      if (conn?.ws?.terminate) conn.ws.terminate();
-      if (conn?.ws2?.terminate) conn.ws2.terminate();
-      conn.ws = null;
-      conn.ws2 = null;
+      if (conn?.primary?.ws?.terminate) conn.primary.ws.terminate();
+      if (conn?.secondary?.ws?.terminate) conn.secondary.ws.terminate();
+      conn.primary.ws = null;
+      conn.secondary.ws = null;
+
+      // if (conn?.ws?.terminate) conn.ws.terminate();
+      // if (conn?.ws2?.terminate) conn.ws2.terminate();
+      // conn.ws = null;
+      // conn.ws2 = null;
     }
     this.connections = [];
     this.attemp_delay = {};
