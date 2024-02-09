@@ -2250,7 +2250,7 @@ class Synchronizer {
       this.saved_first_second = true;
       
     } else {
-      if (this.saved_first_second) {
+      if ((!this.is_lantecy_test) && this.saved_first_second) {
         console.log('/!\\ No orderbook to save at '+this.data_time+':');
         console.log('this.orderbook:',this.orderbook?.timestamp);
         console.log('this.delayed_orderbook:',this.delayed_orderbook?.timestamp);
@@ -2434,7 +2434,8 @@ class Synchronizer {
     }
 
     this.completely_synced = true;
-    console.log('[!] Completely synchronized.\n');
+    if (!this.is_lantecy_test)
+      console.log('[!] Completely synchronized.\n');
 
     this.keep_synced();
   }
@@ -2486,7 +2487,7 @@ class Synchronizer {
 
     // Reset global vars
     this.completely_synced = false;
-    console.log('end > "completely_synced" SET TO FALSE!');
+    if (!this.is_lantecy_test) console.log('end > "completely_synced" SET TO FALSE! (__working = false)');
     this.orderbook = null;
     this.orderbook_upd_cache = [];
     this.orderbooks = [];
