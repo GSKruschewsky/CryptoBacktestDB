@@ -1396,7 +1396,7 @@ class Synchronizer {
       (this.exc.ws2 != null && this.connections.every(conn => conn?.primary?.ws?.readyState !== WebSocket.OPEN))) {
         // All connections are closed.
         this.completely_synced = false;
-        console.log('('+conn_idx+') WebSocket '+ctype+' _connect > "completely_synced" SET TO FALSE!');
+        if (!this.is_lantecy_test) console.log('('+conn_idx+') WebSocket '+ctype+' _connect > "completely_synced" SET TO FALSE!');
 
         // Reset global variables.
         clearTimeout(this.process_second_timeout);
@@ -1414,10 +1414,10 @@ class Synchronizer {
 
         // Filter 'connection_tries' to only attemps that happened on the last minute.
         this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
-        console.log('('+conn_idx+') WebSocket '+ctype+' reconnecting... (attemps= '+this.connection_tries.length+', max_attemps= '+this.max_attemps_per_min+')');
+        if (!this.is_lantecy_test) console.log('('+conn_idx+') WebSocket '+ctype+' reconnecting... (attemps= '+this.connection_tries.length+', max_attemps= '+this.max_attemps_per_min+')');
 
         // Checks if the number of connetion attemps in the last minute is greater then 'max_attemps_per_min'.
-        if (this.connection_tries.length >= this.max_attemps_per_min) {
+        if ((!this.is_lantecy_test) && this.connection_tries.length >= this.max_attemps_per_min) {
           // In this case we should wait 'conn_attemp_delay' before the connection.
           if (!this.attemp_delay[conn_idx]) this.attemp_delay[conn_idx] = {};
           this.attemp_delay[conn_idx][ctype] = new Promise(r => setTimeout(r, this.conn_attemp_delay));
