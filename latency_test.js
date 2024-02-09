@@ -3,11 +3,17 @@ import fs from 'fs';
 import Synchronizer from "./Synchronizer/index.js";
 import exchanges from './Synchronizer/Exchanges/index.js';
 
+let exchanges_to_test = Object.keys(exchanges);
+
 let args = process.argv.slice(2);
 
 if (args[0] == 'us') {
   delete exchanges['binance-spot'];
   delete exchanges['bybit-spot'];
+
+} else if (args[0] != undefined) {
+  // Single exchange test
+  exchanges_to_test = [ args[0] ];
 }
 
 const min_latencies = 100;
@@ -70,7 +76,7 @@ async function calcLatency (sync) {
 console.dlog = console.log;
 
 console.log('Running latency test...\n(This test may take some minutes to complete)\n');
-Promise.all(Object.keys(exchanges).map(exchange => {
+Promise.all(exchanges_to_test.map(exchange => {
   console.log('Testing latency for "'+exchange+'"...');
   const [ base, quote ] = exchanges[exchange]["latency-test-symbol"].split('/');
   const sync = new Synchronizer(exchange, base, quote);
