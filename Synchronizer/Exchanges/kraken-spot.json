@@ -83,7 +83,8 @@
             "price": "0",
             "amount": "1",
             "timestamp": "2"
-          }
+          },
+          "avoid_repetition_drop_timestamp": true
         }
       },
       "trades": {

@@ -693,10 +693,15 @@ class Synchronizer {
             amount = '0';
         }
 
+        let _upd_piece_array = [ Big(price).toFixed(), Big(amount).toFixed() ];
+        for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
+          _upd_piece_array.push(upd[k]);
+        }
+
         if (is_bids)
-          bids.push([ Big(price).toFixed(), Big(amount).toFixed() ]);
+          bids.push(_upd_piece_array);
         else
-          asks.push([ Big(price).toFixed(), Big(amount).toFixed() ]);
+          asks.push(_upd_piece_array);
       }
     } else {
       asks = (updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks] || [])
@@ -721,10 +726,16 @@ class Synchronizer {
           }
         }
 
-        return [ 
+        let _upd_piece_array = [
           Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.price) || _ob_sub.update.pl.price]).toFixed(), 
           Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.amount) || _ob_sub.update.pl.amount]).toFixed()
-        ]
+        ];
+        
+        for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
+          _upd_piece_array.push(upd[k]);
+        }
+
+        return _upd_piece_array
       });
       
       bids = (updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids] || [])
@@ -749,10 +760,16 @@ class Synchronizer {
           }
         }
 
-        return [ 
+        let _upd_piece_array = [
           Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.price) || _ob_sub.update.pl.price]).toFixed(), 
-          Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.amount) || _ob_sub.update.pl.amount]).toFixed() 
-        ]
+          Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.amount) || _ob_sub.update.pl.amount]).toFixed()
+        ];
+        
+        for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
+          _upd_piece_array.push(upd[k]);
+        }
+
+        return _upd_piece_array
       });
     }
 
@@ -1197,16 +1214,12 @@ class Synchronizer {
 
         if (this.last_book_updates.length > 0 && 
         _ws?.subcriptions?.orderbook?.update?.avoid_each_piece_repetition == true) {
-          // this.orderbook_log('price:',price,'amount:',amount);
-          let _upd_to_cache = [ price, amount ];
-          // this.orderbook_log('_upd_to_cache:',_upd_to_cache)
+          let _upd_to_cache = __upd;
+          
           if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition_drop_timestamp != true) {
             if (upd.timestamp) _upd_to_cache.push(upd.timestamp);
             if (upd.timestamp_us) _upd_to_cache.push(upd.timestamp_us);
           }
-
-          for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || []))
-            _upd_to_cache.push(__upd[k]);
           
           let msg_str = JSON.stringify(_upd_to_cache);
 
