@@ -983,10 +983,12 @@ class Synchronizer {
           }
 
           // Keep only trades w/ timestamp > this.data_time - 1
-          this.trades = this.trades.filter(t => t.timestamp > (this.data_time - 1) * 1e3);
+          if (this.trades)
+            this.trades = this.trades.filter(t => t.timestamp > (this.data_time - 1) * 1e3);
 
           // Keep only the last orderbook or orderbooks w/ timestamp > this.data_time - 1.
-          this.orderbooks = this.orderbooks.filter((ob, idx) => idx == 0 || ob.timestamp > (this.data_time - 1) * 1e3);
+          if (this.this.orderbooks)
+            this.orderbooks = this.orderbooks.filter((ob, idx) => idx == 0 || ob.timestamp > (this.data_time - 1) * 1e3);
         }
       }
     } else if (this.orderbook == null || this.delayed_orderbook == null) {
