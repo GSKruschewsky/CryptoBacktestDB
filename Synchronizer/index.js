@@ -889,6 +889,8 @@ class Synchronizer {
   }
 
   async before_apply_to_orderbook (upd_time, _ws) {
+    if (this.is_lantecy_test) return;
+
     const upd_sec = Math.floor(upd_time / 1e3);
     const book_sec = Math.floor(this.orderbook?.timestamp / 1e3);
 
