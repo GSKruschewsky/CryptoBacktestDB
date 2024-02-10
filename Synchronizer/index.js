@@ -1310,6 +1310,7 @@ class Synchronizer {
     const _ws = is_secondary ? this.exc.ws2 : this.exc.ws;
 
     // Create a timeout for the 'main_prom'
+    clearTimeout(conn._main_prom_timeout); // Just in case...
     conn._main_prom_timeout = setTimeout(() => {
       if (_prom?.reject)
         _prom.reject("[E] Timeout connecting to conn "+conn._idx+" "+ctype+" websocket.");
