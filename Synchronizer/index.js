@@ -987,7 +987,7 @@ class Synchronizer {
             this.trades = this.trades.filter(t => t.timestamp > (this.data_time - 1) * 1e3);
 
           // Keep only the last orderbook or orderbooks w/ timestamp > this.data_time - 1.
-          if (this.this.orderbooks)
+          if (this.orderbooks)
             this.orderbooks = this.orderbooks.filter((ob, idx) => idx == 0 || ob.timestamp > (this.data_time - 1) * 1e3);
         }
       }
