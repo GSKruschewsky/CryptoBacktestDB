@@ -889,8 +889,6 @@ class Synchronizer {
   }
 
   async before_apply_to_orderbook (upd_time, _ws) {
-    if (this.is_lantecy_test) return;
-
     const upd_sec = Math.floor(upd_time / 1e3);
     const book_sec = Math.floor(this.orderbook?.timestamp / 1e3);
 
@@ -2227,7 +2225,8 @@ class Synchronizer {
   }
 
   save_second () {
-    const trades_to_post = this.trades
+    if (!this.is_lantecy_test) {
+      const trades_to_post = this.trades
       .filter(t => 
         Big(t.timestamp).gt((this.data_time - 1) * 1e3) &&
         Big(t.timestamp).lte(this.data_time * 1e3)
@@ -2237,42 +2236,43 @@ class Synchronizer {
         delete t.custom_id;
         return t;
       });
-  
-    const orderbook_to_post = this.orderbooks.find(ob => Big(ob.timestamp).lte(this.data_time * 1e3));
-  
-    if (orderbook_to_post) {
-      const obj = {
-        asks: orderbook_to_post?.asks,
-        bids: orderbook_to_post?.bids,
-        book_timestamp: orderbook_to_post?.timestamp,
-        trades: trades_to_post,
-        second: this.data_time,
-      };
+    
+      const orderbook_to_post = this.orderbooks.find(ob => Big(ob.timestamp).lte(this.data_time * 1e3));
+    
+      if (orderbook_to_post) {
+        const obj = {
+          asks: orderbook_to_post?.asks,
+          bids: orderbook_to_post?.bids,
+          book_timestamp: orderbook_to_post?.timestamp,
+          trades: trades_to_post,
+          second: this.data_time,
+        };
 
-      if (this.is_test) {
-        if (this.is_ob_test) {
-          let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
-          let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
+        if (this.is_test) {
+          if (this.is_ob_test) {
+            let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
+            let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
 
-          console.log('Orderbook:');
-          console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-          console.dlog(_bids.map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+            console.log('Orderbook:');
+            console.dlog(_asks.reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+            console.dlog(_bids.map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
 
-        } else if (this.is_lantecy_test != true) {
-          console.log(obj); // Just log the object.
+          } else if (this.is_lantecy_test != true) {
+            console.log(obj); // Just log the object.
+          }
+        } else {
+          this.seconds_data.push(obj); // Save in memory.
         }
+        
+        this.saved_first_second = true;
+        
       } else {
-        this.seconds_data.push(obj); // Save in memory.
-      }
-      
-      this.saved_first_second = true;
-      
-    } else {
-      if ((!this.is_lantecy_test) && this.saved_first_second) {
-        console.log('/!\\ No orderbook to save at '+this.data_time+':');
-        console.log('this.orderbook:',this.orderbook?.timestamp);
-        console.log('this.delayed_orderbook:',this.delayed_orderbook?.timestamp);
-        console.log('this.orderbooks:',this.orderbooks.map(op => op.timestamp),'\n');
+        if (this.saved_first_second) {
+          console.log('/!\\ No orderbook to save at '+this.data_time+':');
+          console.log('this.orderbook:',this.orderbook?.timestamp);
+          console.log('this.delayed_orderbook:',this.delayed_orderbook?.timestamp);
+          console.log('this.orderbooks:',this.orderbooks.map(op => op.timestamp),'\n');
+        }
       }
     }
   
