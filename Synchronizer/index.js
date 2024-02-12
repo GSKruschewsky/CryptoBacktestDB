@@ -650,6 +650,15 @@ class Synchronizer {
     if ((is_snapshot && _ob_sub.snapshot?.asks_and_bids_together) || 
     ((!is_snapshot) && _ob_sub.update?.asks_and_bids_together)) {
       for (const upd of updates) {
+        let ignore_upd = false;
+        for (const [ key, val ] of (_ws?.subcriptions?.orderbook?.update?.each_piece_ignore_if || [])) {
+          if (upd[key] === val) {
+            ignore_upd = true;
+            break;
+          }
+        }
+        if (ignore_upd) continue;
+
         const _pl =  ((is_snapshot && _ob_sub.snapshot?.pl) || _ob_sub.update.pl);
         
         const _ts = _pl?.timestamp?.split('.')?.reduce((f, k) => f?.[k], upd);
@@ -704,8 +713,16 @@ class Synchronizer {
           asks.push(_upd_piece_array);
       }
     } else {
-      asks = (updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks] || [])
-      .map(upd => {
+      for (const upd of (updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks] || [])) {
+        let ignore_upd = false;
+        for (const [ key, val ] of (_ws?.subcriptions?.orderbook?.update?.each_piece_ignore_if || [])) {
+          if (upd[key] === val) {
+            ignore_upd = true;
+            break;
+          }
+        }
+        if (ignore_upd) continue;
+
         const _key = (is_snapshot && _ob_sub?.snapshot?.pl?.timestamp) || _ob_sub?.update?.pl?.timestamp;
         const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], upd);
 
@@ -734,12 +751,20 @@ class Synchronizer {
         for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
           _upd_piece_array.push(upd[k]);
         }
-
-        return _upd_piece_array
-      });
+        
+        asks.push(_upd_piece_array);
+      }
       
-      bids = (updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids] || [])
-      .map(upd => {
+      for (const upd of (updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids] || [])) {
+        let ignore_upd = false;
+        for (const [ key, val ] of (_ws?.subcriptions?.orderbook?.update?.each_piece_ignore_if || [])) {
+          if (upd[key] === val) {
+            ignore_upd = true;
+            break;
+          }
+        }
+        if (ignore_upd) continue;
+
         const _key = (is_snapshot && _ob_sub?.snapshot?.pl?.timestamp) || _ob_sub?.update?.pl?.timestamp;
         const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], upd);
 
@@ -769,8 +794,8 @@ class Synchronizer {
           _upd_piece_array.push(upd[k]);
         }
 
-        return _upd_piece_array
-      });
+        bids.push(_upd_piece_array);
+      }
     }
 
     let formatted = { asks, bids, is_snapshot };

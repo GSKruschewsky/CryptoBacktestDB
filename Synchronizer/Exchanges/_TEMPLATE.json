@@ -136,6 +136,7 @@
         "update": {
           "apply_only_since_last_snapshot": null,
           "avoid_each_piece_repetition": null,
+          "each_piece_ignore_if": null,
           "each_piece_to_add": null,
           "dont_apply_too_old": null,
           "avoid_repetition": null,

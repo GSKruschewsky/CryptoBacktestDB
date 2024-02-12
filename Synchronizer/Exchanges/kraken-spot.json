@@ -71,6 +71,10 @@
         "update": {
           "apply_only_since_last_snapshot": true,
           "avoid_each_piece_repetition": true,
+          "each_piece_ignore_if": [
+            ["3", "r"]
+          ],
+          "conn_dont_repeat": true, 
           "each_piece_to_add": [ "2" ],
           "dont_apply_too_old": true,
           "avoid_repetition": true,
