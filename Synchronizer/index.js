@@ -1509,7 +1509,11 @@ class Synchronizer {
     // On WebSocket error, we log the error and then diconnect.
     __ws.on('error', error => {
       console.log('[E] ('+conn_idx+') WebSocket '+ctype+' connection error:',error);
-      __ws.terminate();
+      if (this.is_lantecy_test) {
+        throw error;
+      } else {
+        __ws.terminate();
+      }
     });
 
     // On connection, initiate 'ping loops', login and then make subscriptions.
