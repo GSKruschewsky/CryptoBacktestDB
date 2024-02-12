@@ -37,7 +37,7 @@ async function calcLatency (sync) {
   while (Math.min(sync.conn_latency.length, sync.subr_latency.length, sync.diff_latency.length) < min_latencies) {
     try {
       await sync.initiate(); // Initiate exchange synchronization.
-      await new Promise(r => setTimeout(r, (exchanges_to_test.length == 1 && exchanges_to_test['0'] != 'kraken-spot' ? 10e3 : 20e3))); // Then, waits 10 seconds...
+      await new Promise(r => setTimeout(r, (exchanges_to_test.length == 1 && exchanges_to_test['0'] != 'kraken-spot' ? 10e3 : 20e3))); // Then, waits 10 seconds (if kraken is involved 20 seconds)...
 
     } catch (error) {
       console.log(sync.exchange,'error:',error);
