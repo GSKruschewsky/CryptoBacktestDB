@@ -996,8 +996,8 @@ class Synchronizer {
     }
 
     if (this.is_lantecy_test) {
-      console.log('this.trades:',this.trades.length);
-      console.log('this.orderbooks:',this.orderbooks.length,'\n');
+      console.log('this.trades:',this.trades?.length);
+      console.log('this.orderbooks:',this.orderbooks?.length,'\n');
     }
   }
 
