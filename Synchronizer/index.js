@@ -994,11 +994,6 @@ class Synchronizer {
     } else if (this.orderbook == null || this.delayed_orderbook == null) {
       if (!this.is_test) console.log('this.orderbook == null ('+(this.orderbook == null)+') or this.delayed_orderbook == null ('+(this.delayed_orderbook == null)+')');
     }
-
-    if (this.is_lantecy_test) {
-      console.log('this.trades:',this.trades?.length);
-      console.log('this.orderbooks:',this.orderbooks?.length,'\n');
-    }
   }
 
   apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts) {
