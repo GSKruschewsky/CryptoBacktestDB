@@ -1527,7 +1527,7 @@ class Synchronizer {
       // Initiate 'ping loop'.
       __ws.ping_loop_interval = setInterval(() => {
         if (!__ws.keep_alive) {
-          console.log('[E] ('+conn._idx+') WebSocket '+ctype+' ping_loop: Server did not pong back in '+(((_ws.timeout || 5000) > 60e3 ? (_ws.timeout || 5000) : 60e3) / 1e3)+' seconds, ending connection...');
+          console.log('[E] ('+conn._idx+') WebSocket '+ctype+' ping_loop: Server did not pong back in '+(((_ws.timeout || 5000) > 60e3*15 ? (_ws.timeout || 5000) : 60e3*15) / 1e3)+' seconds, ending connection...');
           __ws.terminate();
           clearInterval(__ws.ping_loop_interval);
         
@@ -1539,19 +1539,19 @@ class Synchronizer {
             __ws.send(_ws.ping.request);
         }
 
-      }, (_ws.timeout || 5000) > 60e3 ? (_ws.timeout || 5000) : 60e3);
+      }, (_ws.timeout || 5000) > 60e3*15 ? (_ws.timeout || 5000) : 60e3*15);
 
       // Initiate 'ws ping loop'.
       if (_ws.ping?.request != undefined && _ws.ping.response != undefined) {
         __ws.ws_ping_loop_interval = setInterval(() => {
           if (!__ws.ws_keep_alive) {
-            console.log('[E] WebSocket '+ctype+' ws_ping_loop: Server did not pong back in '+(((_ws.ping.interval || _ws.timeout || 5000) > 60e3 ? (_ws.ping.interval || _ws.timeout || 5000) : 60e3) / 1e3)+' seconds, ending connection...');
+            console.log('[E] WebSocket '+ctype+' ws_ping_loop: Server did not pong back in '+(((_ws.ping.interval || _ws.timeout || 5000) > 60e3*15 ? (_ws.ping.interval || _ws.timeout || 5000) : 60e3*15) / 1e3)+' seconds, ending connection...');
             __ws.terminate();
           }
           __ws.ws_keep_alive = false;
           __ws.send(_ws.ping.request.replace('<ws_req_id>', ++this.ws_req_nonce));
 
-        }, (_ws.ping.interval || _ws.timeout || 5000) > 60e3 ? (_ws.ping.interval || _ws.timeout || 5000) : 60e3);
+        }, (_ws.ping.interval || _ws.timeout || 5000) > 60e3*15 ? (_ws.ping.interval || _ws.timeout || 5000) : 60e3*15);
       }
 
       // Checks if login is required.
