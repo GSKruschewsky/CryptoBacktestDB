@@ -936,29 +936,6 @@ class Synchronizer {
       let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
 
       if (this.is_lantecy_test != true && Big(_asks[0][0]).lte(_bids[0][0])) {
-        if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot) {
-          // Verifica se o 'timestamp' do ultimo update é igual ao 'last_snapshot_ts'.
-          if (Big(this.orderbook.timestamp).eq(this.orderbook.last_snapshot_ts) && 
-          (
-            this.orderbook.last_snapshot_ts_us == null ||
-            Big(this.orderbook.timestamp_us).eq(this.orderbook.last_snapshot_ts_us)
-          )) {
-            // Aplicou um update que não deveria devido ao timestamp do update ser igual ao 'last_snapshot_ts'.
-            // Reinicia todas as conexões e inicia a sincronização novamente.
-            console.log('[E] Applied an orderbook update that should not be applied! Closing all the conecctions for start the resynchronization process...');
-
-            for (let c_idx = 0; c_idx < this.connections_num; ++c_idx) {
-              if (this.connections?.[c_idx]?.primary?.ws?.readyState === WebSocket.OPEN)
-                this.connections[c_idx].primary.ws.terminate();
-
-              if (this.connections?.[c_idx]?.secondary?.ws?.readyState === WebSocket.OPEN)
-                this.connections[c_idx].secondary.ws.terminate();
-            }
-
-            return;
-          }
-        }
-
         console.log('Orderbook:');
         this.orderbook_log('Orderbook:');
 
@@ -1031,21 +1008,35 @@ class Synchronizer {
     if (this.orderbook != null && this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce))
       return this.orderbook_log('/!\\ apply_orderbook_snap: update.last_update_nonce <= orderbook.last_update_nonce.'); // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
 
-    if (this.orderbook != null &&
-    _ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && 
-    (
-      (
-        update.timestamp && 
-        this.orderbook.last_snapshot_ts && 
-        Big(update.timestamp).lt(this.orderbook.timestamp)
-      ) ||
-      (
-        update.timestamp_us && 
-        this.orderbook.last_snapshot_ts_us && 
-        Big(update.timestamp_us).lt(this.orderbook.timestamp_us)
-      )
-    ))
-      return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp < this.orderbook.timestamp || update.timestamp_us < this.orderbook.timestamp_us.');
+    if (this.orderbook != null && _ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot) {
+      if (
+        (
+          update.timestamp && 
+          this.orderbook.last_snapshot_ts && 
+          Big(update.timestamp).lt(this.orderbook.timestamp)
+        ) ||
+        (
+          update.timestamp_us && 
+          this.orderbook.last_snapshot_ts_us && 
+          Big(update.timestamp_us).lt(this.orderbook.timestamp_us)
+        )
+      ) {
+        // Update timestamp < book timestamp
+        return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp < this.orderbook.timestamp || update.timestamp_us < this.orderbook.timestamp_us.');
+
+      } else {
+        // Update timestamp >= book timestamp
+        if (update.timestamp_us && this.orderbook.last_snapshot_ts_us) {
+          // Have 'timestamp_us'
+          if (Big(update.timestamp_us).eq(this.orderbook.last_snapshot_ts_us) && update.__conn_id != this.orderbook.last_snapshot_conn_id)
+            return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp_us == this.orderbook.last_snapshot_ts_us && update.__conn_id ('+update.__conn_id+') != this.orderbook.last_snapshot_conn_id ('+this.orderbook.last_snapshot_conn_id+').');
+        } else {
+          // Do not have 'timestamp_us'
+          if (Big(update.timestamp).eq(this.orderbook.last_snapshot_ts) && update.__conn_id != this.orderbook.last_snapshot_conn_id)
+            return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp == this.orderbook.last_snapshot_ts && update.__conn_id ('+update.__conn_id+') != this.orderbook.last_snapshot_conn_id ('+this.orderbook.last_snapshot_conn_id+').');
+        }
+      }
+    }
 
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
 
@@ -1115,7 +1106,8 @@ class Synchronizer {
       timestamp_us: update.timestamp_us,
       last_update_nonce: update.last_update_nonce,
       last_snapshot_ts: update.timestamp,
-      last_snapshot_ts_us: update.timestamp_us
+      last_snapshot_ts_us: update.timestamp_us,
+      last_snapshot_conn_id: update.__conn_id
     };
 
     this.orderbook_log(update.asks.slice(0, 10).reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
@@ -1147,20 +1139,35 @@ class Synchronizer {
     if (_ws?.subcriptions?.orderbook?.update?.dont_apply_too_old && upd.timestamp && this.orderbook.timestamp && Big(upd.timestamp).lt(Big(this.orderbook.timestamp).minus(100)))
       return this.orderbook_log('/!\\ apply_orderbook_upd: upd.timestamp < orderbook.timestamp - 100. (too old update)');
 
-    if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot && 
-    (
-      (
-        upd.timestamp && 
-        this.orderbook.last_snapshot_ts && 
-        Big(upd.timestamp).lt(this.orderbook.last_snapshot_ts)
-      ) ||
-      (
-        upd.timestamp_us && 
-        this.orderbook.last_snapshot_ts_us && 
-        Big(upd.timestamp_us).lt(this.orderbook.last_snapshot_ts_us)
-      )
-    ))
-      return this.orderbook_log('/!\\ apply_orderbook_upd: upd.timestamp < this.orderbook.last_snapshot_ts || upd.timestamp_us < this.orderbook.last_snapshot_ts_us.');
+    if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot) {
+      if (
+        (
+          upd.timestamp && 
+          this.orderbook.last_snapshot_ts && 
+          Big(upd.timestamp).lt(this.orderbook.last_snapshot_ts)
+        ) ||
+        (
+          upd.timestamp_us && 
+          this.orderbook.last_snapshot_ts_us && 
+          Big(upd.timestamp_us).lt(this.orderbook.last_snapshot_ts_us)
+        )
+      ) {
+        // Update timestamp < book timestamp
+        return this.orderbook_log('/!\\ apply_orderbook_upd: upd.timestamp < this.orderbook.last_snapshot_ts || upd.timestamp_us < this.orderbook.last_snapshot_ts_us.');
+      
+      } else {
+        // Update timestamp >= book timestamp
+        if (upd.timestamp_us && this.orderbook.last_snapshot_ts_us) {
+          // Have 'timestamp_us'
+          if (Big(upd.timestamp_us).eq(this.orderbook.last_snapshot_ts_us) && upd.__conn_id != this.orderbook.last_snapshot_conn_id)
+            return this.orderbook_log('/!\\ apply_orderbook_upd: upd.timestamp_us == this.orderbook.last_snapshot_ts_us && upd.__conn_id ('+upd.__conn_id+') != this.orderbook.last_snapshot_conn_id ('+this.orderbook.last_snapshot_conn_id+').');
+        } else {
+          // Do not have 'timestamp_us'
+          if (Big(upd.timestamp).eq(this.orderbook.last_snapshot_ts) && upd.__conn_id != this.orderbook.last_snapshot_conn_id)
+            return this.orderbook_log('/!\\ apply_orderbook_upd: upd.timestamp == this.orderbook.last_snapshot_ts && upd.__conn_id ('+upd.__conn_id+') != this.orderbook.last_snapshot_conn_id ('+this.orderbook.last_snapshot_conn_id+').');
+        }
+      }
+    }
       
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n');
     
