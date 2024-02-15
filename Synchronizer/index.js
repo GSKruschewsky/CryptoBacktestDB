@@ -854,8 +854,11 @@ class Synchronizer {
       formatted.first_update_nonce = (msg[_ob_sub.update.prev_upd_nonce_key] || updates[_ob_sub.update.prev_upd_nonce_key]) * 1 + 1;
 
     // Set 'last_update_nonce' if possible.
-    if (_ob_sub.update.last_upd_nonce_key)
+    if (_ob_sub.update.last_upd_nonce_key) {
       formatted.last_update_nonce = (msg[_ob_sub.update.last_upd_nonce_key] || updates[_ob_sub.update.last_upd_nonce_key]);
+      if (_ob_sub.update.upd_nonce_is_sequence)
+        formatted.first_update_nonce = (msg[_ob_sub.update.last_upd_nonce_key] || updates[_ob_sub.update.last_upd_nonce_key]);
+    }
     
     // Log book message
     if (is_snapshot) {
@@ -921,7 +924,7 @@ class Synchronizer {
       this.delayed_orderbook == null || 
       book_sec != Math.floor(upd_time / 1e3)
     )) {
-      if (!this.is_test) console.log('[!] New second, book_sec ('+book_sec+') upd_sec ('+upd_sec+')');
+      if (!this.is_test) console.log('[!] New second, book_sec ('+book_sec+') upd_sec ('+upd_sec+') { '+((Date.now() - upd_sec*1e3) / 1e3).toFixed(3)+' sec delay }');
       const save_it = (this.delayed_orderbook != null);
 
       if (save_it && this.delayed_orderbook.first && this.delayed_orderbook.timestamp != undefined && 

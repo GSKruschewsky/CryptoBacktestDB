@@ -83,7 +83,8 @@
             "amount": "v"
           },
           "timestamp": "t",
-          "last_upd_nonce_key": "r"
+          "last_upd_nonce_key": "r",
+          "upd_nonce_is_sequence": true
         }
       },
       "trades": {
