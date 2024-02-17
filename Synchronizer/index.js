@@ -1255,7 +1255,7 @@ class Synchronizer {
 
         if (this.last_book_updates.length > 0 && 
         _ws?.subcriptions?.orderbook?.update?.avoid_each_piece_repetition == true) {
-          let _upd_to_cache = __upd;
+          let _upd_to_cache = [ side, ...__upd ];
           
           if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition_drop_timestamp != true) {
             if (upd.timestamp) _upd_to_cache.push(upd.timestamp);
