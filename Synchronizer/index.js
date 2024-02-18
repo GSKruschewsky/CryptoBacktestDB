@@ -1469,6 +1469,10 @@ class Synchronizer {
         this.ws_req_nonce = 0;
         this.saved_first_second = false;
 
+        if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache) {
+          this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512);
+        }
+
         // Filter 'connection_tries' to only attemps that happened on the last minute.
         this.connection_tries = this.connection_tries.filter(ts => ts >= Date.now() - 60e3);
         if (!this.is_lantecy_test) console.log('('+conn_idx+') WebSocket '+ctype+' reconnecting... (attemps= '+this.connection_tries.length+', max_attemps= '+this.max_attemps_per_min+')');
@@ -2567,7 +2571,11 @@ class Synchronizer {
     this.synced_trades_since = null;
     this.ws_req_nonce = 0;
     this.connections = [];
-    this.attemp_delay = {}; 
+    this.attemp_delay = {};
+        
+    if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache) {
+      this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512);
+    }
   }
 }
 
