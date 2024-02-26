@@ -642,9 +642,10 @@ class Synchronizer {
     
     // Builds the formatted message.
     let updates = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
-    let asks = [];
-    let bids = [];
-    // let timestamps = [];
+    // let asks = [];
+    // let bids = [];
+    let asks = {};
+    let bids = {};
     let higher_timestamp = null;
 
     if ((is_snapshot && _ob_sub.snapshot?.asks_and_bids_together) || 
@@ -708,9 +709,11 @@ class Synchronizer {
         }
 
         if (is_bids)
-          bids.push(_upd_piece_array);
+          bids[_upd_piece_array[0]] = _upd_piece_array;
+          // bids.push(_upd_piece_array);
         else
-          asks.push(_upd_piece_array);
+          asks[_upd_piece_array[0]] = _upd_piece_array;
+          // asks.push(_upd_piece_array);
       }
     } else {
       for (const upd of (updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks] || [])) {
@@ -752,7 +755,8 @@ class Synchronizer {
           _upd_piece_array.push(upd[k]);
         }
         
-        asks.push(_upd_piece_array);
+        asks[_upd_piece_array[0]] = _upd_piece_array;
+        // asks.push(_upd_piece_array);
       }
       
       for (const upd of (updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids] || [])) {
@@ -794,11 +798,12 @@ class Synchronizer {
           _upd_piece_array.push(upd[k]);
         }
 
-        bids.push(_upd_piece_array);
+        bids[_upd_piece_array[0]] = _upd_piece_array;
+        // bids.push(_upd_piece_array);
       }
     }
 
-    let formatted = { asks, bids, is_snapshot };
+    let formatted = { asks: Object.values(asks), bids: Object.values(bids), is_snapshot };
 
     // Define the timestamp.
     if (_ob_sub.update.timestamp || _ob_sub.snapshot?.timestamp) {
