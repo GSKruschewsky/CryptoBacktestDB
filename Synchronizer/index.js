@@ -1344,6 +1344,7 @@ class Synchronizer {
       // console.log('/!\\ ('+conn_idx+') WebSocket '+ctype+' promessa finalizada.');
       clearTimeout(conn._main_prom_timeout);
       delete conn._main_prom_timeout;
+      delete conn.main_prom;
       _prom = null;
     });
     
