@@ -2181,6 +2181,7 @@ class Synchronizer {
 
       } else {
         // Make rest request to get initial orderbook snapshot.
+        console.log("REST Requesting orderbook snapshot...");
         let { success, response: r } = await this.rest_request('orderbook', [
           [ '<market>', this.market.rest ]
         ]);
