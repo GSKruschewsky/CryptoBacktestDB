@@ -139,6 +139,7 @@
           "each_piece_ignore_if": null,
           "each_piece_to_add": null,
           "dont_apply_too_old": null,
+          "dont_apply_too_old_time": 100,
           "avoid_repetition": null,
           "conn_dont_repeat": null,
           "avoid_repetition_size": 512,
