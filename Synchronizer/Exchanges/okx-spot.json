@@ -76,18 +76,19 @@
           "identifier_value": "snapshot"
         },
         "update": {
-          "avoid_repetition": true,
           "data_inside_arr": true,
           "data_inside_arr_inside": "data",
           "channel_id_key": "action",
           "channel_id": "update",
           "asks": "asks",
           "bids": "bids",
-          "timestamp": "ts",
           "pl": {
             "price": "0",
             "amount": "1"
-          }
+          },
+          "timestamp": "ts",
+          "prev_upd_nonce_key": "prevSeqId",
+          "last_upd_nonce_key": "seqId"
         }
       },
       "trades": {
