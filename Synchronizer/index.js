@@ -1142,7 +1142,7 @@ class Synchronizer {
     // }
 
     if (_ws?.subcriptions?.orderbook?.update?.dont_apply_too_old && upd.timestamp && this.orderbook.timestamp && Big(upd.timestamp).lt(Big(this.orderbook.timestamp).minus(_ws?.subcriptions?.orderbook?.update?.dont_apply_too_old_time || 100)))
-      return this.orderbook_log('/!\\ apply_orderbook_upd: upd.timestamp < orderbook.timestamp - 100. (too old update)');
+      return this.orderbook_log('/!\\ apply_orderbook_upd: upd.timestamp < orderbook.timestamp - '+ (_ws?.subcriptions?.orderbook?.update?.dont_apply_too_old_time || 100) +'. (too old update)');
 
     if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot) {
       if (
