@@ -867,6 +867,8 @@ class Synchronizer {
     
     // Log book message
     if (is_snapshot) {
+      console.log('('+conn._idx+') Book snap:',msg);
+
       if (is_snap && _ob_sub.update?.asks_and_bids_together || _ob_sub.snapshot?.asks_and_bids_together) {
         // Need to remove the whole '_ob_sub.update.updates_inside' from the message.
         let keys = _ob_sub.update.updates_inside?.split('.');
