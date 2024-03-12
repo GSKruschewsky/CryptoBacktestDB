@@ -69,6 +69,7 @@
           "bids": "bs"
         },
         "update": {
+          "resync_again_after_min": 30,
           "apply_only_since_last_snapshot": true,
           "avoid_each_piece_repetition": true,
           "each_piece_ignore_if": [

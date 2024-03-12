@@ -267,7 +267,6 @@ class Synchronizer {
       }
     }
 
-
     // Send 'orderbook' subscription request.
     if (_ws.not_handle_orderbook !== true) {
       if (_ws.subcriptions.orderbook?.request != undefined) {
@@ -282,10 +281,10 @@ class Synchronizer {
           const { signature, sign_nonce } = this.authenticate();
           
           orderbook_sub_req = orderbook_sub_req
-          .replace('<api_key>', this.api.key)
-          .replace('<api_pass>', this.api.pass)
-          .replace('<sign_nonce>', sign_nonce)
-          .replace('<signature>', signature);
+            .replace('<api_key>', this.api.key)
+            .replace('<api_pass>', this.api.pass)
+            .replace('<sign_nonce>', sign_nonce)
+            .replace('<signature>', signature);
         }
         
         conn._sent_orderbook_sub_at = Date.now();
@@ -867,7 +866,7 @@ class Synchronizer {
     
     // Log book message
     if (is_snapshot) {
-      console.log('('+conn._idx+') Book snap:',msg);
+      // console.log('('+conn._idx+') Book snap:',msg);
 
       if (is_snap && _ob_sub.update?.asks_and_bids_together || _ob_sub.snapshot?.asks_and_bids_together) {
         // Need to remove the whole '_ob_sub.update.updates_inside' from the message.
@@ -893,6 +892,7 @@ class Synchronizer {
 
     // Stores the connection id that received the update.
     formatted['__conn_id'] = conn._idx;
+    formatted['__conn_type'] = conn._type;
     
     // Returns the formatted message.
     return formatted;
@@ -1009,38 +1009,40 @@ class Synchronizer {
   }
 
   apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts) {
-    // Validate snapshot update.
-
-    // console.log('snap upd:',(update.last_update_nonce || update.timestamp_us || update.timestamp), (update.last_update_nonce && "last_update_nonce") || (update.timestamp_us && "timestamp_us") || (update.timestamp && "timestamp"));
-    if (this.orderbook != null && this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce))
-      return this.orderbook_log('/!\\ apply_orderbook_snap: update.last_update_nonce <= orderbook.last_update_nonce.'); // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
-
-    if (this.orderbook != null && _ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot) {
-      if (
-        (
-          update.timestamp && 
-          this.orderbook.last_snapshot_ts && 
-          Big(update.timestamp).lt(this.orderbook.timestamp)
-        ) ||
-        (
-          update.timestamp_us && 
-          this.orderbook.last_snapshot_ts_us && 
-          Big(update.timestamp_us).lt(this.orderbook.timestamp_us)
-        )
-      ) {
-        // Update timestamp < book timestamp
-        return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp < this.orderbook.timestamp || update.timestamp_us < this.orderbook.timestamp_us.');
-
-      } else {
-        // Update timestamp >= book timestamp
-        if (update.timestamp_us && this.orderbook.last_snapshot_ts_us) {
-          // Have 'timestamp_us'
-          if (Big(update.timestamp_us).eq(this.orderbook.last_snapshot_ts_us) && update.__conn_id != this.orderbook.last_snapshot_conn_id)
-            return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp_us == this.orderbook.last_snapshot_ts_us && update.__conn_id ('+update.__conn_id+') != this.orderbook.last_snapshot_conn_id ('+this.orderbook.last_snapshot_conn_id+').');
+    // Check if its orderbook is being resynced or if its undefined, in both cases validation is not required. carlos
+    if (this.orderbook != null && (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min == null || 
+    (Date.now() - this.orderbook.snapshot_applied_at) / 60e3 < _ws?.subcriptions?.orderbook?.update?.resync_again_after_min)) {
+      // Not resyncing book. Validate snapshot update.
+      if (this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce))
+        return this.orderbook_log('/!\\ apply_orderbook_snap: update.last_update_nonce <= orderbook.last_update_nonce.'); // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
+  
+      if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot) {
+        if (
+          (
+            update.timestamp && 
+            this.orderbook.last_snapshot_ts && 
+            Big(update.timestamp).lt(this.orderbook.timestamp)
+          ) ||
+          (
+            update.timestamp_us && 
+            this.orderbook.last_snapshot_ts_us && 
+            Big(update.timestamp_us).lt(this.orderbook.timestamp_us)
+          )
+        ) {
+          // Update timestamp < book timestamp
+          return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp < this.orderbook.timestamp || update.timestamp_us < this.orderbook.timestamp_us.');
+  
         } else {
-          // Do not have 'timestamp_us'
-          if (Big(update.timestamp).eq(this.orderbook.last_snapshot_ts) && update.__conn_id != this.orderbook.last_snapshot_conn_id)
-            return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp == this.orderbook.last_snapshot_ts && update.__conn_id ('+update.__conn_id+') != this.orderbook.last_snapshot_conn_id ('+this.orderbook.last_snapshot_conn_id+').');
+          // Update timestamp >= book timestamp
+          if (update.timestamp_us && this.orderbook.last_snapshot_ts_us) {
+            // Have 'timestamp_us'
+            if (Big(update.timestamp_us).eq(this.orderbook.last_snapshot_ts_us) && update.__conn_id != this.orderbook.last_snapshot_conn_id)
+              return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp_us == this.orderbook.last_snapshot_ts_us && update.__conn_id ('+update.__conn_id+') != this.orderbook.last_snapshot_conn_id ('+this.orderbook.last_snapshot_conn_id+').');
+          } else {
+            // Do not have 'timestamp_us'
+            if (Big(update.timestamp).eq(this.orderbook.last_snapshot_ts) && update.__conn_id != this.orderbook.last_snapshot_conn_id)
+              return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp == this.orderbook.last_snapshot_ts && update.__conn_id ('+update.__conn_id+') != this.orderbook.last_snapshot_conn_id ('+this.orderbook.last_snapshot_conn_id+').');
+          }
         }
       }
     }
@@ -1114,7 +1116,8 @@ class Synchronizer {
       last_update_nonce: update.last_update_nonce,
       last_snapshot_ts: update.timestamp,
       last_snapshot_ts_us: update.timestamp_us,
-      last_snapshot_conn_id: update.__conn_id
+      last_snapshot_conn_id: update.__conn_id,
+      snapshot_applied_at: Date.now()
     };
 
     this.orderbook_log(update.asks.slice(0, 10).reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
@@ -1128,6 +1131,13 @@ class Synchronizer {
 
     this.orderbook_log(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     this.orderbook_log(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+
+    // Define 'conn'.
+    const conn = this.connections[update.__conn_id][update.__conn_type];
+
+    // Set 'conn.__is_resyncing_book' to false.
+    conn.__is_resyncing_book = false;
+
   }
 
   apply_orderbook_upd (upd, _ws, __ws, _prom, ws_recv_ts) {
@@ -1326,6 +1336,53 @@ class Synchronizer {
     this.orderbook.timestamp_us = upd.timestamp_us;
     this.orderbook.last_update_nonce = upd.last_update_nonce;
 
+    // Check if its time o resync the orderbook.
+    if (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min && 
+    (Date.now() - this.orderbook.snapshot_applied_at) / 60e3 >= _ws?.subcriptions?.orderbook?.update?.resync_again_after_min) {
+      // Time to resync orderbook.
+
+      // Define 'conn'.
+      const conn = this.connections[upd.__conn_id][upd.__conn_type];
+      
+      // Check if conection is not already resyncing.
+      if (!conn.__is_resyncing_book) {
+        conn.__is_resyncing_book = true;
+        console.log('('+upd.__conn_id+') Resyncing orderbook...');
+
+        // Send orderbook subscription request.
+        if (_ws.subcriptions.orderbook?.request != undefined) {
+          let orderbook_sub_req = _ws.subcriptions.orderbook.request
+            .replaceAll('<market>', this.market.ws)
+            .replace('<ws_req_id>', ++this.ws_req_nonce);
+
+          conn.info.orderbook.req_id = _ws.subcriptions.orderbook.response?.id_value?.replaceAll('<market>', this.market.ws) || this.ws_req_nonce;
+
+          // If needed, authenticate the orderbook subscription request.
+          if (_ws.subcriptions.orderbook.require_auth) {
+            const { signature, sign_nonce } = this.authenticate();
+            
+            orderbook_sub_req = orderbook_sub_req
+              .replace('<api_key>', this.api.key)
+              .replace('<api_pass>', this.api.pass)
+              .replace('<sign_nonce>', sign_nonce)
+              .replace('<signature>', signature);
+          }
+          
+          // conn._sent_orderbook_sub_at = Date.now();
+          __ws.send(orderbook_sub_req);
+
+        } else if (this.exc.rest.endpoints?.orderbook != undefined) {
+          this.get_orderbook_snapshot();
+        
+        } else {
+          console.log('[E] Orderbook > Resync from "resync_again_after_min" option is only possible when using rest snapshot or orderbook subscription request.');
+          process.exit();
+        }
+      }
+      
+      // carlos 
+    }
+
     // console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     // console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
   }
@@ -1338,6 +1395,7 @@ class Synchronizer {
     this.connections[conn_idx][ctype] = { info: {} };  // Create the connection object.
     let conn = this.connections[conn_idx][ctype];      // Create a reference to the connection object.
     conn._idx = conn_idx;
+    conn._type = ctype;
 
     // Create the connection main promise and a control variable to it.
     let _prom = null;
