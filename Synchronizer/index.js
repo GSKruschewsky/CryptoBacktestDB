@@ -1049,15 +1049,15 @@ class Synchronizer {
     } else {
       console.log('Appling book update withou validation:');
       console.log('this.orderbook == null:', (this.orderbook == null));
-      console.log('this.orderbook.snapshot_applied_at:',this.orderbook.snapshot_applied_at);
-      console.log('Minutes since last snapshot:',(Date.now() - this.orderbook.snapshot_applied_at) / 60e3);
+      console.log('this.orderbook.snapshot_applied_at:',this.orderbook == null ? undefined : this.orderbook.snapshot_applied_at);
+      console.log('Minutes since last snapshot:',this.orderbook == null ? undefined : ((Date.now() - this.orderbook.snapshot_applied_at) / 60e3));
       console.log('resync_again_after_min:',_ws?.subcriptions?.orderbook?.update?.resync_again_after_min);
       console.log(' ');
       
       this.orderbook_log('Appling book update withou validation:');
       this.orderbook_log('this.orderbook == null:', (this.orderbook == null));
-      this.orderbook_log('this.orderbook.snapshot_applied_at:',this.orderbook.snapshot_applied_at);
-      this.orderbook_log('Minutes since last snapshot:',(Date.now() - this.orderbook.snapshot_applied_at) / 60e3);
+      this.orderbook_log('this.orderbook.snapshot_applied_at:',this.orderbook == null ? undefined : this.orderbook.snapshot_applied_at);
+      this.orderbook_log('Minutes since last snapshot:',this.orderbook == null ? undefined : ((Date.now() - this.orderbook?.snapshot_applied_at) / 60e3));
       this.orderbook_log('resync_again_after_min:',_ws?.subcriptions?.orderbook?.update?.resync_again_after_min);
       this.orderbook_log(' ');
     }
