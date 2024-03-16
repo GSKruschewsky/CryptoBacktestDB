@@ -1011,7 +1011,7 @@ class Synchronizer {
   apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts) {
     // Check if its orderbook is being resynced or if its undefined, in both cases validation is not required. carlos
     if (this.orderbook != null && (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min == null || 
-    (Date.now() - this.orderbook.snapshot_applied_at) / 60e3 < _ws?.subcriptions?.orderbook?.update?.resync_again_after_min)) {
+    (Date.now() - this.orderbook.snapshot_applied_at) / 60e3 < _ws.subcriptions.orderbook.update.resync_again_after_min)) {
       // Not resyncing book. Validate snapshot update.
       if (this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce))
         return this.orderbook_log('/!\\ apply_orderbook_snap: update.last_update_nonce <= orderbook.last_update_nonce.'); // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
@@ -1045,6 +1045,21 @@ class Synchronizer {
           }
         }
       }
+    
+    } else {
+      console.log('Appling book update withou validation:');
+      console.log('this.orderbook == null:', (this.orderbook == null));
+      console.log('this.orderbook.snapshot_applied_at:',this.orderbook.snapshot_applied_at);
+      console.log('Minutes since last snapshot:',(Date.now() - this.orderbook.snapshot_applied_at) / 60e3);
+      console.log('resync_again_after_min:',_ws?.subcriptions?.orderbook?.update?.resync_again_after_min);
+      console.log(' ');
+      
+      this.orderbook_log('Appling book update withou validation:');
+      this.orderbook_log('this.orderbook == null:', (this.orderbook == null));
+      this.orderbook_log('this.orderbook.snapshot_applied_at:',this.orderbook.snapshot_applied_at);
+      this.orderbook_log('Minutes since last snapshot:',(Date.now() - this.orderbook.snapshot_applied_at) / 60e3);
+      this.orderbook_log('resync_again_after_min:',_ws?.subcriptions?.orderbook?.update?.resync_again_after_min);
+      this.orderbook_log(' ');
     }
 
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
