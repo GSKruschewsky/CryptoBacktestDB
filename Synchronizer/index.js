@@ -1047,19 +1047,28 @@ class Synchronizer {
       }
     
     } else {
-      console.log('Appling book update withou validation:');
+      console.log('Appling book update without validation:');
       console.log('this.orderbook == null:', (this.orderbook == null));
       console.log('this.orderbook.snapshot_applied_at:',this.orderbook == null ? undefined : this.orderbook.snapshot_applied_at);
       console.log('Minutes since last snapshot:',this.orderbook == null ? undefined : ((Date.now() - this.orderbook.snapshot_applied_at) / 60e3));
       console.log('resync_again_after_min:',_ws?.subcriptions?.orderbook?.update?.resync_again_after_min);
       console.log(' ');
       
-      this.orderbook_log('Appling book update withou validation:');
+      this.orderbook_log('Appling book update without validation:');
       this.orderbook_log('this.orderbook == null:', (this.orderbook == null));
       this.orderbook_log('this.orderbook.snapshot_applied_at:',this.orderbook == null ? undefined : this.orderbook.snapshot_applied_at);
       this.orderbook_log('Minutes since last snapshot:',this.orderbook == null ? undefined : ((Date.now() - this.orderbook?.snapshot_applied_at) / 60e3));
       this.orderbook_log('resync_again_after_min:',_ws?.subcriptions?.orderbook?.update?.resync_again_after_min);
       this.orderbook_log(' ');
+
+      // If uses 'avoid_repetition', reset 'last_book_updates'.
+      if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition) {
+        this.last_book_updates = new Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512).fill(undefined);
+        this.last_book_updates_nonce = 0;
+      
+        console.log("[!] Reseted 'last_book_updates' before snapshot.");
+        this.orderbook_log("[!] Reseted 'last_book_updates' before snapshot.");
+      }
     }
 
     // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'true\n')
@@ -1120,7 +1129,11 @@ class Synchronizer {
     //   console.log('[!!] Got first orderbook snapshot from',((this.exc.rest?.endpoints?.orderbook != null) ? "REST" : "WS"),'at',update.timestamp);
 
     if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache) {
-      this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512);
+      this.last_book_updates = new Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512).fill(undefined);
+      this.last_book_updates_nonce = 0;
+
+      console.log("[!] Reseted 'last_book_updates' after snapshot.");
+      this.orderbook_log("[!] Reseted 'last_book_updates' after snapshot.");
     }
 
     this.orderbook = {
@@ -1450,7 +1463,8 @@ class Synchronizer {
 
       if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition && 
       (this.last_book_updates == null || this.last_book_updates.length == 0)) {
-        this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512);
+        this.last_book_updates = new Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512).fill(undefined);
+        this.last_book_updates_nonce = 0;
       }
       
       // If no 'orderbook.response', 'info.orderbook.channel_id' should be defined here.
@@ -1551,7 +1565,8 @@ class Synchronizer {
         this.saved_first_second = false;
 
         if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache) {
-          this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512);
+          this.last_book_updates = new Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512).fill(undefined);
+          this.last_book_updates_nonce = 0;
         }
 
         // Filter 'connection_tries' to only attemps that happened on the last minute.
@@ -2656,7 +2671,8 @@ class Synchronizer {
     this.attemp_delay = {};
         
     if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache) {
-      this.last_book_updates = Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512);
+      this.last_book_updates = new Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512).fill(undefined);
+      this.last_book_updates_nonce = 0;
     }
   }
 }
