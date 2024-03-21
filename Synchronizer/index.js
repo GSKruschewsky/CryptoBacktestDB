@@ -1368,8 +1368,7 @@ class Synchronizer {
 
     // Check if its time o resync the orderbook.
     if (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min && 
-    (Date.now() - this.orderbook.snapshot_applied_at) / 60e3 >= _ws?.subcriptions?.orderbook?.update?.resync_again_after_min &&
-    this.orderbook.__on_recy) {
+    (Date.now() - this.orderbook.snapshot_applied_at) / 60e3 >= _ws?.subcriptions?.orderbook?.update?.resync_again_after_min) {
       // Time to resync orderbook.
 
       // Define 'conn'.
