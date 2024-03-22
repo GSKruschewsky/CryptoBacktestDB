@@ -1013,6 +1013,13 @@ class Synchronizer {
     // Define 'conn'.
     const conn = this.connections[update.__conn_id][update.__conn_type];
 
+    // Check if update should be ignored.
+    if (conn?._ignore_updates_before_us != null && update.timestamp_us) {
+      if (Big(update.timestamp_us).lte(conn._ignore_updates_before_us)) return;
+    } else if (conn?._ignore_updates_before != null && update.timestamp) {
+      if (Big(update.timestamp).lte(conn._ignore_updates_before)) return;
+    }
+
     // Set 'conn.__is_resyncing_book' to false.
     conn.__is_resyncing_book = false;
 
@@ -1037,6 +1044,11 @@ class Synchronizer {
           )
         ) {
           // Update timestamp < book timestamp
+
+          // QQ update vindo dessa conexão até 'orderbook.timestamp' pode ser repetido (e aplicado por ser da msm conn em caso de reconnexão).
+          conn._ignore_updates_before = this.orderbook.timestamp;
+          conn._ignore_updates_before_us = this.orderbook.timestamp_us;
+          
           return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp < this.orderbook.timestamp || update.timestamp_us < this.orderbook.timestamp_us.');
   
         } else {
@@ -1173,6 +1185,16 @@ class Synchronizer {
   apply_orderbook_upd (upd, _ws, __ws, _prom, ws_recv_ts) {
     // Validate updates.
     if (this.orderbook == null) return this.orderbook_log('/!\\ apply_orderbook_upd: orderbook is null.'); // Just in case
+
+    // Define 'conn'.
+    const conn = this.connections[upd.__conn_id][upd.__conn_type];
+
+    // Check if update should be ignored.
+    if (conn?._ignore_updates_before_us != null && upd.timestamp_us) {
+      if (Big(upd.timestamp_us).lte(conn._ignore_updates_before_us)) return;
+    } else if (conn?._ignore_updates_before != null && upd.timestamp) {
+      if (Big(upd.timestamp).lte(conn._ignore_updates_before)) return;
+    }
 
     if (this.orderbook.last_update_nonce && upd.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce))
       return this.orderbook_log('/!\\ apply_orderbook_upd: upd.last_update_nonce <= orderbook.last_update_nonce.');
@@ -1367,7 +1389,7 @@ class Synchronizer {
     this.orderbook.last_update_nonce = upd.last_update_nonce;
 
     // Check if its time o resync the orderbook.
-    if (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min && 
+    if (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min != null && 
     (Date.now() - this.orderbook.snapshot_applied_at) / 60e3 >= _ws?.subcriptions?.orderbook?.update?.resync_again_after_min) {
       // Time to resync orderbook.
 
