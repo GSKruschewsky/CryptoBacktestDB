@@ -982,7 +982,7 @@ class Synchronizer {
       if (save_it && this.delayed_orderbook.timestamp != undefined) {
         this.orderbooks.unshift(this.delayed_orderbook);
 
-        if (this.completely_synced) {
+        if (Date.now() / 1e3 - upd_sec < 60/*this.completely_synced*/) {
           // Updates 'this.seconds_data'.
           while (this.data_time <= upd_sec) {
             this.save_second();
