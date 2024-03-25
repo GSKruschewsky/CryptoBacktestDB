@@ -887,7 +887,8 @@ class Synchronizer {
       }
 
       msg['__'] = 'SNAPSHOT';
-      console.log('('+conn._idx+') Book snap msg:',(formatted?.timestamp_us || formatted?.timestamp));
+      if (!is_snap) // Not from 'orderbook_snap' subscription.
+        console.log('('+conn._idx+') Book snap msg:',(formatted?.timestamp_us || formatted?.timestamp));
     }
     this.orderbook_log('('+conn._idx+') Book msg:',msg);
 
@@ -899,12 +900,12 @@ class Synchronizer {
     return formatted;
   }
 
-  handle_orderbook_msg (update, _ws, __ws, _prom, ws_recv_ts) {
+  handle_orderbook_msg (update, _ws, __ws, _prom, ws_recv_ts, from_snap_sub = false) {
     if (update == null) return; // Ignore.
 
     if (update.is_snapshot) {
       // console.log('Applying orderbook snapshot...');
-      this.apply_orderbook_snap(update, _ws, __ws, _prom, ws_recv_ts);
+      this.apply_orderbook_snap(update, _ws, __ws, _prom, ws_recv_ts, from_snap_sub);
 
     } else {
       if (this.orderbook == null) {
@@ -982,7 +983,7 @@ class Synchronizer {
       if (save_it && this.delayed_orderbook.timestamp != undefined) {
         this.orderbooks.unshift(this.delayed_orderbook);
 
-        if (Date.now() / 1e3 - upd_sec < 60/*this.completely_synced*/) {
+        if (Date.now() / 1e3 - upd_sec < 60 && this.trades != null && this.orderbook.snapshot_applied_at != null/*this.completely_synced*/) {
           // Updates 'this.seconds_data'.
           while (this.data_time <= upd_sec) {
             this.save_second();
@@ -1009,13 +1010,9 @@ class Synchronizer {
     }
   }
 
-  apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts) {
+  apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts, from_snap_sub = false) {
     // Define 'conn'.
-    try {
-      const conn = this.connections[update.__conn_id][update.__conn_type]; 
-    } catch (error) {
-      console.log('Error:',error);
-    }
+    const conn = this.connections?.[update?.__conn_id]?.[update?.__conn_type];
 
     // Check if update should be ignored.
     if (conn?._ignore_updates_before_us != null && update.timestamp_us) {
@@ -1025,7 +1022,8 @@ class Synchronizer {
     }
 
     // Set 'conn.__is_resyncing_book' to false.
-    conn.__is_resyncing_book = false;
+    if (conn)
+      conn.__is_resyncing_book = false;
 
     // Check if its orderbook is being resynced or if its undefined, in both cases validation is not required. carlos
     if (this.orderbook != null && (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min == null || 
@@ -1179,8 +1177,9 @@ class Synchronizer {
       this.apply_orderbook_upd(this.orderbook_upd_cache[0], _ws, __ws, _prom, ws_recv_ts);
       this.orderbook_upd_cache.shift();
     }
-
-    console.log('Book snap applied (conn= ' + update.__conn_id + '):',(update.timestamp_us || update.timestamp));
+    
+    if (!from_snap_sub)
+      console.log('Book snap applied (conn= ' + update.__conn_id + '):',(update.timestamp_us || update.timestamp));
 
     this.orderbook_log(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     this.orderbook_log(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
@@ -1966,7 +1965,7 @@ class Synchronizer {
 
           if (_channel_id != undefined && _channel_id == conn.info.orderbook_snap.channel_id) {
             // Format and handle data.
-            return this.handle_orderbook_msg(this.format_orderbook_msg(msg, _ws, __ws, _prom, conn, true), _ws, __ws, _prom, ws_recv_ts);
+            return this.handle_orderbook_msg(this.format_orderbook_msg(msg, _ws, __ws, _prom, conn, true), _ws, __ws, _prom, ws_recv_ts, true);
           }
         }
       }
