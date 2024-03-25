@@ -2483,6 +2483,9 @@ class Synchronizer {
     // Sets 'exc'.
     this.exc = exchanges[this.exchange];
 
+    if (this.exc.conn_attemp_delay)
+      this.conn_attemp_delay = conn_attemp_delay;
+
     // Sets 'full_market_name'.
     const _base = this.exc?.asset_translation?.[this.base] || this.base;
     const _quote = this.exc?.asset_translation?.[this.quote] || this.quote;

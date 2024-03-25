@@ -7,6 +7,7 @@
   "timestamp_in_micro": null,
   "timestamp_in_seconds": null,
   "timestamp_ISO_format": null,
+  "conn_attemp_delay": 60e3,
   "rest": {
     "url": "https://api.crypto.com",
     "timeout": 15000,
