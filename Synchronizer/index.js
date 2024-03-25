@@ -1011,7 +1011,11 @@ class Synchronizer {
 
   apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts) {
     // Define 'conn'.
-    const conn = this.connections[update.__conn_id][update.__conn_type];
+    try {
+      const conn = this.connections[update.__conn_id][update.__conn_type]; 
+    } catch (error) {
+      console.log('Error:',error);
+    }
 
     // Check if update should be ignored.
     if (conn?._ignore_updates_before_us != null && update.timestamp_us) {
