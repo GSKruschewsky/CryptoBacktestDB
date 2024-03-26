@@ -51,7 +51,9 @@
           "asks": "asks",
           "bids": "bids",
           "timestamp": "time",
-          "last_update_nonce": "sequence"
+          "last_update_nonce": "sequence",
+          "slow_cache": true,
+          "slow_cache_delay": 5e3
         }
       },
       "trades": {
