@@ -81,7 +81,7 @@
         "update": {
           "apply_only_since_last_snapshot": true,
           "dont_apply_too_old": true,
-          "dont_apply_too_old_time": 10,
+          "dont_apply_too_old_time": 5,
           "avoid_repetition": true,
           "conn_dont_repeat": true, 
           "updates_inside": "changes",

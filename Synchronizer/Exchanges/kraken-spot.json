@@ -78,7 +78,7 @@
           "conn_dont_repeat": true, 
           "each_piece_to_add": [ "2" ],
           "dont_apply_too_old": true,
-          "dont_apply_too_old_time": 10,
+          "dont_apply_too_old_time": 5,
           "avoid_repetition": true,
           "data_inside": "1,-2",
           "channel_id_key": "-2",
