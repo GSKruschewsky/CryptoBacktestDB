@@ -74,6 +74,7 @@
           "channel_id_key": "msg"
         },
         "update": {
+          "resync_again_after_min": 5,
           "channel_id_key": "c",
           "updates_inside": "d",
           "asks": "asks",

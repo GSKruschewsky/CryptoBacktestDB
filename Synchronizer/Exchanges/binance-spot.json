@@ -61,6 +61,7 @@
           "id": "id"
         },
         "update": {
+          "resync_again_after_min": 5,
           "channel_id_key": "stream",
           "channel_id": "<market>@depth@100ms",
           "data_inside": "data",

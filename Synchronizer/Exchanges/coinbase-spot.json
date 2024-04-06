@@ -56,6 +56,7 @@
     "subcriptions": {
       "orderbook": {
         "request": "{\"type\":\"subscribe\",\"product_ids\":[\"<market>\"],\"channels\":[\"level2\"],\"signature\":\"<signature>\",\"key\":\"<api_key>\",\"passphrase\":\"<api_pass>\",\"timestamp\":\"<sign_nonce>\"}",
+        "unsub_req": "{\"type\":\"unsubscribe\",\"product_ids\":[\"<market>\"],\"channels\":[\"level2\"]}",
         "require_auth": true,
         "response": {
           "acum_list": true,
@@ -79,6 +80,7 @@
           }
         },
         "update": {
+          "resync_again_after_min": 5,
           "apply_only_since_last_snapshot": true,
           "dont_apply_too_old": true,
           "dont_apply_too_old_time": 5,
@@ -122,6 +124,13 @@
           "price": "price",
           "amount": "size"
         }
+      }
+    },
+    "other_updates": {
+      "unsub": {
+        "identifier_key": "type",
+        "identifier_value": "subscriptions",
+        "send_book_sub": true
       }
     },
     "msgs_to_ignore": [

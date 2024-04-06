@@ -115,6 +115,7 @@
         },
         "snapshot": null,
         "update": {
+          "resync_again_after_min": 5,
           "ignore_if": null,
           "channel_id_key": "topic",
           "channel_id": "/market/level2:<market>",

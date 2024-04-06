@@ -218,6 +218,28 @@ class Synchronizer {
     return ts;
   }
 
+  send_book_sub (conn, _ws, __ws) {
+    let orderbook_sub_req = _ws.subcriptions.orderbook.request
+      .replaceAll('<market>', this.market.ws)
+      .replace('<ws_req_id>', ++this.ws_req_nonce);
+    
+    conn.info.orderbook.req_id = _ws.subcriptions.orderbook.response?.id_value?.replaceAll('<market>', this.market.ws) || this.ws_req_nonce;
+
+    // If needed, authenticate the orderbook subscription request.
+    if (_ws.subcriptions.orderbook.require_auth) {
+      const { signature, sign_nonce } = this.authenticate();
+      
+      orderbook_sub_req = orderbook_sub_req
+        .replace('<api_key>', this.api.key)
+        .replace('<api_pass>', this.api.pass)
+        .replace('<sign_nonce>', sign_nonce)
+        .replace('<signature>', signature);
+    }
+    
+    conn._sent_orderbook_sub_at = Date.now();
+    __ws.send(orderbook_sub_req);
+  }
+
   make_subscriptions (__ws, _ws, _prom, conn) {
     // Send some data before subscriptions if needed.
     if (_ws.to_send_before_subcriptions != undefined) {
@@ -269,26 +291,8 @@ class Synchronizer {
 
     // Send 'orderbook' subscription request.
     if (_ws.not_handle_orderbook !== true) {
-      if (_ws.subcriptions.orderbook?.request != undefined) {
-        let orderbook_sub_req = _ws.subcriptions.orderbook.request
-          .replaceAll('<market>', this.market.ws)
-          .replace('<ws_req_id>', ++this.ws_req_nonce);
-        
-        conn.info.orderbook.req_id = _ws.subcriptions.orderbook.response?.id_value?.replaceAll('<market>', this.market.ws) || this.ws_req_nonce;
-
-        // If needed, authenticate the orderbook subscription request.
-        if (_ws.subcriptions.orderbook.require_auth) {
-          const { signature, sign_nonce } = this.authenticate();
-          
-          orderbook_sub_req = orderbook_sub_req
-            .replace('<api_key>', this.api.key)
-            .replace('<api_pass>', this.api.pass)
-            .replace('<sign_nonce>', sign_nonce)
-            .replace('<signature>', signature);
-        }
-        
-        conn._sent_orderbook_sub_at = Date.now();
-        __ws.send(orderbook_sub_req);
+      if (_ws.subcriptions.orderbook?.request != undefined) { // carlos
+        this.send_book_sub(conn, _ws, __ws);
       }
 
       // If no orderbook subscription response' is expected, then we should assume that 'info.orderbook.is_upds_subscribed' is true from here.
@@ -1022,10 +1026,9 @@ class Synchronizer {
     }
 
     // Set 'conn.__is_resyncing_book' to false.
-    if (conn)
-      conn.__is_resyncing_book = false;
+    if (conn) conn.__is_resyncing_book = false;
 
-    // Check if its orderbook is being resynced or if its undefined, in both cases validation is not required. carlos
+    // Check if its orderbook is being resynced or if its undefined, in both cases validation is not required.
     if (this.orderbook != null && (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min == null || 
     (Date.now() - this.orderbook.snapshot_applied_at) / 60e3 < _ws.subcriptions.orderbook.update.resync_again_after_min)) {
       // Not resyncing book. Validate snapshot update.
@@ -1166,7 +1169,8 @@ class Synchronizer {
       last_snapshot_ts: update.timestamp,
       last_snapshot_ts_us: update.timestamp_us,
       last_snapshot_conn_id: update.__conn_id,
-      snapshot_applied_at: Date.now()
+      snapshot_applied_at: Date.now(),
+      _is_resyncing_rest: false
     };
 
     // this.orderbook_log(update.asks.slice(0, 10).reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
@@ -1284,6 +1288,12 @@ class Synchronizer {
       this.last_book_updates_nonce = (++this.last_book_updates_nonce % this.last_book_updates.length)
       this.last_book_updates[this.last_book_updates_nonce] = [ msg_str, [ __conn_id ] ];
     }
+
+    // We really gonna apply this update!
+
+    // Check if we should store this update to a resynchronization.
+    if (this.orderbook?._is_resyncing_rest === true)
+      this.orderbook_upd_cache.push(upd);
     
     this.orderbook_log('Book upd:',upd);
 
@@ -1398,39 +1408,35 @@ class Synchronizer {
 
       // Define 'conn'.
       const conn = this.connections[upd.__conn_id][upd.__conn_type];
+
+      if (this.exc.rest.endpoints?.orderbook != undefined) {
+        if (this.orderbook?._is_resyncing_rest !== true) {
+          this.orderbook._is_resyncing_rest = true;
+
+          // Stores this update.
+          this.orderbook_upd_cache.push(upd);
+
+          // Request an orderbook snapshot.
+          this.get_orderbook_snapshot();
+        }
       
-      // Check if conection is not already resyncing.
-      if (!conn.__is_resyncing_book) {
+      } else if (!conn.__is_resyncing_book) {
+        // Conection is not resyncing.
         conn.__is_resyncing_book = true;
         console.log('('+upd.__conn_id+') Resyncing orderbook...');
 
-        // Send orderbook subscription request.
-        if (_ws.subcriptions.orderbook?.request != undefined) {
-          let orderbook_sub_req = _ws.subcriptions.orderbook.request
-            .replaceAll('<market>', this.market.ws)
-            .replace('<ws_req_id>', ++this.ws_req_nonce);
-
-          conn.info.orderbook.req_id = _ws.subcriptions.orderbook.response?.id_value?.replaceAll('<market>', this.market.ws) || this.ws_req_nonce;
-
-          // If needed, authenticate the orderbook subscription request.
-          if (_ws.subcriptions.orderbook.require_auth) {
-            const { signature, sign_nonce } = this.authenticate();
-            
-            orderbook_sub_req = orderbook_sub_req
-              .replace('<api_key>', this.api.key)
-              .replace('<api_pass>', this.api.pass)
-              .replace('<sign_nonce>', sign_nonce)
-              .replace('<signature>', signature);
-          }
+        if (_ws.subcriptions.orderbook?.unsub_req != undefined) {
+          // Necessary sends a unsub request before reseting subscription.
+          __ws.send(
+            _ws.subcriptions.orderbook.unsub_req
+              .replaceAll('<market>', this.market.ws)
+              .replace('<ws_req_id>', ++this.ws_req_nonce)
+          );
           
-          // conn._sent_orderbook_sub_at = Date.now();
-          __ws.send(orderbook_sub_req);
+        } else if (_ws.subcriptions.orderbook?.request != undefined) {
+          // Send orderbook subscription request.
+          this.send_book_sub(conn, _ws, __ws);
 
-        } else if (this.exc.rest.endpoints?.orderbook != undefined) {
-          // this.get_orderbook_snapshot();
-          console.log('[E] Orderbook > Unimplemented resync.');
-          process.exit();
-        
         } else {
           console.log('[E] Orderbook > Resync from "resync_again_after_min" option is only possible when using rest snapshot or orderbook subscription request.');
           process.exit();
@@ -1988,6 +1994,34 @@ class Synchronizer {
               .replace(upd.to_replace, upd.replace_with);
 
               __ws.send(msg_to_respond);
+              return;
+
+            } else if (upd.send_book_sub) {
+              conn._unsubed = true;
+              console.log('/!\\ Connection ' + conn._idx + ' is no longer subscribed to book updates.');
+
+              let all_unsubed = true;
+              for (const _conn of this.connections) {
+                const conn = _conn?.[ctype];
+
+                if (conn?.ws?.readyState === WebSocket.OPEN && (!(conn?.['_unsubed']))) {
+                  all_unsubed = false;
+                  break;
+                }
+              }
+
+              if (all_unsubed) {
+                console.log('[!] All opened connections are no longer subscribed to book updates, sending a subscription request for each opened connection...');
+                for (const _conn of this.connections) {
+                  const conn = _conn?.[ctype];
+
+                  if (conn?.ws?.readyState === WebSocket.OPEN) {
+                    this.send_book_sub(conn, _ws, conn.ws);
+                    conn._unsubed = false;
+                  }
+                }
+              }
+
               return;
             }
           }

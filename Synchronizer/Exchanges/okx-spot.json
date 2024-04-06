@@ -76,7 +76,7 @@
           "identifier_value": "snapshot"
         },
         "update": {
-          "resync_again_after_min": 12,
+          "resync_again_after_min": 5,
           "data_inside_arr": true,
           "data_inside_arr_inside": "data",
           "channel_id_key": "action",
