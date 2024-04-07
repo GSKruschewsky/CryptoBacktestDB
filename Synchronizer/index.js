@@ -1017,6 +1017,9 @@ class Synchronizer {
   apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts, from_snap_sub = false) {
     // Define 'conn'.
     const conn = this.connections?.[update?.__conn_id]?.[update?.__conn_type];
+    
+    // Defined 'conn._unsubed' as false.
+    conn._unsubed = false;
 
     // Check if update should be ignored.
     if (conn?._ignore_updates_before_us != null && update.timestamp_us) {
@@ -1195,6 +1198,9 @@ class Synchronizer {
 
     // Define 'conn'.
     const conn = this.connections[upd.__conn_id][upd.__conn_type];
+
+    // Avoid receiving updates after unsubscription.
+    if (conn?._unsubed === true) return;
 
     // Check if update should be ignored.
     if (conn?._ignore_updates_before_us != null && upd.timestamp_us) {
@@ -2004,7 +2010,7 @@ class Synchronizer {
               for (const _conn of this.connections) {
                 const conn = _conn?.[ctype];
 
-                if (conn?.ws?.readyState === WebSocket.OPEN && (!(conn?.['_unsubed']))) {
+                if (conn?.ws?.readyState === WebSocket.OPEN && conn._unsubed !== true) {
                   all_unsubed = false;
                   break;
                 }
@@ -2017,7 +2023,6 @@ class Synchronizer {
 
                   if (conn?.ws?.readyState === WebSocket.OPEN) {
                     this.send_book_sub(conn, _ws, conn.ws);
-                    conn._unsubed = false;
                   }
                 }
               }
