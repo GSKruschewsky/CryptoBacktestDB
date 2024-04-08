@@ -57,15 +57,15 @@
     },
     "subcriptions": {
       "orderbook": {
-        "request": "{\"sub\":\"market.<market>.mbp.400\",\"id\":\"<ws_req_id>\"}",
+        "request": "{\"sub\":\"market.<market>.mbp.150\",\"id\":\"<ws_req_id>\"}",
         "response": {
           "id": "id",
           "channel_id_key": "subbed"
         },
         "update": {
-          "resync_again_after_min": 5,
+          "resync_again_after_min": 1,
           "channel_id_key": "ch",
-          "channel_id": "market.<market>.mbp.400",
+          "channel_id": "market.<market>.mbp.150",
           "updates_inside": "tick",
           "asks": "asks",
           "bids": "bids",

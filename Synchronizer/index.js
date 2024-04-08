@@ -1019,7 +1019,7 @@ class Synchronizer {
     const conn = this.connections?.[update?.__conn_id]?.[update?.__conn_type];
     
     // Defined 'conn._unsubed' as false.
-    conn._unsubed = false;
+    if (conn != undefined) conn._unsubed = false;
 
     // Check if update should be ignored.
     if (conn?._ignore_updates_before_us != null && update.timestamp_us) {
@@ -1430,6 +1430,7 @@ class Synchronizer {
         // Conection is not resyncing.
         conn.__is_resyncing_book = true;
         console.log('('+upd.__conn_id+') Resyncing orderbook...');
+        this.orderbook_log('('+upd.__conn_id+') Resyncing orderbook...');
 
         if (_ws.subcriptions.orderbook?.unsub_req != undefined) {
           // Necessary sends a unsub request before reseting subscription.
