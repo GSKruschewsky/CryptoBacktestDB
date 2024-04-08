@@ -63,7 +63,7 @@
           "channel_id_key": "subbed"
         },
         "update": {
-          "resync_again_after_min": 1,
+          "resync_again_after_min": 5,
           "channel_id_key": "ch",
           "channel_id": "market.<market>.mbp.150",
           "updates_inside": "tick",
