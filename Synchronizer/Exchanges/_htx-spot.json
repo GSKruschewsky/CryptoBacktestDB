@@ -33,29 +33,39 @@
           "price": "price",
           "amount": "amount"
         }
+      },
+      "orderbook": {
+        "path": "/market/depth?symbol=<market>&type=step0",
+        "response": {
+          "data_inside": "tick",
+          "asks": "asks",
+          "bids": "bids",
+          "timestamp": "ts",
+          "last_update_nonce": "version"
+        }
       }
     }
   },
   "ws": {
-    "url": "wss://api.huobi.pro/ws",
+    "url": "wss://api.huobi.pro/feed",
     "timeout": 15000,
     "gzip_encrypted": true,
+    "not_handle_trades": true,
     "error": {
       "key": "status",
       "value_not": "ok"
     },
     "subcriptions": {
-      "orderbook_snap": {
-        "is_subscribed_from_scratch": null,
-        "request": "{\"sub\":\"market.<market>.mbp.refresh.20\",\"id\":\"<ws_req_id>\"}",
+      "orderbook": {
+        "request": "{\"sub\":\"market.<market>.mbp.150\",\"id\":\"<ws_req_id>\"}",
         "response": {
           "id": "id",
           "channel_id_key": "subbed"
         },
         "update": {
-          "apply_only_since_last_snapshot": true,
+          "resync_again_after_min": 5,
           "channel_id_key": "ch",
-          "channel_id": "market.<market>.mbp.refresh.20",
+          "channel_id": "market.<market>.mbp.150",
           "updates_inside": "tick",
           "asks": "asks",
           "bids": "bids",
@@ -64,9 +74,30 @@
             "amount": "1"
           },
           "timestamp": "ts",
+          "prev_upd_nonce_key": "prevSeqNum",
           "last_upd_nonce_key": "seqNum"
         }
-      },
+      }
+    },
+    "other_updates": {
+      "ping": {
+        "identifier_key": "ping",
+        "replace_and_respond": true,
+        "to_replace": "ping",
+        "replace_with": "pong"
+      }
+    }
+  },
+  "ws2": {
+    "url": "wss://api.huobi.pro/ws",
+    "timeout": 15000,
+    "gzip_encrypted": true,
+    "not_handle_orderbook": true,
+    "error": {
+      "key": "status",
+      "value_not": "ok"
+    },
+    "subcriptions": {
       "trades": {
         "request": "{\"sub\":\"market.<market>.trade.detail\",\"id\":\"<ws_req_id>\"}",
         "response": {

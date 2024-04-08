@@ -1038,6 +1038,8 @@ class Synchronizer {
       if (this.orderbook.last_update_nonce && update.last_update_nonce && Big(update.last_update_nonce).lte(this.orderbook.last_update_nonce))
         return this.orderbook_log('/!\\ apply_orderbook_snap: update.last_update_nonce <= orderbook.last_update_nonce.'); // console.log(((this.orderbook == null && 'nada') || this.orderbook.last_update_nonce || this.orderbook.timestamp_us || this.orderbook.timestamp),'false\n');
   
+      // console.log('Book last update nonce ('+this.orderbook.last_update_nonce+') < update.last_update_nonce ('+update.last_update_nonce+')');
+
       if (_ws?.subcriptions?.orderbook?.update?.apply_only_since_last_snapshot) {
         if (
           (
@@ -1314,6 +1316,7 @@ class Synchronizer {
           _prom.reject({ At: _at, error: _error });
         } else {
           console.log('[E]',_at,_error);
+          this.orderbook_log('[E]',_at,_error);
           
           if (this.exc.rest.endpoints?.orderbook != undefined) {
             // Re-sincroniza orderbook aravés de cache e requisição REST.
