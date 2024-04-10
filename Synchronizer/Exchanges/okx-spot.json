@@ -89,7 +89,8 @@
           },
           "timestamp": "ts",
           "prev_upd_nonce_key": "prevSeqId",
-          "last_upd_nonce_key": "seqId"
+          "last_upd_nonce_key": "seqId",
+          "strict_first_update_nonce": true
         }
       },
       "trades": {

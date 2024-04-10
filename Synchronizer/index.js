@@ -1301,7 +1301,7 @@ class Synchronizer {
 
     if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
-    if (upd.first_update_nonce && upd.first_update_nonce != this.orderbook.last_update_nonce*1 + 1) {
+    if (upd.first_update_nonce) {
       if (upd.first_update_nonce > this.orderbook.last_update_nonce*1 + 1) {
         const _at = 'apply_orderbook_upd:';
         const _error = 'upd.first_update_nonce ('+upd.first_update_nonce+') > orderbook.last_update_nonce + 1 ('+(this.orderbook.last_update_nonce * 1 + 1)+').';
@@ -1324,14 +1324,15 @@ class Synchronizer {
             console.log('/!\\ Resynchronizing orderbook through websocket reconnection...');
             __ws.terminate();
           }
+      
+          return;
         }
 
-      } else {
+      } else if (_ws?.subcriptions?.orderbook?.update?.strict_first_update_nonce === true && 
+      upd.first_update_nonce != this.orderbook.last_update_nonce * 1 + 1) {
         this.orderbook_log('/!\\ apply_orderbook_upd: upd.first_update_nonce ('+upd.first_update_nonce+') < orderbook.last_update_nonce + 1 ('+(this.orderbook.last_update_nonce * 1 + 1)+').');
-      
+        return;
       }
-      
-      return;
     }
 
     // We really gonna apply this update!
