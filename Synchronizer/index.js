@@ -1190,8 +1190,10 @@ class Synchronizer {
     if (!from_snap_sub)
       console.log('Book snap applied (conn= ' + update.__conn_id + '):',(update.timestamp_us || update.timestamp));
 
-    this.orderbook_log(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-    this.orderbook_log(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    if (this.orderbook?.asks != null && this.orderbook?.bids != null) {
+      this.orderbook_log(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+      this.orderbook_log(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    }
   }
 
   apply_orderbook_upd (upd, _ws, __ws, _prom, ws_recv_ts) {
@@ -1297,20 +1299,12 @@ class Synchronizer {
       this.last_book_updates[this.last_book_updates_nonce] = [ msg_str, [ __conn_id ] ];
     }
 
-    // We really gonna apply this update!
-
-    // Check if we should store this update to a resynchronization.
-    if (this.orderbook?._is_resyncing_rest === true)
-      this.orderbook_upd_cache.push(upd);
-    
-    this.orderbook_log('Book upd:',upd);
-
     if (this.is_lantecy_test) this.diff_latency.push(ws_recv_ts - upd.timestamp);
 
-    if (upd.first_update_nonce) {
+    if (upd.first_update_nonce && upd.first_update_nonce != this.orderbook.last_update_nonce*1 + 1) {
       if (upd.first_update_nonce > this.orderbook.last_update_nonce*1 + 1) {
         const _at = 'apply_orderbook_upd:';
-        const _error = 'upd.first_update_nonce ('+upd.first_update_nonce+') > orderbook.last_update_nonce + 1 ('+(this.orderbook.last_update_nonce + 1)+').';
+        const _error = 'upd.first_update_nonce ('+upd.first_update_nonce+') > orderbook.last_update_nonce + 1 ('+(this.orderbook.last_update_nonce * 1 + 1)+').';
 
         if (_prom) {
           _prom.reject({ At: _at, error: _error });
@@ -1331,9 +1325,22 @@ class Synchronizer {
             __ws.terminate();
           }
         }
-        return;
+
+      } else {
+        this.orderbook_log('/!\\ apply_orderbook_upd: upd.first_update_nonce ('+upd.first_update_nonce+') < orderbook.last_update_nonce + 1 ('+(this.orderbook.last_update_nonce * 1 + 1)+').');
+      
       }
+      
+      return;
     }
+
+    // We really gonna apply this update!
+
+    // Check if we should store this update to a resynchronization.
+    if (this.orderbook?._is_resyncing_rest === true)
+      this.orderbook_upd_cache.push(upd);
+    
+    this.orderbook_log('Book upd:',upd);
 
     // Updates 'delayed_orderbook' if its the case.
     this.before_apply_to_orderbook(upd.timestamp);
