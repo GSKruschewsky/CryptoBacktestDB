@@ -1023,9 +1023,11 @@ class Synchronizer {
 
     // Check if update should be ignored.
     if (conn?._ignore_updates_before_us != null && update.timestamp_us) {
-      if (Big(update.timestamp_us).lte(conn._ignore_updates_before_us)) return;
+      if (Big(update.timestamp_us).lte(conn._ignore_updates_before_us))
+        return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp_us (' + update.timestamp_us + ') <= conn._ignore_updates_before_us (' + conn._ignore_updates_before_us + ').');
     } else if (conn?._ignore_updates_before != null && update.timestamp) {
-      if (Big(update.timestamp).lte(conn._ignore_updates_before)) return;
+      if (Big(update.timestamp).lte(conn._ignore_updates_before))
+        return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp (' + update.timestamp + ') <= conn._ignore_updates_before (' + conn._ignore_updates_before + ').');
     }
 
     // Set 'conn.__is_resyncing_book' to false.
@@ -1208,9 +1210,11 @@ class Synchronizer {
 
     // Check if update should be ignored.
     if (conn?._ignore_updates_before_us != null && upd.timestamp_us) {
-      if (Big(upd.timestamp_us).lte(conn._ignore_updates_before_us)) return;
+      if (Big(upd.timestamp_us).lte(conn._ignore_updates_before_us))
+        return this.orderbook_log('/!\\ apply_orderbook_upd: upd.timestamp_us (' + upd.timestamp_us + ') <= conn._ignore_updates_before_us (' + conn._ignore_updates_before_us + ').');
     } else if (conn?._ignore_updates_before != null && upd.timestamp) {
-      if (Big(upd.timestamp).lte(conn._ignore_updates_before)) return;
+      if (Big(upd.timestamp).lte(conn._ignore_updates_before))
+        return this.orderbook_log('/!\\ apply_orderbook_upd: upd.timestamp (' + upd.timestamp + ') <= conn._ignore_updates_before (' + conn._ignore_updates_before + ').');
     }
 
     if (this.orderbook.last_update_nonce && upd.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce))
