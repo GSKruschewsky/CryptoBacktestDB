@@ -1061,7 +1061,7 @@ class Synchronizer {
           conn._ignore_updates_before = this.orderbook.timestamp;
           conn._ignore_updates_before_us = this.orderbook.timestamp_us;
           
-          return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp < this.orderbook.timestamp || update.timestamp_us < this.orderbook.timestamp_us.');
+          return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp (' + update.timestamp + ') < this.orderbook.timestamp (' + this.orderbook.timestamp + ') || update.timestamp_us (' + update.timestamp_us + ') < this.orderbook.timestamp_us (' + this.orderbook.timestamp_us + ').');
   
         } else {
           // Update timestamp >= book timestamp

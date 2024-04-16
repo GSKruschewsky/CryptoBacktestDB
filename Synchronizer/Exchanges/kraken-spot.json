@@ -55,6 +55,7 @@
     "subcriptions": {
       "orderbook": {
         "request": "{\"event\":\"subscribe\",\"reqid\":<ws_req_id>,\"pair\":[\"<market>\"],\"subscription\":{\"name\":\"book\",\"depth\":1000}}",
+        "unsub_req": "{\"event\":\"unsubscribe\",\"pair\":[\"<market>\"],\"subscription\":{\"name\":\"book\",\"depth\":1000}}",
         "response": {
           "id": "reqid",
           "channel_id_key": "channelName",
@@ -111,6 +112,13 @@
           "price": "0",
           "amount": "1"
         }
+      }
+    },
+    "other_updates": {
+      "unsub": {
+        "identifier_key": "status",
+        "identifier_value": "unsubscribed",
+        "send_book_sub": true
       }
     },
     "msgs_to_ignore": [
