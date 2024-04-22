@@ -404,7 +404,7 @@ class Synchronizer {
     //   },
     //   ...
     // ]
-    // console.log('Trades msg:',msg);
+    // console.log('Trades raw msg:',msg);
 
     const _t_upd = _ws.subcriptions.trades.update;
 
@@ -480,6 +480,7 @@ class Synchronizer {
       trades.push(obj);
     }
     
+    // console.log('Trades formatted msg:',trades);
     return trades;
   }
 
@@ -607,6 +608,7 @@ class Synchronizer {
 
     const _ob_sub = _ws.subcriptions[ is_snap ? 'orderbook_snap' : 'orderbook' ];
     const _info = conn.info[ is_snap ? 'orderbook_snap' : 'orderbook' ];
+    // console.log('Book raw message:',msg);
 
     // Checks if its the first update.
     if (_info.received_first_update !== true) {
@@ -651,160 +653,176 @@ class Synchronizer {
     let bids = {};
     let higher_timestamp = null;
 
-    if ((is_snapshot && _ob_sub.snapshot?.asks_and_bids_together) || 
-    ((!is_snapshot) && _ob_sub.update?.asks_and_bids_together)) {
-      for (const upd of updates) {
-        let ignore_upd = false;
-        for (const [ key, val ] of (_ws?.subcriptions?.orderbook?.update?.each_piece_ignore_if || [])) {
-          if (upd[key] === val) {
-            ignore_upd = true;
-            break;
+    if (is_snapshot === false && _ob_sub.update?.receive_separately_updates_as_obj === true) {
+      let _upd_piece_array = [
+        Big(msg[_ob_sub.update.pl.price]).toFixed(),
+        Big(msg[_ob_sub.update.pl.amount]).toFixed()
+      ];
+
+      // Identify if its a 'asks' or 'bids' update.
+      if (msg[_ob_sub.update.pl.is_bids_key] == _ob_sub.update.pl.is_bids_value)
+        bids[_upd_piece_array[0]] = _upd_piece_array;
+      else
+        asks[_upd_piece_array[0]] = _upd_piece_array;
+
+    } else {
+      if ((is_snapshot && _ob_sub.snapshot?.asks_and_bids_together) || 
+      ((!is_snapshot) && _ob_sub.update?.asks_and_bids_together)) {
+        for (const upd of updates) {
+          let ignore_upd = false;
+          for (const [ key, val ] of (_ws?.subcriptions?.orderbook?.update?.each_piece_ignore_if || [])) {
+            if (upd[key] === val) {
+              ignore_upd = true;
+              break;
+            }
           }
-        }
-        if (ignore_upd) continue;
+          if (ignore_upd) continue;
 
-        const _pl =  ((is_snapshot && _ob_sub.snapshot?.pl) || _ob_sub.update.pl);
-        
-        const _ts = _pl?.timestamp?.split('.')?.reduce((f, k) => f?.[k], upd);
-        if (_ts != undefined) {
-          let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
-          if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
-            higher_timestamp = { formatted_ts, upd };
-        }
+          const _pl =  ((is_snapshot && _ob_sub.snapshot?.pl) || _ob_sub.update.pl);
+          
+          const _ts = _pl?.timestamp?.split('.')?.reduce((f, k) => f?.[k], upd);
+          if (_ts != undefined) {
+            let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
+            if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
+              higher_timestamp = { formatted_ts, upd };
+          }
 
-        let price = _pl.price?.split('.')?.reduce((f, k) => f?.[k], upd);
-        let amount = _pl.amount?.split('.')?.reduce((f, k) => f?.[k], upd);
-        let is_bids = undefined;
+          let price = _pl.price?.split('.')?.reduce((f, k) => f?.[k], upd);
+          let amount = _pl.amount?.split('.')?.reduce((f, k) => f?.[k], upd);
+          let is_bids = undefined;
 
-        if (_pl.is_bids_key != undefined) {
-          const _val = _pl.is_bids_key?.split('.')?.reduce((f, k) => f?.[k], upd);
-          is_bids = (_val != undefined && (_pl.is_bids_value == undefined || _val == _pl.is_bids_value));
+          if (_pl.is_bids_key != undefined) {
+            const _val = _pl.is_bids_key?.split('.')?.reduce((f, k) => f?.[k], upd);
+            is_bids = (_val != undefined && (_pl.is_bids_value == undefined || _val == _pl.is_bids_value));
 
-        } else if (_ob_sub.update.is_bids_positive_amount) {
-          is_bids = Big(amount).gt(0);
-          amount = Big(amount).abs().toFixed();
+          } else if (_ob_sub.update.is_bids_positive_amount) {
+            is_bids = Big(amount).gt(0);
+            amount = Big(amount).abs().toFixed();
 
-        } else {
-          const _type = (is_snapshot && _ob_sub.snapshot?.pl) ? "snapshot" : "update";
-          if (_prom) {
-            _prom.reject({ 
-              At: "Parsing orderbook update message:", 
-              error: "Neither 'orderbook."+_type+".pl.is_bids_key' or 'orderbook.update.is_bids_positive_amount' are defined." 
-            });
           } else {
-            console.log("[E] Parsing orderbook update message: \
-            Neither 'orderbook."+_type+".pl.is_bids_key' or 'orderbook.update.is_bids_positive_amount' are defined.\
-            \n\nEnding connection...");
-            __ws.terminate();
+            const _type = (is_snapshot && _ob_sub.snapshot?.pl) ? "snapshot" : "update";
+            if (_prom) {
+              _prom.reject({ 
+                At: "Parsing orderbook update message:", 
+                error: "Neither 'orderbook."+_type+".pl.is_bids_key' or 'orderbook.update.is_bids_positive_amount' are defined." 
+              });
+            } else {
+              console.log("[E] Parsing orderbook update message: \
+              Neither 'orderbook."+_type+".pl.is_bids_key' or 'orderbook.update.is_bids_positive_amount' are defined.\
+              \n\nEnding connection...");
+              __ws.terminate();
+            }
+            return;
           }
-          return;
-        }
 
-        if (_pl.to_remove_key != undefined) {
-          const _val = _pl.to_remove_key?.split('.')?.reduce((f, k) => f?.[k], upd);
-          if (_val != undefined && (_pl.to_remove_value == undefined || _val == _pl.to_remove_value))
-            amount = '0';
-        }
+          if (_pl.to_remove_key != undefined) {
+            const _val = _pl.to_remove_key?.split('.')?.reduce((f, k) => f?.[k], upd);
+            if (_val != undefined && (_pl.to_remove_value == undefined || _val == _pl.to_remove_value))
+              amount = '0';
+          }
 
-        let _upd_piece_array = [ Big(price).toFixed(), Big(amount).toFixed() ];
-        for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
-          _upd_piece_array.push(upd[k]);
-        }
+          let _upd_piece_array = [ Big(price).toFixed(), Big(amount).toFixed() ];
+          for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
+            _upd_piece_array.push(upd[k]);
+          }
 
-        if (is_bids)
-          bids[_upd_piece_array[0]] = _upd_piece_array;
-          // bids.push(_upd_piece_array);
-        else
+          if (is_bids)
+            bids[_upd_piece_array[0]] = _upd_piece_array;
+            // bids.push(_upd_piece_array);
+          else
+            asks[_upd_piece_array[0]] = _upd_piece_array;
+            // asks.push(_upd_piece_array);
+        }
+      } else {
+        for (const upd of (updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks] || [])) {
+          let ignore_upd = false;
+          for (const [ key, val ] of (_ws?.subcriptions?.orderbook?.update?.each_piece_ignore_if || [])) {
+            if (upd[key] === val) {
+              ignore_upd = true;
+              break;
+            }
+          }
+          if (ignore_upd) continue;
+
+          const _key = (is_snapshot && _ob_sub?.snapshot?.pl?.timestamp) || _ob_sub?.update?.pl?.timestamp;
+          const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], upd);
+
+          if (_ts != undefined) {
+            let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
+
+            if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_micro) || _ob_sub?.update?.timestamp_in_micro)) {
+              let _ts_us = _ts;
+              if ((is_snapshot && _ob_sub?.snapshot?.get_timestamp_us_from_iso) || _ob_sub?.update?.get_timestamp_us_from_iso)
+                _ts_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+              
+              if (higher_timestamp == null || Big(_ts_us).gt(higher_timestamp._ts_us))
+                higher_timestamp = { _ts_us, formatted_ts };
+
+            } else {
+              if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
+                higher_timestamp = { formatted_ts };
+            }
+          }
+
+          let _upd_piece_array = [
+            Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.price) || _ob_sub.update.pl.price]).toFixed(), 
+            Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.amount) || _ob_sub.update.pl.amount]).toFixed()
+          ];
+          
+          for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
+            _upd_piece_array.push(upd[k]);
+          }
+          
           asks[_upd_piece_array[0]] = _upd_piece_array;
           // asks.push(_upd_piece_array);
-      }
-    } else {
-      for (const upd of (updates[(is_snapshot && _ob_sub.snapshot?.asks) || _ob_sub.update.asks] || [])) {
-        let ignore_upd = false;
-        for (const [ key, val ] of (_ws?.subcriptions?.orderbook?.update?.each_piece_ignore_if || [])) {
-          if (upd[key] === val) {
-            ignore_upd = true;
-            break;
-          }
-        }
-        if (ignore_upd) continue;
-
-        const _key = (is_snapshot && _ob_sub?.snapshot?.pl?.timestamp) || _ob_sub?.update?.pl?.timestamp;
-        const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], upd);
-
-        if (_ts != undefined) {
-          let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
-
-          if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_micro) || _ob_sub?.update?.timestamp_in_micro)) {
-            let _ts_us = _ts;
-            if ((is_snapshot && _ob_sub?.snapshot?.get_timestamp_us_from_iso) || _ob_sub?.update?.get_timestamp_us_from_iso)
-              _ts_us = new Date(_ts).getTime() + _ts.slice(23, -1);
-            
-            if (higher_timestamp == null || Big(_ts_us).gt(higher_timestamp._ts_us))
-              higher_timestamp = { _ts_us, formatted_ts };
-
-          } else {
-            if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
-              higher_timestamp = { formatted_ts };
-          }
-        }
-
-        let _upd_piece_array = [
-          Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.price) || _ob_sub.update.pl.price]).toFixed(), 
-          Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.amount) || _ob_sub.update.pl.amount]).toFixed()
-        ];
-        
-        for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
-          _upd_piece_array.push(upd[k]);
         }
         
-        asks[_upd_piece_array[0]] = _upd_piece_array;
-        // asks.push(_upd_piece_array);
-      }
+        for (const upd of (updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids] || [])) {
+          let ignore_upd = false;
+          for (const [ key, val ] of (_ws?.subcriptions?.orderbook?.update?.each_piece_ignore_if || [])) {
+            if (upd[key] === val) {
+              ignore_upd = true;
+              break;
+            }
+          }
+          if (ignore_upd) continue;
+
+          const _key = (is_snapshot && _ob_sub?.snapshot?.pl?.timestamp) || _ob_sub?.update?.pl?.timestamp;
+          const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], upd);
+
+          if (_ts != undefined) {
+            let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
       
-      for (const upd of (updates[(is_snapshot && _ob_sub.snapshot?.bids) || _ob_sub.update.bids] || [])) {
-        let ignore_upd = false;
-        for (const [ key, val ] of (_ws?.subcriptions?.orderbook?.update?.each_piece_ignore_if || [])) {
-          if (upd[key] === val) {
-            ignore_upd = true;
-            break;
+            if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_micro) || _ob_sub?.update?.timestamp_in_micro)) {
+              let _ts_us = _ts;
+              if ((is_snapshot && _ob_sub?.snapshot?.get_timestamp_us_from_iso) || _ob_sub?.update?.get_timestamp_us_from_iso)
+                _ts_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+              
+              if (higher_timestamp == null || Big(_ts_us).gt(higher_timestamp._ts_us))
+                higher_timestamp = { _ts_us, formatted_ts };
+      
+            } else {
+              if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
+                higher_timestamp = { formatted_ts };
+            }
           }
-        }
-        if (ignore_upd) continue;
 
-        const _key = (is_snapshot && _ob_sub?.snapshot?.pl?.timestamp) || _ob_sub?.update?.pl?.timestamp;
-        const _ts = _key?.split('.')?.reduce((f, k) => f?.[k], upd);
-
-        if (_ts != undefined) {
-          let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
-    
-          if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_micro) || _ob_sub?.update?.timestamp_in_micro)) {
-            let _ts_us = _ts;
-            if ((is_snapshot && _ob_sub?.snapshot?.get_timestamp_us_from_iso) || _ob_sub?.update?.get_timestamp_us_from_iso)
-              _ts_us = new Date(_ts).getTime() + _ts.slice(23, -1);
-            
-            if (higher_timestamp == null || Big(_ts_us).gt(higher_timestamp._ts_us))
-              higher_timestamp = { _ts_us, formatted_ts };
-    
-          } else {
-            if (higher_timestamp == null || Big(formatted_ts).gt(higher_timestamp.formatted_ts))
-              higher_timestamp = { formatted_ts };
+          let _upd_piece_array = [
+            Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.price) || _ob_sub.update.pl.price]).toFixed(), 
+            Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.amount) || _ob_sub.update.pl.amount]).toFixed()
+          ];
+          
+          for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
+            _upd_piece_array.push(upd[k]);
           }
-        }
 
-        let _upd_piece_array = [
-          Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.price) || _ob_sub.update.pl.price]).toFixed(), 
-          Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.amount) || _ob_sub.update.pl.amount]).toFixed()
-        ];
-        
-        for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
-          _upd_piece_array.push(upd[k]);
+          bids[_upd_piece_array[0]] = _upd_piece_array;
+          // bids.push(_upd_piece_array);
         }
-
-        bids[_upd_piece_array[0]] = _upd_piece_array;
-        // bids.push(_upd_piece_array);
       }
     }
+
+    
 
     let formatted = { asks: Object.values(asks), bids: Object.values(bids), is_snapshot };
 
@@ -901,6 +919,7 @@ class Synchronizer {
     formatted['__conn_type'] = conn._type;
     
     // Returns the formatted message.
+    // console.log('Book formatted message:',formatted);
     return formatted;
   }
 
@@ -2112,11 +2131,10 @@ class Synchronizer {
         return; // Should ignore
   
       // Received an unexpected message from the server.
-      if (_prom) {
+      console.log('[E] ('+conn._idx+') WebSocket '+ctype+' unexpected message:',msg,'\nEnding connection...\n');
+      if (_prom)
         _prom.reject({ At: '[E] ('+conn._idx+') WebSocket '+ctype+' unexpected message:', error: msg });
-      } else {
-        console.log('[E] ('+conn._idx+') WebSocket '+ctype+' unexpected message:',msg,'\nEnding connection...\n');
-      }
+        
       __ws.terminate();
     });
 

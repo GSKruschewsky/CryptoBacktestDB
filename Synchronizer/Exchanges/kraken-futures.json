@@ -1,0 +1,149 @@
+{
+  "separator": "",
+  "makert_prefix": "PF_",
+  "is_market_upper": true,
+  "latency-test-symbol": "XBT/USD",
+  "rest": {
+    "url": "https://futures.kraken.com/derivatives/api/v3",
+    "timeout": 15000,
+    "error": {
+      "key": "error",
+      "value": null
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/instruments",
+        "response": {
+          "data_inside": "instruments",
+          "symbol": "symbol",
+          "status_key": "tradeable",
+          "status_active": true
+        }
+      },
+      "trades": {
+        "path": "/history?symbol=<market>",
+        "response": {
+          "newer_first": false,
+          "response_time": null,
+          "data_inside": "history",
+          "trade_id_key": "uid",
+          "timestamp": "time",
+          "timestamp_ISO_format": true,
+          "is_buy_key": "side",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "size",
+          "slow_cache": null,
+          "slow_cache_delay": null,
+          "pagination": null
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://futures.kraken.com/ws/v1",
+    "timeout": 15000,
+    "error": {
+      "key": "event",
+      "value": "error"
+    },
+    "subcriptions": {
+      "orderbook": {
+        "request": "{\"event\":\"subscribe\",\"feed\":\"book\",\"product_ids\":[\"<market>\"]}",
+        "response": {
+          "is_object": true,
+          "object_id_key": "feed",
+          "object_id_value": "book",
+          "id": "event",
+          "id_value": "subscribed"
+        },
+        "snapshot": {
+          "reset_avoid_repetition_cache": true,
+          "identifier_key": "feed",
+          "identifier_value": "book_snapshot",
+          "channel_id": "book_snapshot",
+          "asks": "asks",
+          "bids": "bids"
+        },
+        "update": {
+          "receive_separately_updates_as_obj": true,
+          "cache_until_complete_resync": null,
+          "resync_again_after_min": 5,
+          "apply_only_since_last_snapshot": true,
+          "avoid_each_piece_repetition": null,
+          "each_piece_ignore_if": null,
+          "each_piece_to_add": null,
+          "dont_apply_too_old": true,
+          "dont_apply_too_old_time": 5,
+          "avoid_repetition": null,
+          "conn_dont_repeat": null,
+          "avoid_repetition_size": null,
+          "ignore_if": null,
+          "channel_id_key": "feed",
+          "channel_id": "book",
+          "data_inside": null,
+          "updates_inside": null,
+          "asks_and_bids_together": null,
+          "is_bids_positive_amount": null,
+          "asks": null,
+          "bids": null,
+          "pl": {
+            "price": "price",
+            "amount": "qty",
+            "is_bids_key": "side",
+            "is_bids_value": "buy",
+            "to_remove_key": null,
+            "to_remove_value": null
+          },
+          "timestamp": "timestamp",
+          "avoid_repetition_drop_timestamp": null,
+          "get_timestamp_us_from_iso": null,
+          "first_upd_nonce_key": null,
+          "last_upd_nonce_key": "seq",
+          "upd_nonce_is_sequence": true
+        }
+      },
+      "trades": {
+        "is_subscribed_from_scratch": null,
+        "request": "{\"event\":\"subscribe\",\"feed\":\"trade\",\"product_ids\":[\"<market>\"]}",
+        "response": {
+          "error_key": "event",
+          "error_val": "error",
+          "acum_list": null,
+          "is_object": true,
+          "object_id_key": "feed",
+          "object_id_value": "trade",
+          "id": "event",
+          "id_value": "subscribed",
+          "channel_id_key": null,
+          "channel_id_val": null
+        },
+        "update": {
+          "ignore_if": null,
+          "ignore_first_update": null,
+          "receive_separately_trades_as_obj": true,
+          "reiceve_array_w_newer_first": null,
+          "id_should_be_higher": false,
+          "channel_id_key": "feed",
+          "channel_id": "trade",
+          "data_inside": null,
+          "updates_inside": null,
+          "trade_id_key": "uid",
+          "timestamp": "time",
+          "timestamp_in_seconds": null,
+          "get_timestamp_us_from_iso": null,
+          "is_buy_key": "side",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "qty"
+        }
+      }
+    },
+    "other_updates": null,
+    "msgs_to_ignore": [ 
+      [ "version", 1 ], 
+      [ "feed", "trade_snapshot" ], 
+      [ "message", "Already subscribed to feed, re-requesting" ]
+    ]
+  }
+}

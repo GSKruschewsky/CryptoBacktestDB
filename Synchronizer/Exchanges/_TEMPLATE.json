@@ -49,6 +49,7 @@
           "trade_id_key": "",
           "timestamp": "",
           "get_timestamp_us_from_iso": null,
+          "timestamp_ISO_format": null,
           "is_buy_key": "",
           "is_buy_value": "",
           "price": "",
@@ -131,9 +132,12 @@
           "identifier_key": null,
           "identifier_value": null,
           "asks_and_bids_together": null,
-          "get_timestamp_us_from_iso": null
+          "get_timestamp_us_from_iso": null,
+          "asks": null,
+          "bids": null
         },
         "update": {
+          "receive_separately_updates_as_obj": true,
           "cache_until_complete_resync": null,
           "resync_again_after_min": null,
           "apply_only_since_last_snapshot": null,
