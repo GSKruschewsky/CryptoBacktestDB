@@ -924,7 +924,13 @@ class Synchronizer {
       } else {
         // Just apply update.
         // console.log('Applying update...');
-        this.apply_orderbook_upd(update, _ws, __ws, _prom, ws_recv_ts);
+
+        if (_ws?.subcriptions?.orderbook?.update?.cache_until_complete_resync == true && this.all_conns_resynced == false)
+          this.orderbook_upd_cache.push(update);
+        else
+          this.apply_orderbook_upd(update, _ws, __ws, _prom, ws_recv_ts);
+
+        this.check_resync_time(update, _ws, __ws, _prom, ws_recv_ts);
       }
     }
   }
@@ -1031,7 +1037,24 @@ class Synchronizer {
     }
 
     // Set 'conn.__is_resyncing_book' to false.
-    if (conn) conn.__is_resyncing_book = false;
+    if (conn) {
+      conn.__is_resyncing_book = false;
+
+      if (_ws?.subcriptions?.orderbook?.update?.cache_until_complete_resync) {
+        let all_resynced = true;
+        for (const _conn of this.connections) {
+          if (_conn[update?.__conn_type].__is_resyncing_book) {
+            all_resynced = false;
+            break;
+          }
+        }
+
+        if (all_resynced) {
+          this.all_conns_resynced = true;
+          // console.log('/!\\ ALL CONNECTIONS SUCESSFULLY RESYNCED THE CONNECTION.');
+        }
+      }
+    }
 
     // Check if its orderbook is being resynced or if its undefined, in both cases validation is not required.
     if (this.orderbook != null && (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min == null || 
@@ -1183,11 +1206,27 @@ class Synchronizer {
     // this.orderbook_log(update.asks.slice(0, 10).reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     // this.orderbook_log(update.bids.slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
 
-    // Apply cached orderbook updates.
-    while (this.orderbook != null && this.orderbook_upd_cache.length > 0) {
-      this.apply_orderbook_upd(this.orderbook_upd_cache[0], _ws, __ws, _prom, ws_recv_ts);
-      this.orderbook_upd_cache.shift();
+    if (_ws?.subcriptions?.orderbook?.update?.cache_until_complete_resync != true || this.all_conns_resynced == true) {
+
+      if (_ws?.subcriptions?.orderbook?.update?.cache_until_complete_resync == true) {
+        // Sort 'this.orderbook_upd_cache' by timestamp.
+        this.orderbook_upd_cache.sort((a, b) => {
+          if (a.timestamp_us && b.timestamp_us)
+            return Big(a.timestamp_us).cmp(b.timestamp_us);
+          else
+            return a.timestamp - b.timestamp;
+        });
+      }
+
+      // Apply cached orderbook updates.
+      while (this.orderbook != null && this.orderbook_upd_cache.length > 0) {
+        this.apply_orderbook_upd(this.orderbook_upd_cache[0], _ws, __ws, _prom, ws_recv_ts);
+        this.orderbook_upd_cache.shift();
+      }
+    } else {
+      console.log('Book snap applied but not applied any cached updates.');
     }
+
     
     if (!from_snap_sub)
       console.log('Book snap applied (conn= ' + update.__conn_id + '):',(update.timestamp_us || update.timestamp));
@@ -1195,6 +1234,56 @@ class Synchronizer {
     if (this.orderbook?.asks != null && this.orderbook?.bids != null) {
       this.orderbook_log(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
       this.orderbook_log(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    }
+  }
+
+  check_resync_time (upd, _ws, __ws, _prom) {
+    // Check if its time o resync the orderbook.
+    if (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min != null && 
+    (Date.now() - this.orderbook.snapshot_applied_at) / 60e3 >= _ws?.subcriptions?.orderbook?.update?.resync_again_after_min) {
+      // Time to resync orderbook.
+
+      // Define 'conn'.
+      const conn = this.connections[upd.__conn_id][upd.__conn_type];
+
+      if (this.exc.rest.endpoints?.orderbook != undefined) {
+        if (this.orderbook?._is_resyncing_rest !== true) {
+          this.orderbook._is_resyncing_rest = true;
+
+          // Stores this update.
+          this.orderbook_upd_cache.push(upd);
+
+          // Request an orderbook snapshot.
+          this.get_orderbook_snapshot();
+        }
+      
+      } else if (!conn.__is_resyncing_book) {
+        // Conection is not resyncing.
+        conn.__is_resyncing_book = true;
+        console.log('('+upd.__conn_id+') Resyncing orderbook...');
+        this.orderbook_log('('+upd.__conn_id+') Resyncing orderbook...');
+
+        if (_ws?.subcriptions?.orderbook?.update?.cache_until_complete_resync) {
+          this.all_conns_resynced = false;
+        }
+
+        if (_ws.subcriptions.orderbook?.unsub_req != undefined) {
+          // Necessary sends a unsub request before reseting subscription.
+          __ws.send(
+            _ws.subcriptions.orderbook.unsub_req
+              .replaceAll('<market>', this.market.ws)
+              .replace('<ws_req_id>', ++this.ws_req_nonce)
+          );
+          
+        } else if (_ws.subcriptions.orderbook?.request != undefined) {
+          // Send orderbook subscription request.
+          this.send_book_sub(conn, _ws, __ws);
+
+        } else {
+          console.log('[E] Orderbook > Resync from "resync_again_after_min" option is only possible when using rest snapshot or orderbook subscription request.');
+          process.exit();
+        }
+      }
     }
   }
 
@@ -1429,48 +1518,7 @@ class Synchronizer {
     this.orderbook.last_update_nonce = upd.last_update_nonce;
 
     // Check if its time o resync the orderbook.
-    if (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min != null && 
-    (Date.now() - this.orderbook.snapshot_applied_at) / 60e3 >= _ws?.subcriptions?.orderbook?.update?.resync_again_after_min) {
-      // Time to resync orderbook.
-
-      // Define 'conn'.
-      const conn = this.connections[upd.__conn_id][upd.__conn_type];
-
-      if (this.exc.rest.endpoints?.orderbook != undefined) {
-        if (this.orderbook?._is_resyncing_rest !== true) {
-          this.orderbook._is_resyncing_rest = true;
-
-          // Stores this update.
-          this.orderbook_upd_cache.push(upd);
-
-          // Request an orderbook snapshot.
-          this.get_orderbook_snapshot();
-        }
-      
-      } else if (!conn.__is_resyncing_book) {
-        // Conection is not resyncing.
-        conn.__is_resyncing_book = true;
-        console.log('('+upd.__conn_id+') Resyncing orderbook...');
-        this.orderbook_log('('+upd.__conn_id+') Resyncing orderbook...');
-
-        if (_ws.subcriptions.orderbook?.unsub_req != undefined) {
-          // Necessary sends a unsub request before reseting subscription.
-          __ws.send(
-            _ws.subcriptions.orderbook.unsub_req
-              .replaceAll('<market>', this.market.ws)
-              .replace('<ws_req_id>', ++this.ws_req_nonce)
-          );
-          
-        } else if (_ws.subcriptions.orderbook?.request != undefined) {
-          // Send orderbook subscription request.
-          this.send_book_sub(conn, _ws, __ws);
-
-        } else {
-          console.log('[E] Orderbook > Resync from "resync_again_after_min" option is only possible when using rest snapshot or orderbook subscription request.');
-          process.exit();
-        }
-      }
-    }
+    this.check_resync_time(upd, _ws, __ws, _prom);
 
     // console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     // console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
