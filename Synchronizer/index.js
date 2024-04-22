@@ -822,8 +822,6 @@ class Synchronizer {
       }
     }
 
-    
-
     let formatted = { asks: Object.values(asks), bids: Object.values(bids), is_snapshot };
 
     // Define the timestamp.
@@ -924,7 +922,7 @@ class Synchronizer {
   }
 
   handle_orderbook_msg (update, _ws, __ws, _prom, ws_recv_ts, from_snap_sub = false) {
-    if (update == null) return; // Ignore.
+    if (update == null) return this.orderbook_log('/!\\ Ignoring null orderbook message.'); // Ignore.
 
     if (update.is_snapshot) {
       // console.log('Applying orderbook snapshot...');
@@ -937,7 +935,7 @@ class Synchronizer {
         // if (this.orderbook_upd_cache.length == 0)
         //   console.log('[!!] Got first orderbook update at',update.timestamp);
 
-        // console.log('Caching update...');
+        this.orderbook_log('/!\\ Caching update...');
         this.orderbook_upd_cache.push(update);
   
       } else {
@@ -1109,11 +1107,15 @@ class Synchronizer {
           // Update timestamp >= book timestamp
           if (update.timestamp_us && this.orderbook.last_snapshot_ts_us) {
             // Have 'timestamp_us'
-            if (Big(update.timestamp_us).eq(this.orderbook.last_snapshot_ts_us) && update.__conn_id != this.orderbook.last_snapshot_conn_id)
+            if (Big(update.timestamp_us).eq(this.orderbook.last_snapshot_ts_us) && 
+            update.__conn_id != this.orderbook.last_snapshot_conn_id && 
+            (_ws?.subcriptions?.orderbook?.update?.cache_until_complete_resync !== true || this.all_conns_resynced == true))
               return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp_us == this.orderbook.last_snapshot_ts_us && update.__conn_id ('+update.__conn_id+') != this.orderbook.last_snapshot_conn_id ('+this.orderbook.last_snapshot_conn_id+').');
           } else {
             // Do not have 'timestamp_us'
-            if (Big(update.timestamp).eq(this.orderbook.last_snapshot_ts) && update.__conn_id != this.orderbook.last_snapshot_conn_id)
+            if (Big(update.timestamp).eq(this.orderbook.last_snapshot_ts) && 
+            update.__conn_id != this.orderbook.last_snapshot_conn_id &&
+            (_ws?.subcriptions?.orderbook?.update?.cache_until_complete_resync !== true || this.all_conns_resynced == true))
               return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp == this.orderbook.last_snapshot_ts && update.__conn_id ('+update.__conn_id+') != this.orderbook.last_snapshot_conn_id ('+this.orderbook.last_snapshot_conn_id+').');
           }
         }
@@ -1314,7 +1316,7 @@ class Synchronizer {
     const conn = this.connections[upd.__conn_id][upd.__conn_type];
 
     // Avoid receiving updates after unsubscription.
-    if (conn?._unsubed === true) return;
+    if (conn?._unsubed === true) return this.orderbook_log('/!\\ Avoid receiving updates after unsubscription. (conn._unsubed === true)');
 
     // Check if update should be ignored.
     if (conn?._ignore_updates_before_us != null && upd.timestamp_us) {
