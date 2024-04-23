@@ -137,7 +137,7 @@
           "bids": null
         },
         "update": {
-          "receive_separately_updates_as_obj": true,
+          "receive_separately_updates_as_obj": null,
           "cache_until_complete_resync": null,
           "resync_again_after_min": null,
           "apply_only_since_last_snapshot": null,
@@ -169,6 +169,7 @@
           "timestamp": "",
           "avoid_repetition_drop_timestamp": null,
           "get_timestamp_us_from_iso": null,
+          "prev_upd_nonce_key": null,
           "first_upd_nonce_key": null,
           "last_upd_nonce_key": null,
           "upd_nonce_is_sequence": null
