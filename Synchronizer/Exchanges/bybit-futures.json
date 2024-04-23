@@ -1,120 +1,72 @@
 {
   "separator": "",
   "makert_prefix": null,
-  "is_market_upper": null,
-  "latency-test-symbol": "",
-  "trades_custom_id": null,
+  "is_market_upper": true,
+  "latency-test-symbol": "BTC/USDT",
+  "trades_custom_id": true,
   "timestamp_in_micro": null,
   "timestamp_in_seconds": null,
   "timestamp_ISO_format": null,
   "rest": {
-    "url": "",
+    "url": "https://api.bybit.com",
     "timeout": 15000,
     "error": {
-      "key": null,
-      "value": null,
-      "value_not": null
+      "key": "retCode",
+      "value_not": "0"
     },
-    "headers": {
-
-    },
+    "headers": null,
     "endpoints": {
       "available_pairs": {
-        "path": "",
+        "path": "/v5/market/instruments-info?category=linear",
         "response": {
-          "data_inside": "",
-          "symbol": "",
-          "status_key": "",
-          "status_active": ""
+          "data_inside": "result.list",
+          "symbol": "symbol",
+          "status_key": "status",
+          "status_active": "Trading"
         }
       },
-      "orderbook": {
-        "path": "",
-        "response": {
-          "asks": "",
-          "bids": "",
-          "timestamp": "",
-          "timestamp_in_micro": null,
-          "get_timestamp_us_from_iso": null,
-          "last_update_nonce": "",
-          "slow_cache": null,
-          "slow_cache_delay": null
-        }
-      },
+      "orderbook": null,
       "trades": {
-        "path": "",
+        "path": "/v5/market/recent-trade?category=linear&symbol=<market>",
         "response": {
-          "newer_first": false,
-          "response_time": null,
-          "data_inside": null,
-          "trade_id_key": "",
-          "timestamp": "",
+          "newer_first": true,
+          "response_time": "result.time",
+          "data_inside": "result.list",
+          "trade_id_key": "execId",
+          "timestamp": "time",
           "get_timestamp_us_from_iso": null,
           "timestamp_ISO_format": null,
-          "is_buy_key": "",
-          "is_buy_value": "",
-          "price": "",
-          "amount": "",
+          "is_buy_key": "side",
+          "is_buy_value": "Buy",
+          "price": "price",
+          "amount": "size",
           "slow_cache": null,
           "slow_cache_delay": null,
-          "pagination": {
-            "check_for_newer": null,
-            "max_arr_size": null,
-            "to_del_url": "",
-            "to_add_url": "",
-            "page_id": ""
-          }
+          "pagination": null
         }
       }
     }
   },
   "ws": {
-    "url": "",
+    "url": "wss://stream.bybit.com/v5/public/linear",
     "timeout": 15000,
     "error": {
-      "key": null,
-      "value": null,
-      "value_not": null
+      "key": "success",
+      "value_not": true
     },
     "ping": {
-      "request": "",
+      "request": "{\"op\":\"ping\"}",
       "response": {
-        "id": "",
-        "id_value": ""
+        "id": "ret_msg",
+        "id_value": "pong"
       }
     },
     "to_send_before_subcriptions": null,
     "subcriptions": {
-      "orderbook_snap": {
-        "is_subscribed_from_scratch": null,
-        "request": "",
-        "response": {
-          "is_object": null,
-          "object_id_key": null,
-          "object_id_value": null,
-          "id": "",
-          "id_value": null,
-          "channel_id_key": null,
-          "channel_id_val": null
-        },
-        "update": {
-          "channel_id_key": "",
-          "data_inside": "",
-          "updates_inside": "",
-          "asks": "",
-          "bids": "",
-          "pl": {
-            "price": "",
-            "amount": ""
-          },
-          "timestamp": "",
-          "get_timestamp_us_from_iso": null,
-          "last_upd_nonce_key": ""
-        }
-      },
+      "orderbook_snap": null,
       "orderbook": {
-        "is_subscribed_from_scratch": null,
-        "request": "",
+        "is_subscribed_from_scratch": false,
+        "request": "{\"req_id\":\"<ws_req_id>\",\"op\":\"subscribe\",\"args\":[\"orderbook.50.<market>\"]}",
         "response": {
           "error_key": null,
           "error_val": null,
@@ -123,7 +75,7 @@
           "is_object": null,
           "object_id_key": null,
           "object_id_value": null,
-          "id": "",
+          "id": "req_id",
           "id_value": null,
           "channel_id_key": null,
           "channel_id_val": null
@@ -131,8 +83,8 @@
         "snapshot": {
           "reset_avoid_repetition_cache": null,
           "its_first_update": null,
-          "identifier_key": null,
-          "identifier_value": null,
+          "identifier_key": "type",
+          "identifier_value": "snapshot",
           "asks_and_bids_together": null,
           "get_timestamp_us_from_iso": null,
           "asks": null,
@@ -152,34 +104,34 @@
           "conn_dont_repeat": null,
           "avoid_repetition_size": 512,
           "ignore_if": null,
-          "channel_id_key": "",
-          "channel_id": "",
-          "data_inside": "",
-          "updates_inside": "",
+          "channel_id_key": "topic",
+          "channel_id": "orderbook.50.<market>",
+          "data_inside": null,
+          "updates_inside": "data",
           "asks_and_bids_together": null,
           "is_bids_positive_amount": null,
-          "asks": "",
-          "bids": "",
+          "asks": "a",
+          "bids": "b",
           "pl": {
-            "price": "",
-            "amount": "",
+            "price": "0",
+            "amount": "1",
             "is_bids_key": null,
             "is_bids_value": null,
             "to_remove_key": null,
             "to_remove_value": null
           },
-          "timestamp": "",
+          "timestamp": "ts",
           "avoid_repetition_drop_timestamp": null,
           "get_timestamp_us_from_iso": null,
           "prev_upd_nonce_key": null,
           "first_upd_nonce_key": null,
-          "last_upd_nonce_key": null,
+          "last_upd_nonce_key": "seq",
           "upd_nonce_is_sequence": null
         }
       },
       "trades": {
         "is_subscribed_from_scratch": null,
-        "request": "",
+        "request": "{\"req_id\":\"<ws_req_id>\",\"op\":\"subscribe\",\"args\":[\"publicTrade.<market>\"]}",
         "response": {
           "error_key": null,
           "error_val": null,
@@ -187,7 +139,7 @@
           "is_object": null,
           "object_id_key": null,
           "object_id_value": null,
-          "id": "",
+          "id": "req_id",
           "id_value": null,
           "channel_id_key": null,
           "channel_id_val": null
@@ -198,33 +150,22 @@
           "receive_separately_trades_as_obj": false,
           "reiceve_array_w_newer_first": null,
           "id_should_be_higher": false,
-          "channel_id_key": "",
-          "channel_id": "",
-          "data_inside": "",
+          "channel_id_key": "topic",
+          "channel_id": "publicTrade.<market>",
+          "data_inside": "data",
           "updates_inside": null,
-          "trade_id_key": "",
-          "timestamp": "",
+          "trade_id_key": "i",
+          "timestamp": "T",
           "timestamp_in_seconds": null,
           "get_timestamp_us_from_iso": null,
-          "is_buy_key": "",
-          "is_buy_value": null,
-          "price": "",
-          "amount": ""
+          "is_buy_key": "S",
+          "is_buy_value": "Buy",
+          "price": "p",
+          "amount": "v"
         }
       }
     },
-    "other_updates": {
-      "ping": {
-        "identifier_key": "",
-        "identifier_value": "",
-        "to_delete_from_object": [],
-        "replace_and_respond": false,
-        "to_replace": "",
-        "replace_with": ""
-      }
-    },
-    "msgs_to_ignore": [
-
-    ]
+    "other_updates": null,
+    "msgs_to_ignore": null
   }
 }

@@ -486,6 +486,7 @@ class Synchronizer {
 
   handle_trades_msg (update, _ws) {
     if (update == null) return; // Ignore.
+    // console.log('Trade:',update);
 
     const _t_upd = _ws.subcriptions.trades.update;
     const _id_key = _t_upd.trade_id_key != undefined ? 'trade_id' : 'custom_id';
