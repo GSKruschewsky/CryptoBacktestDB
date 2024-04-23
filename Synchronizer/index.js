@@ -926,7 +926,27 @@ class Synchronizer {
 
     if (update.is_snapshot) {
       // console.log('Applying orderbook snapshot...');
+      const _resyncing_before = (this.all_conns_resynced === false);
+
       this.apply_orderbook_snap(update, _ws, __ws, _prom, ws_recv_ts, from_snap_sub);
+
+      if (_ws?.subcriptions?.orderbook?.update?.cache_until_complete_resync && _resyncing_before && this.all_conns_resynced && this.orderbook_upd_cache.length > 0) {
+        // console.log('!!! APPLYING CACHED UPDATES EVEN WHEN NOT APPLYING THE LAST ORDERBOOK SNAPSHOT !!!');
+
+        // Sort 'this.orderbook_upd_cache' by timestamp.
+        this.orderbook_upd_cache.sort((a, b) => {
+          if (a.timestamp_us && b.timestamp_us)
+            return Big(a.timestamp_us).cmp(b.timestamp_us);
+          else
+            return a.timestamp - b.timestamp;
+        });
+
+        // Apply cached orderbook updates.
+        while (this.orderbook != null && this.orderbook_upd_cache.length > 0) {
+          this.apply_orderbook_upd(this.orderbook_upd_cache[0], _ws, __ws, _prom, ws_recv_ts);
+          this.orderbook_upd_cache.shift();
+        }
+      }
 
     } else {
       if (this.orderbook == null) {
@@ -1114,8 +1134,7 @@ class Synchronizer {
           } else {
             // Do not have 'timestamp_us'
             if (Big(update.timestamp).eq(this.orderbook.last_snapshot_ts) && 
-            update.__conn_id != this.orderbook.last_snapshot_conn_id &&
-            (_ws?.subcriptions?.orderbook?.update?.cache_until_complete_resync !== true || this.all_conns_resynced == true))
+            update.__conn_id != this.orderbook.last_snapshot_conn_id)
               return this.orderbook_log('/!\\ apply_orderbook_snap: update.timestamp == this.orderbook.last_snapshot_ts && update.__conn_id ('+update.__conn_id+') != this.orderbook.last_snapshot_conn_id ('+this.orderbook.last_snapshot_conn_id+').');
           }
         }
@@ -1247,7 +1266,6 @@ class Synchronizer {
     } else {
       console.log('Book snap applied but not applied any cached updates.');
     }
-
     
     if (!from_snap_sub)
       console.log('Book snap applied (conn= ' + update.__conn_id + '):',(update.timestamp_us || update.timestamp));

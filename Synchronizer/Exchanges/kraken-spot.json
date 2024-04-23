@@ -71,7 +71,7 @@
         },
         "update": {
           "cache_until_complete_resync": true,
-          "resync_again_after_min": 5,
+          "resync_again_after_min": 0.25,
           "apply_only_since_last_snapshot": true,
           "avoid_each_piece_repetition": true,
           "each_piece_ignore_if": [
