@@ -145,5 +145,9 @@
       [ "feed", "trade_snapshot" ], 
       [ "message", "Already subscribed to feed, re-requesting" ]
     ]
+  },
+  "asset_translation": {
+    "XBT": "BTC",
+    "XDG": "DOGE"
   }
 }
