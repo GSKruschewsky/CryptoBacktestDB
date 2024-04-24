@@ -25,8 +25,9 @@
         "response": {
           "data_inside": "",
           "symbol": "",
-          "status_key": "",
-          "status_active": ""
+          "status_key": null,
+          "status_active": null,
+          "lot_size_key": null
         }
       },
       "orderbook": {
@@ -49,6 +50,7 @@
           "sort_key": null,
           "response_time": null,
           "data_inside": null,
+          "foreach_concat_inside": null,
           "trade_id_key": "",
           "timestamp": "",
           "get_timestamp_us_from_iso": null,
@@ -73,6 +75,7 @@
   "ws": {
     "url": "",
     "timeout": 15000,
+    "gzip_encrypted": null,
     "error": {
       "key": null,
       "value": null,

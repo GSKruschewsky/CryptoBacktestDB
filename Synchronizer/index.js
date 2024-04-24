@@ -442,7 +442,7 @@ class Synchronizer {
         timestamp: this.format_timestamp(_ts, _t_upd),
         is_buy: undefined,
         price: Big(_t_upd.price?.split('.')?.reduce((f, k) => f?.[k], t)).toFixed(),
-        amount: Big(_t_upd.amount?.split('.')?.reduce((f, k) => f?.[k], t)).toFixed()
+        amount: Big(_t_upd.amount?.split('.')?.reduce((f, k) => f?.[k], t)).times(this.market_lot_size || 1).toFixed()
       };
 
       // Try to define 'timestamp_us'.
@@ -660,7 +660,7 @@ class Synchronizer {
     if (is_snapshot === false && _ob_sub.update?.receive_separately_updates_as_obj === true) {
       let _upd_piece_array = [
         Big(msg[_ob_sub.update.pl.price]).toFixed(),
-        Big(msg[_ob_sub.update.pl.amount]).toFixed()
+        Big(msg[_ob_sub.update.pl.amount]).times(this.market_lot_size || 1).toFixed()
       ];
 
       // Identify if its a 'asks' or 'bids' update.
@@ -725,7 +725,7 @@ class Synchronizer {
               amount = '0';
           }
 
-          let _upd_piece_array = [ Big(price).toFixed(), Big(amount).toFixed() ];
+          let _upd_piece_array = [ Big(price).toFixed(), Big(amount).times(this.market_lot_size || 1).toFixed() ];
           for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
             _upd_piece_array.push(upd[k]);
           }
@@ -770,7 +770,7 @@ class Synchronizer {
 
           let _upd_piece_array = [
             Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.price) || _ob_sub.update.pl.price]).toFixed(), 
-            Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.amount) || _ob_sub.update.pl.amount]).toFixed()
+            Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.amount) || _ob_sub.update.pl.amount]).times(this.market_lot_size || 1).toFixed()
           ];
           
           for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
@@ -813,7 +813,7 @@ class Synchronizer {
 
           let _upd_piece_array = [
             Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.price) || _ob_sub.update.pl.price]).toFixed(), 
-            Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.amount) || _ob_sub.update.pl.amount]).toFixed()
+            Big(upd[(is_snapshot && _ob_sub.snapshot?.pl?.amount) || _ob_sub.update.pl.amount]).times(this.market_lot_size || 1).toFixed()
           ];
           
           for (const k of (_ws?.subcriptions?.orderbook?.update?.each_piece_to_add || [])) {
@@ -2210,8 +2210,15 @@ class Synchronizer {
           _mkts_r.status_active == null ||
           market[_mkts_r.status_key] == _mkts_r.status_active
         )
-      ))
-        this.markets.push(market[_mkts_r.symbol] || market);
+      )) {
+        const mkt = (market[_mkts_r.symbol] || market);
+        this.markets.push(mkt);
+        if (mkt == this.market.rest && 
+        this.exc.rest.endpoints.available_pairs.response.lot_size_key != null) {
+          this.market_lot_size = this.exc.rest.endpoints.available_pairs.response.lot_size_key.split('.').reduce((f, k) => f?.[k], market);
+          // console.log('market_lot_size=',this.market_lot_size);
+        }
+      }
     }
 
     // Validate market.
@@ -2342,7 +2349,7 @@ class Synchronizer {
             timestamp: this.format_timestamp(_ts, _t_rt_rsp),
             is_buy: undefined,
             price: Big(_t_rt_rsp.price?.split('.')?.reduce((f, k) => f?.[k], t)).toFixed(),
-            amount: Big(_t_rt_rsp.amount?.split('.')?.reduce((f, k) => f?.[k], t)).toFixed()
+            amount: Big(_t_rt_rsp.amount?.split('.')?.reduce((f, k) => f?.[k], t)).times(this.market_lot_size || 1).toFixed()
           };
 
           // Try to define 'timestamp_us'.
@@ -2463,8 +2470,8 @@ class Synchronizer {
           // Format orderbook snapshot from 'r' to 'init_orderbook' as an orderbook update.
           const _ts = _b_rt_rsp?.timestamp?.split('.')?.reduce((f, k) => f?.[k], r);
           init_orderbook = {
-            asks: _b_rt_rsp.asks?.split('.')?.reduce((f, k) => f?.[k], r)?.slice(0, this.orderbook_depth)?.map(([ p, q ]) => [ Big(p).toFixed(), Big(q).toFixed() ]),
-            bids: _b_rt_rsp.bids?.split('.')?.reduce((f, k) => f?.[k], r)?.slice(0, this.orderbook_depth)?.map(([ p, q ]) => [ Big(p).toFixed(), Big(q).toFixed() ]),
+            asks: _b_rt_rsp.asks?.split('.')?.reduce((f, k) => f?.[k], r)?.slice(0, this.orderbook_depth)?.map(([ p, q ]) => [ Big(p).toFixed(), Big(q).times(this.market_lot_size || 1).toFixed() ]),
+            bids: _b_rt_rsp.bids?.split('.')?.reduce((f, k) => f?.[k], r)?.slice(0, this.orderbook_depth)?.map(([ p, q ]) => [ Big(p).toFixed(), Big(q).times(this.market_lot_size || 1).toFixed() ]),
             timestamp: this.format_timestamp(_ts, _b_rt_rsp),
             is_snapshot: true,
             last_update_nonce: _b_rt_rsp.last_update_nonce?.split('.')?.reduce((f, k) => f?.[k], r)

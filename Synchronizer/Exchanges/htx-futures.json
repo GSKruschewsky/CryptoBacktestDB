@@ -1,0 +1,139 @@
+{
+  "separator": "-",
+  "makert_prefix": null,
+  "makert_sufix": null,
+  "is_market_upper": true,
+  "latency-test-symbol": "BTC/USDT",
+  "trades_custom_id": null,
+  "timestamp_in_micro": null,
+  "timestamp_in_seconds": null,
+  "timestamp_ISO_format": null,
+  "rest": {
+    "url": "https://api.hbdm.com",
+    "timeout": 15000,
+    "error": {
+      "key": "status",
+      "value_not": "ok"
+    },
+    "headers": null,
+    "endpoints": {
+      "available_pairs": {
+        "path": "/linear-swap-api/v1/swap_query_elements",
+        "response": {
+          "data_inside": "data",
+          "symbol": "contract_code",
+          "status_key": null,
+          "status_active": null,
+          "lot_size_key": "instrument_value"
+        }
+      },
+      "orderbook": null,
+      "trades": {
+        "path": "/linear-swap-ex/market/history/trade?contract_code=<market>&size=2000",
+        "response": {
+          "newer_first": null,
+          "sort_key": "ts",
+          "response_time": "ts",
+          "data_inside": "data",
+          "foreach_concat_inside": "data",
+          "trade_id_key": null,
+          "timestamp": "ts",
+          "get_timestamp_us_from_iso": null,
+          "timestamp_ISO_format": null,
+          "is_buy_key": "direction",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "amount",
+          "slow_cache": null,
+          "slow_cache_delay": null,
+          "pagination": null
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://api.hbdm.com/linear-swap-ws",
+    "timeout": 15000,
+    "gzip_encrypted": true,
+    "error": {
+      "key": "status",
+      "value_not": "ok"
+    },
+    "ping": null,
+    "to_send_before_subcriptions": null,
+    "subcriptions": {
+      "orderbook_snap": {
+        "is_subscribed_from_scratch": null,
+        "request": "{\"sub\":\"market.<market>.depth.step0\",\"id\":<ws_req_id>}",
+        "response": {
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": "subbed",
+          "channel_id_val": null
+        },
+        "update": {
+          "channel_id_key": "ch",
+          "data_inside": "tick",
+          "updates_inside": null,
+          "asks": "asks",
+          "bids": "bids",
+          "pl": {
+            "price": "0",
+            "amount": "1"
+          },
+          "timestamp": "ts",
+          "get_timestamp_us_from_iso": null,
+          "last_upd_nonce_key": null
+        }
+      },
+      "orderbook": null,
+      "trades": {
+        "is_subscribed_from_scratch": null,
+        "request": "{\"sub\":\"market.<market>.trade.detail\",\"id\":<ws_req_id>}",
+        "response": {
+          "error_key": null,
+          "error_val": null,
+          "acum_list": null,
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": "subbed",
+          "channel_id_val": null
+        },
+        "update": {
+          "ignore_if": null,
+          "ignore_first_update": null,
+          "receive_separately_trades_as_obj": false,
+          "reiceve_array_w_newer_first": true,
+          "id_should_be_higher": false,
+          "channel_id_key": "ch",
+          "channel_id": null,
+          "data_inside": "tick.data",
+          "updates_inside": null,
+          "trade_id_key": "id",
+          "timestamp": "ts",
+          "timestamp_in_seconds": null,
+          "get_timestamp_us_from_iso": null,
+          "is_buy_key": "direction",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "amount"
+        }
+      }
+    },
+    "other_updates": {
+      "ping": {
+        "identifier_key": "ping",
+        "replace_and_respond": true,
+        "to_replace": "ping",
+        "replace_with": "pong"
+      }
+    },
+    "msgs_to_ignore": null
+  }
+}
