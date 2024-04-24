@@ -1,0 +1,145 @@
+{
+  "separator": "",
+  "makert_prefix": null,
+  "makert_sufix": "-PERP",
+  "is_market_upper": true,
+  "latency-test-symbol": "",
+  "trades_custom_id": null,
+  "timestamp_in_micro": null,
+  "timestamp_in_seconds": null,
+  "timestamp_ISO_format": null,
+  "rest": {
+    "url": "https://deriv-api.crypto.com/v1",
+    "timeout": 15000,
+    "error": {
+      "key": "code",
+      "value_not": "0"
+    },
+    "headers": null,
+    "endpoints": {
+      "available_pairs": {
+        "path": "/public/get-instruments",
+        "response": {
+          "data_inside": "result.data",
+          "symbol": "symbol",
+          "status_key": "tradable",
+          "status_active": true
+        }
+      },
+      "orderbook": null,
+      "trades": {
+        "path": "/public/get-trades?instrument_name=<market>&count=1000",
+        "response": {
+          "newer_first": null,
+          "sort_key": "d",
+          "response_time": null,
+          "data_inside": "result.data",
+          "trade_id_key": "d",
+          "timestamp": "t",
+          "get_timestamp_us_from_iso": null,
+          "timestamp_ISO_format": null,
+          "is_buy_key": "s",
+          "is_buy_value": "buy",
+          "price": "p",
+          "amount": "q",
+          "slow_cache": null,
+          "slow_cache_delay": null,
+          "pagination": {
+            "check_for_newer": false,
+            "max_arr_size": 1000,
+            "to_del_url": null,
+            "to_add_url": "&end_ts=<page_id>",
+            "page_id": "t"
+          }
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://deriv-stream.crypto.com/v1/market",
+    "timeout": 15000,
+    "error": {
+      "key": "code",
+      "value_not": "0"
+    },
+    "ping": null,
+    "to_send_before_subcriptions": null,
+    "subcriptions": {
+      "orderbook_snap": {
+        "is_subscribed_from_scratch": null,
+        "request": "{\"id\":<ws_req_id>,\"method\":\"subscribe\",\"params\":{\"channels\":[\"book.<market>\"],\"depth\":50,\"book_subscription_type\":\"SNAPSHOT\"}}",
+        "response": {
+          "include_snapshot": false,
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": "channel",
+          "channel_id_val": "book.<market>.50"
+        },
+        "update": {
+          "channel_id_key": "result.subscription",
+          "data_inside": "result.data.0",
+          "updates_inside": null,
+          "asks": "asks",
+          "bids": "bids",
+          "pl": {
+            "price": "0",
+            "amount": "1"
+          },
+          "timestamp": "tt",
+          "get_timestamp_us_from_iso": null,
+          "last_upd_nonce_key": null
+        }
+      },
+      "orderbook": null,
+      "trades": {
+        "is_subscribed_from_scratch": null,
+        "request": "{\"id\":<ws_req_id>,\"method\":\"subscribe\",\"params\":{\"channels\":[\"trade.<market>\"]}}",
+        "response": {
+          "error_key": null,
+          "error_val": null,
+          "acum_list": null,
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": "result.subscription",
+          "channel_id_val": null
+        },
+        "update": {
+          "ignore_if": null,
+          "ignore_first_update": null,
+          "receive_separately_trades_as_obj": false,
+          "reiceve_array_w_newer_first": null,
+          "id_should_be_higher": false,
+          "channel_id_key": "result.subscription",
+          "channel_id": null,
+          "data_inside": "result.data",
+          "updates_inside": null,
+          "trade_id_key": "d",
+          "timestamp": "t",
+          "timestamp_in_seconds": null,
+          "get_timestamp_us_from_iso": null,
+          "is_buy_key": "s",
+          "is_buy_value": "buy",
+          "price": "p",
+          "amount": "q"
+        }
+      }
+    },
+    "other_updates": {
+      "ping": {
+        "identifier_key": "method",
+        "identifier_value": "public/heartbeat",
+        "to_delete_from_object": [ "code" ],
+        "replace_and_respond": true,
+        "to_replace": "public/heartbeat",
+        "replace_with": "public/respond-heartbeat"
+      }
+    },
+    "msgs_to_ignore": null
+  }
+}

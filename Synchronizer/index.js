@@ -550,6 +550,9 @@ class Synchronizer {
 
     } else {
       console.log('Book_sub_resp:',msg);
+      // console.log('_sub?.update?.channel_id:',_sub?.update?.channel_id);
+      // console.log('_id_val:',_id_val);
+      // console.log("_sub.response.channel_id_val.replaceAll('<market>', this.market.ws):",_sub.response.channel_id_val.replaceAll('<market>', this.market.ws));
       
       if (_prom) {
         _prom.reject({ 
@@ -2724,14 +2727,14 @@ class Synchronizer {
     }
 
     if (this.exc.rest.is_market_upper)
-      this.market.rest = (this.exc.makert_prefix || "") + (this.market.rest.toUpperCase());
+      this.market.rest = (this.exc.makert_prefix || "") + (this.market.rest.toUpperCase()) + (this.exc.makert_sufix || "");
     else
-      this.market.rest = (this.exc.makert_prefix || "") + (this.market.rest.toLowerCase());
+      this.market.rest = (this.exc.makert_prefix || "") + (this.market.rest.toLowerCase()) + (this.exc.makert_sufix || "");
   
     if (this.exc.ws.is_market_upper)
-      this.market.ws = (this.exc.makert_prefix || "") + (this.market.ws.toUpperCase());
+      this.market.ws = (this.exc.makert_prefix || "") + (this.market.ws.toUpperCase()) + (this.exc.makert_sufix || "");
     else
-      this.market.ws = (this.exc.makert_prefix || "") + (this.market.ws.toLowerCase());
+      this.market.ws = (this.exc.makert_prefix || "") + (this.market.ws.toLowerCase()) + (this.exc.makert_sufix || "");
     
 
     // Try to connect with websocket and subscribe to market updates.

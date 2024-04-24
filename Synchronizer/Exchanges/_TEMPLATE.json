@@ -1,6 +1,7 @@
 {
   "separator": "",
   "makert_prefix": null,
+  "makert_sufix": null,
   "is_market_upper": null,
   "latency-test-symbol": "",
   "trades_custom_id": null,
@@ -45,6 +46,7 @@
         "path": "",
         "response": {
           "newer_first": false,
+          "sort_key": null,
           "response_time": null,
           "data_inside": null,
           "trade_id_key": "",
