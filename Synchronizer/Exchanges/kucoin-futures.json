@@ -1,82 +1,95 @@
 {
-  "separator": "_",
+  "separator": "",
   "makert_prefix": null,
-  "makert_sufix": null,
+  "makert_sufix": "M",
   "is_market_upper": true,
-  "latency-test-symbol": "BTC/USDT",
-  "trades_custom_id": true,
+  "latency-test-symbol": "XBT/USDT",
+  "trades_custom_id": null,
+  "timestamp_in_nano": null,
   "timestamp_in_micro": null,
   "timestamp_in_seconds": null,
   "timestamp_ISO_format": null,
   "rest": {
-    "url": "https://contract.mexc.com",
+    "url": "https://api-futures.kucoin.com",
     "timeout": 15000,
     "error": {
       "key": "code",
-      "value_not": 0
+      "value_not": "200000"
     },
     "headers": null,
     "endpoints": {
       "available_pairs": {
-        "path": "/api/v1/contract/detail",
+        "path": "/api/v1/contracts/active",
         "response": {
           "data_inside": "data",
           "symbol": "symbol",
-          "status_key": null,
-          "status_active": null,
-          "lot_size_key": "contractSize"
+          "status_key": "status",
+          "status_active": "Open",
+          "lot_size_key": "multiplier"
         }
       },
       "orderbook": {
-        "path": "/api/v1/contract/depth/<market>",
+        "path": "/api/v1/level2/snapshot?symbol=<market>",
         "response": {
           "data_inside": "data",
           "asks": "asks",
           "bids": "bids",
-          "timestamp": "timestamp",
+          "timestamp": "ts",
+          "timestamp_in_nano": true,
           "timestamp_in_micro": null,
           "get_timestamp_us_from_iso": null,
-          "last_update_nonce": "version",
+          "last_update_nonce": "sequence",
           "slow_cache": true,
-          "slow_cache_delay": null
+          "slow_cache_delay": 5e3
         }
       },
       "trades": {
-        "path": "/api/v1/contract/deals/BTC_USDT",
+        "path": "/api/v1/trade/history?symbol=<market>",
         "response": {
           "newer_first": true,
           "sort_key": null,
           "response_time": null,
           "data_inside": "data",
           "foreach_concat_inside": null,
-          "trade_id_key": null,
-          "timestamp": "t",
+          "trade_id_key": "tradeId",
+          "timestamp": "ts",
+          "timestamp_in_nano": true,
+          "timestamp_in_micro": null,
           "get_timestamp_us_from_iso": null,
           "timestamp_ISO_format": null,
-          "is_buy_key": "T",
-          "is_buy_value": 1,
-          "price": "p",
-          "amount": "v",
-          "slow_cache": true,
+          "is_buy_key": "side",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "size",
+          "slow_cache": null,
           "slow_cache_delay": null,
           "pagination": null
+        }
+      },
+      "prepare_for_ws": {
+        "method": "POST",
+        "path": "/api/v1/bullet-public",
+        "response": {
+          "data_inside": "data",
+          "ws_token_key": "token",
+          "ws_url_key": "instanceServers.0.endpoint",
+          "ws_ping_interval_key": "instanceServers.0.pingInterval"
         }
       }
     }
   },
   "ws": {
-    "url": "wss://contract.mexc.com/edge",
+    "url": null,
     "timeout": 15000,
     "gzip_encrypted": null,
     "error": {
-      "key": null,
-      "value": null,
-      "value_not": null
+      "key": "type",
+      "value": "error"
     },
     "ping": {
-      "request": "{\"method\":\"ping\"}",
+      "request": "{\"id\":\"<ws_req_id>\",\"type\":\"ping\"}",
       "response": {
-        "id": "channel",
+        "id": "type",
         "id_value": "pong"
       }
     },
@@ -85,23 +98,23 @@
       "orderbook_snap": null,
       "orderbook": {
         "is_subscribed_from_scratch": null,
-        "request": "{\"method\":\"sub.depth\",\"param\":{\"symbol\":\"<market>\"}}",
+        "request": "{\"id\":<ws_req_id>,\"type\":\"subscribe\",\"topic\":\"/contractMarket/level2:<market>\",\"response\":true}",
         "response": {
           "error_key": null,
           "error_val": null,
           "include_snapshot": null,
           "acum_list": null,
           "is_object": null,
-          "object_id_key": null,
-          "object_id_value": null,
-          "id": "channel",
-          "id_value": "rs.sub.depth",
-          "channel_id_key": "channel",
+          "object_id_key": "type",
+          "object_id_value": "ack",
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": null,
           "channel_id_val": null
         },
         "snapshot": null,
         "update": {
-          "receive_separately_updates_as_obj": null,
+          "receive_separately_updates_as_obj": true,
           "cache_until_complete_resync": null,
           "resync_again_after_min": 5,
           "apply_only_since_last_snapshot": null,
@@ -114,44 +127,46 @@
           "conn_dont_repeat": null,
           "avoid_repetition_size": 512,
           "ignore_if": null,
-          "channel_id_key": "channel",
-          "channel_id": "push.depth",
+          "channel_id_key": "topic",
+          "channel_id": "/contractMarket/level2:<market>",
+          "to_split_key": "data.change",
+          "to_split_sep": ",",
           "data_inside": null,
-          "updates_inside": "data",
+          "updates_inside": "data.change",
           "asks_and_bids_together": null,
           "is_bids_positive_amount": null,
-          "asks": "asks",
-          "bids": "bids",
+          "asks": null,
+          "bids": null,
           "pl": {
             "price": "0",
-            "amount": "1",
-            "is_bids_key": null,
-            "is_bids_value": null,
+            "amount": "2",
+            "is_bids_key": "1",
+            "is_bids_value": "buy",
             "to_remove_key": null,
             "to_remove_value": null
           },
-          "timestamp": "ts",
+          "timestamp": "data.timestamp",
           "avoid_repetition_drop_timestamp": null,
           "get_timestamp_us_from_iso": null,
           "prev_upd_nonce_key": null,
           "first_upd_nonce_key": null,
-          "last_upd_nonce_key": "version",
+          "last_upd_nonce_key": "sn",
           "upd_nonce_is_sequence": null
         }
       },
       "trades": {
         "is_subscribed_from_scratch": null,
-        "request": "{\"method\":\"sub.deal\",\"param\":{\"symbol\":\"<market>\"}}",
+        "request": "{\"id\":<ws_req_id>,\"type\":\"subscribe\",\"topic\":\"/contractMarket/execution:<market>\",\"response\":true}",
         "response": {
           "error_key": null,
           "error_val": null,
           "acum_list": null,
           "is_object": null,
-          "object_id_key": null,
-          "object_id_value": null,
-          "id": "channel",
-          "id_value": "rs.sub.deal",
-          "channel_id_key": "channel",
+          "object_id_key": "type",
+          "object_id_value": "ack",
+          "id": "id",
+          "id_value": null,
+          "channel_id_key": null,
           "channel_id_val": null
         },
         "update": {
@@ -159,23 +174,29 @@
           "ignore_first_update": null,
           "receive_separately_trades_as_obj": true,
           "reiceve_array_w_newer_first": null,
-          "id_should_be_higher": false,
-          "channel_id_key": "channel",
-          "channel_id": "push.deal",
+          "id_should_be_higher": true,
+          "channel_id_key": "topic",
+          "channel_id": "/contractMarket/execution:<market>",
           "data_inside": "data",
           "updates_inside": null,
-          "trade_id_key": null,
-          "timestamp": "t",
+          "trade_id_key": "tradeId",
+          "timestamp": "ts",
+          "timestamp_in_nano": true,
           "timestamp_in_seconds": null,
           "get_timestamp_us_from_iso": null,
-          "is_buy_key": "T",
-          "is_buy_value": 1,
-          "price": "p",
-          "amount": "v"
+          "is_buy_key": "side",
+          "is_buy_value": "buy",
+          "price": "price",
+          "amount": "size"
         }
       }
     },
     "other_updates": null,
-    "msgs_to_ignore": null
+    "msgs_to_ignore": [
+      [ "type", "welcome" ]
+    ]
+  },
+  "asset_translation": {
+    "XBT": "BTC"
   }
 }

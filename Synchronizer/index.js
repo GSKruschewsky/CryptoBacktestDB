@@ -448,6 +448,8 @@ class Synchronizer {
       // Try to define 'timestamp_us'.
       if (_t_upd.get_timestamp_us_from_iso) {
         obj.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+      } else if (this.exc.timestamp_in_nano || _t_upd.timestamp_in_nano) {
+        obj.timestamp_us = Big(_ts).div(1e3).toFixed(0);
       } else if (this.exc.timestamp_in_micro || _t_upd.timestamp_in_micro) {
         obj.timestamp_us = _ts;
       }
@@ -500,7 +502,7 @@ class Synchronizer {
       if (_id_key == 'trade_id' && _t_upd.id_should_be_higher)
         update = update.filter(trade => this.trades_upd_cache.length == 0 || Big(trade[_id_key]).gt(_last[_id_key]));
       else {
-        const _ts_key = ((this.exc.timestamp_in_micro || _t_upd.timestamp_in_micro || _t_upd.get_timestamp_us_from_iso) && _last?.timestamp_us) ? "timestamp_us" : "timestamp";
+        const _ts_key = ((this.exc.timestamp_in_micro || _t_upd.timestamp_in_micro || this.exc.timestamp_in_nano || _t_upd.timestamp_in_nano || _t_upd.get_timestamp_us_from_iso) && _last?.timestamp_us) ? "timestamp_us" : "timestamp";
         update = update.filter(trade => this.trades_upd_cache.length == 0 || (Big(trade[_ts_key]).gte(_last[_ts_key]) && this.trades_upd_cache.every(t => t[_id_key] != trade[_id_key])));
       }
 
@@ -515,7 +517,7 @@ class Synchronizer {
       if (_id_key == 'trade_id' && _t_upd.id_should_be_higher && _last?.trade_id != undefined)
         update = update.filter(trade => this.trades.length == 0 || Big(trade[_id_key]).gt(_last[_id_key]));
       else {
-        const _ts_key = ((this.exc.timestamp_in_micro || _t_upd.timestamp_in_micro || _t_upd.get_timestamp_us_from_iso) && _last?.timestamp_us) ? "timestamp_us" : "timestamp";
+        const _ts_key = ((this.exc.timestamp_in_micro || _t_upd.timestamp_in_micro || this.exc.timestamp_in_nano || _t_upd.timestamp_in_nano || _t_upd.get_timestamp_us_from_iso) && _last?.timestamp_us) ? "timestamp_us" : "timestamp";
         update = update.filter(trade => this.trades.length == 0 || (Big(trade[_ts_key]).gte(_last[_ts_key]) && this.trades.every(t => t[_id_key] != trade[_id_key])));
       }
       
@@ -648,23 +650,30 @@ class Synchronizer {
       if (_ob_sub.snapshot?.its_first_update === true)
         is_snapshot = true;
     }
+
+    // Split 'to_split_key'
+    if (_ob_sub.update?.to_split_key != null)  {
+      let _nested = msg;
+      for (const key of _ob_sub.update.to_split_key?.split('.').slice(0, -1)) {
+        _nested = _nested[key];
+      }
+      _nested[_ob_sub.update.to_split_key?.split('.').slice(-1)[0]] = _nested[_ob_sub.update.to_split_key?.split('.').slice(-1)[0]]?.split(_ob_sub.update.to_split_sep);
+    }
     
     // Builds the formatted message.
     let updates = (_ob_sub.update.updates_inside?.split('.')?.reduce((f, k) => f?.[k], msg) || msg);
-    // let asks = [];
-    // let bids = [];
     let asks = {};
     let bids = {};
     let higher_timestamp = null;
 
     if (is_snapshot === false && _ob_sub.update?.receive_separately_updates_as_obj === true) {
       let _upd_piece_array = [
-        Big(msg[_ob_sub.update.pl.price]).toFixed(),
-        Big(msg[_ob_sub.update.pl.amount]).times(this.market_lot_size || 1).toFixed()
+        Big(updates[_ob_sub.update.pl.price]).toFixed(),
+        Big(updates[_ob_sub.update.pl.amount]).times(this.market_lot_size || 1).toFixed()
       ];
 
       // Identify if its a 'asks' or 'bids' update.
-      if (msg[_ob_sub.update.pl.is_bids_key] == _ob_sub.update.pl.is_bids_value)
+      if (updates[_ob_sub.update.pl.is_bids_key] == _ob_sub.update.pl.is_bids_value)
         bids[_upd_piece_array[0]] = _upd_piece_array;
       else
         asks[_upd_piece_array[0]] = _upd_piece_array;
@@ -754,7 +763,13 @@ class Synchronizer {
           if (_ts != undefined) {
             let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
 
-            if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_micro) || _ob_sub?.update?.timestamp_in_micro)) {
+            if (this.exc.timestamp_in_nano || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_nano) || _ob_sub?.update?.timestamp_in_nano)) {
+              let _ts_us = Big(_ts).div(1e3).toFixed(0);
+
+              if (higher_timestamp == null || Big(_ts_us).gt(higher_timestamp._ts_us))
+                higher_timestamp = { _ts_us, formatted_ts };
+
+            } else if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_micro) || _ob_sub?.update?.timestamp_in_micro)) {
               let _ts_us = _ts;
               if ((is_snapshot && _ob_sub?.snapshot?.get_timestamp_us_from_iso) || _ob_sub?.update?.get_timestamp_us_from_iso)
                 _ts_us = new Date(_ts).getTime() + _ts.slice(23, -1);
@@ -797,7 +812,13 @@ class Synchronizer {
           if (_ts != undefined) {
             let formatted_ts = this.format_timestamp(_ts, _ob_sub.update);
       
-            if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_micro) || _ob_sub?.update?.timestamp_in_micro)) {
+            if (this.exc.timestamp_in_nano || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_nano) || _ob_sub?.update?.timestamp_in_nano)) {
+              let _ts_us = Big(_ts).div(1e3).toFixed(0);
+              
+              if (higher_timestamp == null || Big(_ts_us).gt(higher_timestamp._ts_us))
+                higher_timestamp = { _ts_us, formatted_ts };
+
+            } else if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_micro) || _ob_sub?.update?.timestamp_in_micro)) {
               let _ts_us = _ts;
               if ((is_snapshot && _ob_sub?.snapshot?.get_timestamp_us_from_iso) || _ob_sub?.update?.get_timestamp_us_from_iso)
                 _ts_us = new Date(_ts).getTime() + _ts.slice(23, -1);
@@ -837,8 +858,13 @@ class Synchronizer {
       // Try to define 'timestamp_us'.
       if ((is_snapshot && _ob_sub.snapshot?.get_timestamp_us_from_iso) || _ob_sub.update?.get_timestamp_us_from_iso) {
         formatted.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
+      
+      } else if (this.exc.timestamp_in_nano || ((is_snapshot && _ob_sub?.snapshot?.timestamp_in_nano) || _ob_sub?.update?.timestamp_in_nano)) {
+        formatted.timestamp_us = Big(_ts).div(1e3).toFixed(0);
+
       } else if (this.exc.timestamp_in_micro || ((is_snapshot && _ob_sub.snapshot?.timestamp_in_micro) || _ob_sub.update?.timestamp_in_micro)) {
         formatted.timestamp_us = _ts;
+        
       }
       // if (is_snapshot) {
       //   if ((is_snapshot && _ob_sub.snapshot?.get_timestamp_us_from_iso) || _ob_sub.update?.get_timestamp_us_from_iso) {
@@ -2353,7 +2379,9 @@ class Synchronizer {
           };
 
           // Try to define 'timestamp_us'.
-          if (_t_rt_rsp.get_timestamp_us_from_iso) {
+          if (this.exc.timestamp_in_nano || _t_rt_rsp.timestamp_in_nano) {
+            obj.timestamp_us = Big(_ts).div(1e3).toFixed(0);
+          } else if (_t_rt_rsp.get_timestamp_us_from_iso) {
             obj.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
           } else if (this.exc.timestamp_in_micro || _t_rt_rsp.timestamp_in_micro) {
             obj.timestamp_us = _ts;
@@ -2478,7 +2506,9 @@ class Synchronizer {
           };
 
           // Try to define 'timestamp_us'.
-          if (_b_rt_rsp.get_timestamp_us_from_iso) {
+          if (this.exc.timestamp_in_nano || _b_rt_rsp.timestamp_in_nano) {
+            init_orderbook.timestamp_us = Big(_ts).div(1e3).toFixed();
+          } else if (_b_rt_rsp.get_timestamp_us_from_iso) {
             init_orderbook.timestamp_us = new Date(_ts).getTime() + _ts.slice(23, -1);
           } else if (this.exc.timestamp_in_micro || _b_rt_rsp.timestamp_in_micro) {
             init_orderbook.timestamp_us = _ts;
@@ -2495,7 +2525,10 @@ class Synchronizer {
         ) || 
         (
           (!_b_rt_rsp?.safe_ts_distance) &&
-          (this.exc.timestamp_in_micro || (_b_rt_rsp?.timestamp_in_micro && _b_ws_upd?.timestamp_in_micro)) &&
+          (
+            (this.exc.timestamp_in_micro || (_b_rt_rsp?.timestamp_in_micro && _b_ws_upd?.timestamp_in_micro)) ||
+            (this.exc.timestamp_in_nano || (_b_rt_rsp?.timestamp_in_nano && _b_ws_upd?.timestamp_in_nano))
+          ) &&
           (this.orderbook_upd_cache[0] == undefined ||
           Big(this.orderbook_upd_cache[0].timestamp_us).gt(init_orderbook.timestamp_us))
         ) || 
@@ -2524,7 +2557,10 @@ class Synchronizer {
       ) || 
       (
         (!_b_rt_rsp?.safe_ts_distance) &&
-        (this.exc.timestamp_in_micro || (_b_rt_rsp?.timestamp_in_micro && _b_ws_upd?.timestamp_in_micro)) &&
+        (
+          (this.exc.timestamp_in_micro || (_b_rt_rsp?.timestamp_in_micro && _b_ws_upd?.timestamp_in_micro)) ||
+          (this.exc.timestamp_in_nano || (_b_rt_rsp?.timestamp_in_nano && _b_ws_upd?.timestamp_in_nano))
+        ) &&
         (this.orderbook_upd_cache[0] == undefined ||
         Big(this.orderbook_upd_cache[0].timestamp_us).gt(init_orderbook.timestamp_us))
       ) || 
