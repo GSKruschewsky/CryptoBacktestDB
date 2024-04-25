@@ -1,0 +1,175 @@
+{
+  "separator": "-",
+  "makert_prefix": null,
+  "makert_sufix": "-SWAP",
+  "is_market_upper": true,
+  "latency-test-symbol": "BTC/USDT",
+  "trades_custom_id": null,
+  "timestamp_in_nano": null,
+  "timestamp_in_micro": null,
+  "timestamp_in_seconds": null,
+  "timestamp_ISO_format": null,
+  "rest": {
+    "url": "https://www.okx.com",
+    "timeout": 15000,
+    "error": {
+      "key": "code",
+      "value_not": "0"
+    },
+    "headers": null,
+    "endpoints": {
+      "available_pairs": {
+        "path": "/api/v5/public/instruments?instType=SWAP",
+        "response": {
+          "data_inside": "data",
+          "symbol": "instId",
+          "status_key": "state",
+          "status_active": "live",
+          "lot_size_key": "ctVal"
+        }
+      },
+      "orderbook": null,
+      "trades": {
+        "path": "/api/v5/market/trades?instId=<market>&limit=500",
+        "response": {
+          "newer_first": true,
+          "sort_key": null,
+          "response_time": null,
+          "data_inside": "data",
+          "foreach_concat_inside": null,
+          "trade_id_key": "tradeId",
+          "timestamp": "ts",
+          "get_timestamp_us_from_iso": null,
+          "timestamp_ISO_format": null,
+          "is_buy_key": "side",
+          "is_buy_value": "buy",
+          "price": "px",
+          "amount": "sz",
+          "slow_cache": true,
+          "slow_cache_delay": 1e3,
+          "pagination": null
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": [ "wss://ws.okx.com:8443/ws/v5/public", "wss://wsaws.okx.com:8443/ws/v5/public" ],
+    "timeout": 15000,
+    "gzip_encrypted": null,
+    "error": {
+      "key": "event",
+      "value": "error"
+    },
+    "ping": null,
+    "to_send_before_subcriptions": null,
+    "subcriptions": {
+      "orderbook_snap": null,
+      "orderbook": {
+        "is_subscribed_from_scratch": null,
+        "request": "{\"op\":\"subscribe\",\"args\":[{\"channel\":\"books\",\"instId\":\"<market>\"}]}",
+        "response": {
+          "error_key": null,
+          "error_val": null,
+          "include_snapshot": null,
+          "acum_list": null,
+          "is_object": true,
+          "object_id_key": "event",
+          "object_id_value": "subscribe",
+          "id": "arg.channel",
+          "id_value": "books",
+          "channel_id_key": null,
+          "channel_id_val": null
+        },
+        "snapshot": {
+          "reset_avoid_repetition_cache": null,
+          "its_first_update": null,
+          "channel_id": "snapshot",
+          "identifier_key": "action",
+          "identifier_value": "snapshot",
+          "asks_and_bids_together": null,
+          "get_timestamp_us_from_iso": null,
+          "asks": null,
+          "bids": null
+        },
+        "update": {
+          "receive_separately_updates_as_obj": null,
+          "cache_until_complete_resync": null,
+          "resync_again_after_min": 5,
+          "data_inside_arr": true,
+          "data_inside_arr_inside": "data",
+          "apply_only_since_last_snapshot": null,
+          "avoid_each_piece_repetition": null,
+          "each_piece_ignore_if": null,
+          "each_piece_to_add": null,
+          "dont_apply_too_old": null,
+          "dont_apply_too_old_time": 100,
+          "avoid_repetition": null,
+          "conn_dont_repeat": null,
+          "avoid_repetition_size": 512,
+          "ignore_if": null,
+          "channel_id_key": "action",
+          "channel_id": "update",
+          "data_inside": null,
+          "updates_inside": null,
+          "asks_and_bids_together": null,
+          "is_bids_positive_amount": null,
+          "asks": "asks",
+          "bids": "bids",
+          "pl": {
+            "price": "0",
+            "amount": "1",
+            "is_bids_key": null,
+            "is_bids_value": null,
+            "to_remove_key": null,
+            "to_remove_value": null
+          },
+          "timestamp": "ts",
+          "avoid_repetition_drop_timestamp": null,
+          "get_timestamp_us_from_iso": null,
+          "prev_upd_nonce_key": "prevSeqId",
+          "first_upd_nonce_key": null,
+          "last_upd_nonce_key": "seqId",
+          "strict_first_update_nonce": true,
+          "upd_nonce_is_sequence": null
+        }
+      },
+      "trades": {
+        "is_subscribed_from_scratch": null,
+        "request": "{\"op\":\"subscribe\",\"args\":[{\"channel\":\"trades\",\"instId\":\"<market>\"}]}",
+        "response": {
+          "error_key": null,
+          "error_val": null,
+          "acum_list": null,
+          "is_object": true,
+          "object_id_key": "event",
+          "object_id_value": "subscribe",
+          "id": "arg.channel",
+          "id_value": "trades",
+          "channel_id_key": null,
+          "channel_id_val": null
+        },
+        "update": {
+          "ignore_if": null,
+          "ignore_first_update": null,
+          "receive_separately_trades_as_obj": false,
+          "reiceve_array_w_newer_first": null,
+          "id_should_be_higher": true,
+          "channel_id_key": "arg.channel",
+          "channel_id": "trades",
+          "data_inside": "data",
+          "updates_inside": null,
+          "trade_id_key": "tradeId",
+          "timestamp": "ts",
+          "timestamp_in_seconds": null,
+          "get_timestamp_us_from_iso": null,
+          "is_buy_key": "side",
+          "is_buy_value": "buy",
+          "price": "px",
+          "amount": "sz"
+        }
+      }
+    },
+    "other_updates": null,
+    "msgs_to_ignore": null
+  }
+}

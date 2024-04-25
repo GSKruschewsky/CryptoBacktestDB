@@ -139,6 +139,7 @@
         "snapshot": {
           "reset_avoid_repetition_cache": null,
           "its_first_update": null,
+          "channel_id": null,
           "identifier_key": null,
           "identifier_value": null,
           "asks_and_bids_together": null,
@@ -150,6 +151,8 @@
           "receive_separately_updates_as_obj": null,
           "cache_until_complete_resync": null,
           "resync_again_after_min": null,
+          "data_inside_arr": null,
+          "data_inside_arr_inside": null,
           "apply_only_since_last_snapshot": null,
           "avoid_each_piece_repetition": null,
           "each_piece_ignore_if": null,
@@ -182,6 +185,7 @@
           "prev_upd_nonce_key": null,
           "first_upd_nonce_key": null,
           "last_upd_nonce_key": null,
+          "strict_first_update_nonce": null,
           "upd_nonce_is_sequence": null
         }
       },
