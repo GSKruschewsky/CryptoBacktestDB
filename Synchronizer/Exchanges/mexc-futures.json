@@ -1,0 +1,181 @@
+{
+  "separator": "_",
+  "makert_prefix": null,
+  "makert_sufix": null,
+  "is_market_upper": true,
+  "latency-test-symbol": "BTC/USDT",
+  "trades_custom_id": true,
+  "timestamp_in_micro": null,
+  "timestamp_in_seconds": null,
+  "timestamp_ISO_format": null,
+  "rest": {
+    "url": "https://contract.mexc.com",
+    "timeout": 15000,
+    "error": {
+      "key": "code",
+      "value_not": 0
+    },
+    "headers": null,
+    "endpoints": {
+      "available_pairs": {
+        "path": "/api/v1/contract/detail",
+        "response": {
+          "data_inside": "data",
+          "symbol": "symbol",
+          "status_key": null,
+          "status_active": null,
+          "lot_size_key": "contractSize"
+        }
+      },
+      "orderbook": {
+        "path": "/api/v1/contract/depth/<market>",
+        "response": {
+          "data_inside": "data",
+          "asks": "asks",
+          "bids": "bids",
+          "timestamp": "timestamp",
+          "timestamp_in_micro": null,
+          "get_timestamp_us_from_iso": null,
+          "last_update_nonce": "version",
+          "slow_cache": true,
+          "slow_cache_delay": null
+        }
+      },
+      "trades": {
+        "path": "/api/v1/contract/deals/BTC_USDT",
+        "response": {
+          "newer_first": true,
+          "sort_key": null,
+          "response_time": null,
+          "data_inside": "data",
+          "foreach_concat_inside": null,
+          "trade_id_key": null,
+          "timestamp": "t",
+          "get_timestamp_us_from_iso": null,
+          "timestamp_ISO_format": null,
+          "is_buy_key": "T",
+          "is_buy_value": 1,
+          "price": "p",
+          "amount": "v",
+          "slow_cache": true,
+          "slow_cache_delay": null,
+          "pagination": null
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://contract.mexc.com/edge",
+    "timeout": 15000,
+    "gzip_encrypted": null,
+    "error": {
+      "key": null,
+      "value": null,
+      "value_not": null
+    },
+    "ping": {
+      "request": "{\"method\":\"ping\"}",
+      "response": {
+        "id": "channel",
+        "id_value": "pong"
+      }
+    },
+    "to_send_before_subcriptions": null,
+    "subcriptions": {
+      "orderbook_snap": null,
+      "orderbook": {
+        "is_subscribed_from_scratch": null,
+        "request": "{\"method\":\"sub.depth\",\"param\":{\"symbol\":\"<market>\"}}",
+        "response": {
+          "error_key": null,
+          "error_val": null,
+          "include_snapshot": null,
+          "acum_list": null,
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "channel",
+          "id_value": "rs.sub.depth",
+          "channel_id_key": "channel",
+          "channel_id_val": null
+        },
+        "snapshot": null,
+        "update": {
+          "receive_separately_updates_as_obj": null,
+          "cache_until_complete_resync": null,
+          "resync_again_after_min": null,
+          "apply_only_since_last_snapshot": null,
+          "avoid_each_piece_repetition": null,
+          "each_piece_ignore_if": null,
+          "each_piece_to_add": null,
+          "dont_apply_too_old": null,
+          "dont_apply_too_old_time": 100,
+          "avoid_repetition": null,
+          "conn_dont_repeat": null,
+          "avoid_repetition_size": 512,
+          "ignore_if": null,
+          "channel_id_key": "channel",
+          "channel_id": "push.depth",
+          "data_inside": null,
+          "updates_inside": "data",
+          "asks_and_bids_together": null,
+          "is_bids_positive_amount": null,
+          "asks": "asks",
+          "bids": "bids",
+          "pl": {
+            "price": "0",
+            "amount": "1",
+            "is_bids_key": null,
+            "is_bids_value": null,
+            "to_remove_key": null,
+            "to_remove_value": null
+          },
+          "timestamp": "ts",
+          "avoid_repetition_drop_timestamp": null,
+          "get_timestamp_us_from_iso": null,
+          "prev_upd_nonce_key": null,
+          "first_upd_nonce_key": null,
+          "last_upd_nonce_key": "version",
+          "upd_nonce_is_sequence": null
+        }
+      },
+      "trades": {
+        "is_subscribed_from_scratch": null,
+        "request": "{\"method\":\"sub.deal\",\"param\":{\"symbol\":\"<market>\"}}",
+        "response": {
+          "error_key": null,
+          "error_val": null,
+          "acum_list": null,
+          "is_object": null,
+          "object_id_key": null,
+          "object_id_value": null,
+          "id": "channel",
+          "id_value": "rs.sub.deal",
+          "channel_id_key": "channel",
+          "channel_id_val": null
+        },
+        "update": {
+          "ignore_if": null,
+          "ignore_first_update": null,
+          "receive_separately_trades_as_obj": true,
+          "reiceve_array_w_newer_first": null,
+          "id_should_be_higher": false,
+          "channel_id_key": "channel",
+          "channel_id": "push.deal",
+          "data_inside": "data",
+          "updates_inside": null,
+          "trade_id_key": null,
+          "timestamp": "t",
+          "timestamp_in_seconds": null,
+          "get_timestamp_us_from_iso": null,
+          "is_buy_key": "T",
+          "is_buy_value": 1,
+          "price": "p",
+          "amount": "v"
+        }
+      }
+    },
+    "other_updates": null,
+    "msgs_to_ignore": null
+  }
+}
