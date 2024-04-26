@@ -1,83 +1,69 @@
 {
-  "separator": "",
+  "separator": "-",
   "makert_prefix": null,
   "makert_sufix": null,
-  "is_market_upper": null,
-  "latency-test-symbol": "",
+  "is_market_upper": true,
+  "latency-test-symbol": "BTC/USD",
   "trades_custom_id": null,
   "timestamp_in_nano": null,
   "timestamp_in_micro": null,
   "timestamp_in_seconds": null,
-  "timestamp_ISO_format": null,
+  "timestamp_ISO_format": true,
   "rest": {
-    "url": "",
+    "url": "https://api.coinbase.com",
     "timeout": 15000,
     "error": {
-      "key": null,
+      "key": "error",
       "value": null,
       "value_not": null
     },
     "headers": {
-
+      "Content-Type": "application/json"
     },
     "endpoints": {
       "available_pairs": {
-        "path": "",
+        "path": "/api/v3/brokerage/market/products",
         "response": {
-          "data_inside": "",
-          "symbol": "",
-          "status_key": null,
-          "status_active": null,
+          "data_inside": "products",
+          "symbol": "product_id",
+          "status_key": "status",
+          "status_active": "online",
           "lot_size_key": null
         }
       },
-      "orderbook": {
-        "path": "",
-        "response": {
-          "data_inside": null,
-          "asks": "",
-          "bids": "",
-          "timestamp": "",
-          "timestamp_in_nano": null,
-          "timestamp_in_micro": null,
-          "get_timestamp_us_from_iso": null,
-          "last_update_nonce": "",
-          "slow_cache": null,
-          "slow_cache_delay": null
-        }
-      },
+      "orderbook": null,
       "trades": {
-        "path": "",
+        "path": "/api/v3/brokerage/market/products/BTC-USD/ticker?limit=100&start=<since>",
         "response": {
-          "newer_first": false,
+          "newer_first": true,
           "sort_key": null,
           "response_time": null,
-          "data_inside": null,
+          "data_inside": "trades",
           "foreach_concat_inside": null,
-          "trade_id_key": "",
-          "timestamp": "",
-          "get_timestamp_us_from_iso": null,
+          "trade_id_key": null,
+          "timestamp": "time",
+          "get_timestamp_us_from_iso": true,
           "timestamp_ISO_format": null,
-          "is_buy_key": "",
-          "is_buy_value": "",
-          "price": "",
-          "amount": "",
+          "is_buy_key": "side",
+          "is_buy_value": "BUY",
+          "price": "price",
+          "amount": "size",
           "slow_cache": null,
           "slow_cache_delay": null,
           "pagination": {
-            "check_for_newer": null,
-            "max_arr_size": null,
-            "to_del_url": "",
-            "to_add_url": "",
-            "page_id": "",
-            "to_div_timestamp_floor": null
+            "check_for_newer": true,
+            "max_arr_size": 100,
+            "to_del_url": "<since>",
+            "to_add_url": "<page_id>",
+            "page_id": "time",
+            "to_div_timestamp_floor": 1000
           }
         }
       }
     }
   },
   "ws": {
-    "url": "",
+    "url": "wss://advanced-trade-ws.coinbase.com",
     "timeout": 15000,
     "gzip_encrypted": null,
     "error": {
@@ -85,65 +71,23 @@
       "value": null,
       "value_not": null
     },
-    "ping": {
-      "request": "",
-      "response": {
-        "id": "",
-        "id_value": ""
-      }
-    },
-    "to_send_before_subcriptions": null,
+    "ping": null,
+    "to_send_before_subcriptions": [
+      "{\"type\":\"subscribe\",\"product_ids\":[\"<market>\"],\"channel\":\"heartbeats\"}"
+    ],
     "subcriptions": {
-      "orderbook_snap": {
-        "is_subscribed_from_scratch": null,
-        "request": "",
-        "response": {
-          "is_object": null,
-          "object_id_key": null,
-          "object_id_value": null,
-          "id": "",
-          "id_value": null,
-          "channel_id_key": null,
-          "channel_id_val": null
-        },
-        "update": {
-          "channel_id_key": "",
-          "data_inside": "",
-          "updates_inside": "",
-          "asks": "",
-          "bids": "",
-          "pl": {
-            "price": "",
-            "amount": ""
-          },
-          "timestamp": "",
-          "get_timestamp_us_from_iso": null,
-          "last_upd_nonce_key": ""
-        }
-      },
+      "orderbook_snap": null,
       "orderbook": {
         "is_subscribed_from_scratch": null,
-        "request": "",
-        "response": {
-          "error_key": null,
-          "error_val": null,
-          "include_snapshot": null,
-          "acum_list": null,
-          "is_object": null,
-          "object_id_key": null,
-          "object_id_value": null,
-          "id": "",
-          "id_value": null,
-          "channel_id_key": null,
-          "channel_id_val": null
-        },
+        "request": "{\"type\":\"subscribe\",\"product_ids\":[\"<market>\"],\"channel\":\"level2\"}",
+        "response": null,
         "snapshot": {
           "reset_avoid_repetition_cache": null,
           "its_first_update": null,
-          "channel_id": null,
-          "identifier_key": null,
-          "identifier_value": null,
-          "asks_and_bids_together": null,
+          "channel_id": "l2_data",
+          "identifier_key": "events.0.type",
+          "identifier_value": "snapshot",
+          "asks_and_bids_together": true,
           "get_timestamp_us_from_iso": null,
           "asks": null,
           "bids": null
@@ -164,25 +108,26 @@
           "conn_dont_repeat": null,
           "avoid_repetition_size": 512,
           "ignore_if": null,
-          "channel_id_key": "",
-          "channel_id": "",
-          "data_inside": "",
-          "updates_inside": "",
-          "asks_and_bids_together": null,
+          "channel_id_key": "channel",
+          "channel_id": "l2_data",
+          "data_inside": "events.updates",
+          "updates_inside": null,
+          "asks_and_bids_together": true,
           "is_bids_positive_amount": null,
-          "asks": "",
-          "bids": "",
+          "asks": null,
+          "bids": null,
           "pl": {
-            "price": "",
-            "amount": "",
-            "is_bids_key": null,
-            "is_bids_value": null,
+            "price": "price_level",
+            "amount": "new_quantity",
+            "is_bids_key": "side",
+            "is_bids_value": "bid",
+            "timestamp": "event_time",
             "to_remove_key": null,
             "to_remove_value": null
           },
-          "timestamp": "",
+          "timestamp": null,
           "avoid_repetition_drop_timestamp": null,
-          "get_timestamp_us_from_iso": null,
+          "get_timestamp_us_from_iso": true,
           "prev_upd_nonce_key": null,
           "first_upd_nonce_key": null,
           "last_upd_nonce_key": null,
@@ -237,7 +182,7 @@
       }
     },
     "msgs_to_ignore": [
-
+      [ "channel", "heartbeats" ]
     ]
   }
 }
