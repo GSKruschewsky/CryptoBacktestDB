@@ -136,7 +136,7 @@
           "prev_upd_nonce_key": null,
           "first_upd_nonce_key": null,
           "last_upd_nonce_key": "version",
-          "upd_nonce_is_sequence": null
+          "upd_nonce_is_sequence": true
         }
       },
       "trades": {
