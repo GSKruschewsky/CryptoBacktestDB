@@ -75,9 +75,9 @@
           "each_piece_to_add": null,
           "dont_apply_too_old": true,
           "dont_apply_too_old_time": 5,
-          "avoid_repetition": null,
-          "conn_dont_repeat": null,
-          "avoid_repetition_size": null,
+          "avoid_repetition": true,
+          "conn_dont_repeat": true,
+          "avoid_repetition_size": 512,
           "ignore_if": null,
           "channel_id_key": "feed",
           "channel_id": "book",
@@ -99,8 +99,8 @@
           "avoid_repetition_drop_timestamp": null,
           "get_timestamp_us_from_iso": null,
           "first_upd_nonce_key": null,
-          "last_upd_nonce_key": "seq",
-          "upd_nonce_is_sequence": true
+          "last_upd_nonce_key": null,
+          "upd_nonce_is_sequence": null
         }
       },
       "trades": {
