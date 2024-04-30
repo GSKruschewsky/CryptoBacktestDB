@@ -2505,6 +2505,7 @@ class Synchronizer {
     // console.log('Getting REST orderbook...');
     // Define variable to store the initial snapshot.
     let init_orderbook = null;
+    let attemps_count = 0;
 
     // Set shorcuts for 'exc' object.
     const _b_ws = this.exc.ws2 != undefined && this.exc.ws2.subcriptions.orderbook ? this.exc.ws2 : this.exc.ws;
@@ -2521,7 +2522,7 @@ class Synchronizer {
 
       } else {
         // Make rest request to get initial orderbook snapshot.
-        console.log("REST Requesting orderbook snapshot...");
+        console.log("REST Requesting orderbook snapshot... (attemp " + (attemps_count++) + ")");
         let { success, response: r } = await this.rest_request('orderbook', [
           [ '<market>', this.market.rest ]
         ]);
