@@ -1344,7 +1344,7 @@ class Synchronizer {
 
   check_resync_time (upd, _ws, __ws, _prom) {
     // Check if its time o resync the orderbook.
-    if (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min != null && 
+    if (_ws?.subcriptions?.orderbook?.update?.resync_again_after_min != null && this.orderbook != null &&
     (Date.now() - this.orderbook.snapshot_applied_at) / 60e3 >= _ws?.subcriptions?.orderbook?.update?.resync_again_after_min) {
       // Time to resync orderbook.
 
