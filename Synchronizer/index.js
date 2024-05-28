@@ -1631,12 +1631,15 @@ class Synchronizer {
   async check_ob_is_valid () {
     // Orderbook validation at each update!
     if (this.orderbook != null) {
-      let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
-      let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
+      let best_ask = Math.min(Object.keys(this.orderbook.asks));
+      let best_bid = Math.max(Object.keys(this.orderbook.bids));
   
-      if (this.is_lantecy_test != true && Big(_asks[0][0]).lte(_bids[0][0])) {
+      if (this.is_lantecy_test != true && Big(best_ask).lte(best_bid)) {
         console.log('Orderbook:');
         this.orderbook_log('Orderbook:');
+        
+        let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
+        let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
   
         console.dlog(_asks.slice(0, 10).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
         this.orderbook_log(_asks.slice(0, 10).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
