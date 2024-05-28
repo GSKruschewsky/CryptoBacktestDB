@@ -1035,7 +1035,7 @@ class Synchronizer {
     const upd_sec = Math.floor(upd_time / 1e3);
     const book_sec = Math.floor(this.orderbook?.timestamp / 1e3);
 
-    // Orderbook validation at each update.
+    // Orderbook validation at each update!
     if (this.orderbook != null) {
       let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
       let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
