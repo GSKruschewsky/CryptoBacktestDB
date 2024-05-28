@@ -1631,8 +1631,8 @@ class Synchronizer {
   async check_ob_is_valid () {
     // Orderbook validation at each update!
     if (this.orderbook != null) {
-      let best_ask = Math.min(Object.keys(this.orderbook.asks));
-      let best_bid = Math.max(Object.keys(this.orderbook.bids));
+      let best_ask = Math.min(...Object.keys(this.orderbook.asks));
+      let best_bid = Math.max(...Object.keys(this.orderbook.bids));
   
       if (this.is_lantecy_test != true && Big(best_ask).lte(best_bid)) {
         console.log('Orderbook:');
