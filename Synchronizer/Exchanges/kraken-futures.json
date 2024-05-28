@@ -63,7 +63,8 @@
           "identifier_value": "book_snapshot",
           "channel_id": "book_snapshot",
           "asks": "asks",
-          "bids": "bids"
+          "bids": "bids",
+          "max_depth": 100
         },
         "update": {
           "receive_separately_updates_as_obj": true,

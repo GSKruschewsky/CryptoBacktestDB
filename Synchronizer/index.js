@@ -1290,8 +1290,8 @@ class Synchronizer {
     }
 
     this.orderbook = {
-      asks: Object.fromEntries(update.asks),
-      bids: Object.fromEntries(update.bids),
+      asks: Object.fromEntries(update.asks.slice(0, _ws?.subcriptions?.orderbook?.snapshot?.max_depth || update.asks.length)),
+      bids: Object.fromEntries(update.bids.slice(0, _ws?.subcriptions?.orderbook?.snapshot?.max_depth || update.bids.length)),
       timestamp: update.timestamp,
       timestamp_us: update.timestamp_us,
       last_update_nonce: update.last_update_nonce,
