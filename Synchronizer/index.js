@@ -153,7 +153,7 @@ class Synchronizer {
       if (_endpoint.require_auth)
         headers = { ...headers, ...this.get_auth_headers(url.replace(_rest.url, '')) };
       
-      // console.log('Requesting "'+url+'"...');
+      console.log('Requesting "'+url+'"...');
       let r = await Promise.race([
         new Promise((res, rej) => setTimeout(rej, (_rest.timeout || 5000), "TIMEOUT")),
         fetch(url, {
@@ -2292,7 +2292,11 @@ class Synchronizer {
     
     // 'since' represents the start of the second that we are syncing.
     let since = initiated_at_sec;
+    
     if (!this.exc.timestamp_in_seconds) since *= 1e3;
+    
+    if (this.exc.rest.endpoints?.trades?.iso_since === true)
+      since = new Date(initiated_at_sec * 1e3).toISOString();
     
     do {
       // Do not repeat the rest request just beacause we did not receive any ws trade update, instead just wait for 50ms.
@@ -2330,7 +2334,7 @@ class Synchronizer {
               let newest_id = (_t_rt_rsp.newer_first ? r[0] : r[r.length - 1])[_pag.page_id];
 
               // If the pagination is timestamp based, decrease it by 1 for safety.
-              if (_pag.page_id == _t_rt_rsp.timestamp) {
+              if (_pag.page_id == _t_rt_rsp.timestamp && _pag?.iso_parameters !== true) {
                 if (this.exc.timestamp_ISO_format || _t_rt_rsp.timestamp_ISO_format || _t_rt_rsp.get_timestamp_us_from_iso)
                   newest_id = this.format_timestamp(newest_id);
                 
