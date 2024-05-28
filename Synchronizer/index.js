@@ -1384,6 +1384,9 @@ class Synchronizer {
           console.log('[E] Orderbook > Resync from "resync_again_after_min" option is only possible when using rest snapshot or orderbook subscription request.');
           process.exit();
         }
+
+        // Reset 'conn.book_upd_seq' if its not 'null'.
+        if (conn?.book_upd_seq != null) conn.book_upd_seq = null;
       }
     }
   }
@@ -1409,6 +1412,10 @@ class Synchronizer {
 
     if (this.orderbook.last_update_nonce && upd.last_update_nonce && Big(upd.last_update_nonce).lte(this.orderbook.last_update_nonce))
       return this.orderbook_log('/!\\ apply_orderbook_upd: upd.last_update_nonce <= orderbook.last_update_nonce.');
+
+    if (conn?.book_upd_seq != null && _ws?.subcriptions?.orderbook?.update?.conn_sequence != null && Big(upd[_ws?.subcriptions?.orderbook?.update?.conn_sequence]).lte(conn.book_upd_seq)) {
+      return this.orderbook_log('/!\\ apply_orderbook_upd: upd.' + _ws?.subcriptions?.orderbook?.update?.conn_sequence + ' <= conn.book_upd_seq.');
+    }
 
     // if (!_ws.subcriptions.orderbook.update.do_not_validate_by_ts) {
     //   if (((!_ws.subcriptions.orderbook.update.do_not_validate_by_micro_ts) && this.orderbook.timestamp_us && upd.timestamp_us && Big(upd.timestamp_us).lt(this.orderbook.timestamp_us)) ||
@@ -1617,6 +1624,11 @@ class Synchronizer {
     this.orderbook.timestamp = upd.timestamp;
     this.orderbook.timestamp_us = upd.timestamp_us;
     this.orderbook.last_update_nonce = upd.last_update_nonce;
+
+    // Update conn sequence if 'conn_sequence' options is active.
+    if (_ws?.subcriptions?.orderbook?.update?.conn_sequence != null) {
+      conn.book_upd_seq = upd[_ws?.subcriptions?.orderbook?.update?.conn_sequence];
+    }
 
     // Check if orderbook is valid.
     this.check_ob_is_valid();

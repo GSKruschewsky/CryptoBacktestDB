@@ -101,7 +101,8 @@
           "get_timestamp_us_from_iso": null,
           "first_upd_nonce_key": null,
           "last_upd_nonce_key": null,
-          "upd_nonce_is_sequence": null
+          "upd_nonce_is_sequence": null,
+          "conn_sequence": "seq"
         }
       },
       "trades": {
