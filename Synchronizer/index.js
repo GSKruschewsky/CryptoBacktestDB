@@ -1235,6 +1235,10 @@ class Synchronizer {
         _upd_to_cache = no_ts_upd;
       }
 
+      if (conn?.book_upd_seq != null && _ws?.subcriptions?.orderbook?.update?.avoid_rep_include_conn_sequence) {
+        _upd_to_cache.conn_seq = __conn_id + '_' + conn?.book_upd_seq;
+      }
+
       let msg_str = JSON.stringify(_upd_to_cache);
       let keep_search = true;
       let idx;
@@ -1465,6 +1469,10 @@ class Synchronizer {
       if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition_drop_timestamp) {
         let { timestamp, timestamp_us, ...no_ts_upd } = _upd_to_cache;
         _upd_to_cache = no_ts_upd;
+      }
+
+      if (conn?.book_upd_seq != null && _ws?.subcriptions?.orderbook?.update?.avoid_rep_include_conn_sequence) {
+        _upd_to_cache.conn_seq = __conn_id + '_' + conn?.book_upd_seq;
       }
 
       let msg_str = JSON.stringify(_upd_to_cache);

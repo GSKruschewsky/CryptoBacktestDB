@@ -102,7 +102,8 @@
           "first_upd_nonce_key": null,
           "last_upd_nonce_key": null,
           "upd_nonce_is_sequence": null,
-          "conn_sequence": "seq"
+          "conn_sequence": "seq",
+          "avoid_rep_include_conn_sequence": true
         }
       },
       "trades": {
