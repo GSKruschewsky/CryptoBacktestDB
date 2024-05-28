@@ -1302,8 +1302,9 @@ class Synchronizer {
       _is_resyncing_rest: false
     };
 
-    // this.orderbook_log(update.asks.slice(0, 10).reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
-    // this.orderbook_log(update.bids.slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    this.orderbook_log('Book snapshot b4 cached updates:');
+    this.orderbook_log(update.asks.slice(0, 10).reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+    this.orderbook_log(update.bids.slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
 
     if (_ws?.subcriptions?.orderbook?.update?.cache_until_complete_resync != true || this.all_conns_resynced == true) {
 
@@ -1318,6 +1319,7 @@ class Synchronizer {
       }
 
       // Apply cached orderbook updates.
+      this.orderbook_log('Applying cached updates...');
       while (this.orderbook != null && this.orderbook_upd_cache.length > 0) {
         this.apply_orderbook_upd(this.orderbook_upd_cache[0], _ws, __ws, _prom, ws_recv_ts);
         this.orderbook_upd_cache.shift();
@@ -1330,6 +1332,7 @@ class Synchronizer {
       console.log('Book snap applied (conn= ' + update.__conn_id + '):',(update.timestamp_us || update.timestamp));
 
     if (this.orderbook?.asks != null && this.orderbook?.bids != null) {
+      this.orderbook_log('Book snapshot after cached updates:');
       this.orderbook_log(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
       this.orderbook_log(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     }
