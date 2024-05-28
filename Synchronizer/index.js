@@ -1035,35 +1035,6 @@ class Synchronizer {
     const upd_sec = Math.floor(upd_time / 1e3);
     const book_sec = Math.floor(this.orderbook?.timestamp / 1e3);
 
-    // Orderbook validation at each update!
-    if (this.orderbook != null) {
-      let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
-      let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
-  
-      if (this.is_lantecy_test != true && Big(_asks[0][0]).lte(_bids[0][0])) {
-        console.log('Orderbook:');
-        this.orderbook_log('Orderbook:');
-  
-        console.dlog(_asks.slice(0, 10).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-        this.orderbook_log(_asks.slice(0, 10).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-  
-        console.dlog(_bids.slice(0, 10).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-        this.orderbook_log(_bids.slice(0, 10).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
-  
-        console.log('[E] before_apply_to_orderbook > Orderbook ASK lower or equal BID.');
-        this.orderbook_log('[E] before_apply_to_orderbook > Orderbook ASK lower or equal BID.');
-  
-        console.log('Ending orderbook log...');
-        try {
-          await this.end_orderbook_log();
-        } catch (error) {
-          console.log('[E] Failed to end orderbook log:',error);
-        }
-  
-        process.exit(1);
-      }
-    }
-
     if (this.orderbook != null && (
       this.delayed_orderbook == null || 
       book_sec != Math.floor(upd_time / 1e3)
@@ -1647,11 +1618,45 @@ class Synchronizer {
     this.orderbook.timestamp_us = upd.timestamp_us;
     this.orderbook.last_update_nonce = upd.last_update_nonce;
 
+    // Check if orderbook is valid.
+    this.check_ob_is_valid();
+
     // Check if its time o resync the orderbook.
     this.check_resync_time(upd, _ws, __ws, _prom);
 
     // console.dlog(Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     // console.dlog(Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+  }
+
+  async check_ob_is_valid () {
+    // Orderbook validation at each update!
+    if (this.orderbook != null) {
+      let _asks = Object.entries(this.orderbook.asks).sort((a, b) => Big(a[0]).cmp(b[0])).slice(0, this.orderbook_depth);
+      let _bids = Object.entries(this.orderbook.bids).sort((a, b) => Big(b[0]).cmp(a[0])).slice(0, this.orderbook_depth);
+  
+      if (this.is_lantecy_test != true && Big(_asks[0][0]).lte(_bids[0][0])) {
+        console.log('Orderbook:');
+        this.orderbook_log('Orderbook:');
+  
+        console.dlog(_asks.slice(0, 10).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+        this.orderbook_log(_asks.slice(0, 10).reverse().map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+  
+        console.dlog(_bids.slice(0, 10).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+        this.orderbook_log(_bids.slice(0, 10).map(([p, q]) => Big(p).toFixed(8) + '\t' + q).join('\n'),'\n');
+  
+        console.log('[E] before_apply_to_orderbook > Orderbook ASK lower or equal BID.');
+        this.orderbook_log('[E] before_apply_to_orderbook > Orderbook ASK lower or equal BID.');
+  
+        console.log('Ending orderbook log...');
+        try {
+          await this.end_orderbook_log();
+        } catch (error) {
+          console.log('[E] Failed to end orderbook log:',error);
+        }
+  
+        process.exit(1);
+      }
+    }
   }
 
   async _connect (conn_idx, ctype) {
