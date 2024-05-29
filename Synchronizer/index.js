@@ -2607,6 +2607,8 @@ class Synchronizer {
           // throw 'Initial orderbook snapshot request failed.'
 
         } else {
+          book_failed_to_get = false;
+
           // Format orderbook snapshot from 'r' to 'init_orderbook' as an orderbook update.
           const _ts = _b_rt_rsp?.timestamp?.split('.')?.reduce((f, k) => f?.[k], r);
           init_orderbook = {
@@ -2653,22 +2655,25 @@ class Synchronizer {
         _b_rt_rsp.slow_cache
       ) {
         // Rest 'orderbook' request have a slow cache, flooding the API won't help, in this case wait 'slow_cache_delay' or 1 second.
-        console.log('\nbook_failed_to_get:',book_failed_to_get,'\n');
+        console.log(' ');
+        console.log('book_failed_to_get:',book_failed_to_get);
 
-        console.log('this.orderbook_upd_cache[0] != undefined:',(this.orderbook_upd_cache[0] != undefined));
+        if (!book_failed_to_get) {
+          console.log('this.orderbook_upd_cache[0] != undefined:',(this.orderbook_upd_cache[0] != undefined));
 
-        if (this.orderbook_upd_cache[0] != null) {
-          if (this.orderbook_upd_cache[0]?.last_update_nonce != null && init_orderbook?.last_update_nonce != null) {
-            console.log('orderbook_upd_cache[0].last_update_nonce > init_orderbook.last_update_nonce:',Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce));
-          }
+          if (this.orderbook_upd_cache[0] != null) {
+            if (this.orderbook_upd_cache[0]?.last_update_nonce != null && init_orderbook?.last_update_nonce != null) {
+              console.log('orderbook_upd_cache[0].last_update_nonce > init_orderbook.last_update_nonce:',Big(this.orderbook_upd_cache[0].last_update_nonce).gt(init_orderbook.last_update_nonce));
+            }
 
-          if (this.orderbook_upd_cache[0]?.timestamp_us != null && init_orderbook.timestamp_us != null) {
-            console.log('orderbook_upd_cache[0].timestamp_us > init_orderbook.timestamp_us:',Big(this.orderbook_upd_cache[0].timestamp_us).gt(init_orderbook.timestamp_us));
-          }
+            if (this.orderbook_upd_cache[0]?.timestamp_us != null && init_orderbook.timestamp_us != null) {
+              console.log('orderbook_upd_cache[0].timestamp_us > init_orderbook.timestamp_us:',Big(this.orderbook_upd_cache[0].timestamp_us).gt(init_orderbook.timestamp_us));
+            }
 
-          if (this.orderbook_upd_cache[0]?.timestamp != null && init_orderbook.timestamp != null) {
-            console.log('orderbook_upd_cache[0].timestamp > init_orderbook.timestamp:',Big(this.orderbook_upd_cache[0].timestamp).gt(init_orderbook.timestamp));
-          }
+            if (this.orderbook_upd_cache[0]?.timestamp != null && init_orderbook.timestamp != null) {
+              console.log('orderbook_upd_cache[0].timestamp > init_orderbook.timestamp:',Big(this.orderbook_upd_cache[0].timestamp).gt(init_orderbook.timestamp));
+            }
+          } 
         }
 
         console.log('\nTrying to get REST snapshot again in',((_b_rt_rsp.slow_cache_delay || 1e3) / 1e3),'seconds...\n');
