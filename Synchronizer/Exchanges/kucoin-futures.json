@@ -114,6 +114,7 @@
         },
         "snapshot": null,
         "update": {
+          "dont_cache_at_resync": true,
           "receive_separately_updates_as_obj": true,
           "cache_until_complete_resync": null,
           "resync_again_after_min": 5,

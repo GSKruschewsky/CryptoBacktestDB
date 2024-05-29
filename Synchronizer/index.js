@@ -974,6 +974,11 @@ class Synchronizer {
     // Stores the connection id that received the update.
     formatted['__conn_id'] = conn._idx;
     formatted['__conn_type'] = conn._type;
+
+    // Keeps 'conn_sequence' key to the formatted update.
+    if (_ws?.subcriptions?.orderbook?.update?.conn_sequence) {
+      formatted[_ws.subcriptions.orderbook.update.conn_sequence] = msg[_ws.subcriptions.orderbook.update.conn_sequence];
+    }
     
     // Returns the formatted message.
     // console.log('Book formatted message:',formatted);
@@ -1248,6 +1253,7 @@ class Synchronizer {
             this.last_book_updates[idx][1].push(__conn_id);
             return this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message.'); // Already aplied this update message.
           } else {
+            this.orderbook_log('Alredy applied:',this.last_book_updates[idx]);
             this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message from this connection... Reseting message connections cache...');
             keep_search = false;
             break;
@@ -1261,6 +1267,7 @@ class Synchronizer {
             this.last_book_updates[idx][1].push(__conn_id);
             return this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message.'); // Already aplied this update message.
           } else {
+            this.orderbook_log('Alredy applied:',this.last_book_updates[idx]);
             this.orderbook_log('/!\\ apply_orderbook_snap: Already aplied this update message from this connection... Reseting message connections cache...');
             keep_search = false;
             break;
@@ -1356,7 +1363,8 @@ class Synchronizer {
           this.orderbook._is_resyncing_rest = true;
 
           // Stores this update.
-          this.orderbook_upd_cache.push(upd);
+          if (_ws?.subcriptions?.orderbook?.update?.dont_cache_at_resync !== true)
+            this.orderbook_upd_cache.push(upd);
 
           // Request an orderbook snapshot.
           this.get_orderbook_snapshot();
@@ -1484,6 +1492,7 @@ class Synchronizer {
             this.last_book_updates[idx][1].push(__conn_id);
             return this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update message.'); // Already aplied this update message.
           } else {
+            this.orderbook_log('Alredy applied:',this.last_book_updates[idx]);
             this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update message from this connection... Reseting message connections cache...');
             keep_search = false;
             break;
@@ -1497,6 +1506,7 @@ class Synchronizer {
             this.last_book_updates[idx][1].push(__conn_id);
             return this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update message.'); // Already aplied this update message.
           } else {
+            this.orderbook_log('Alredy applied:',this.last_book_updates[idx]);
             this.orderbook_log('/!\\ apply_orderbook_upd: Already aplied this update message from this connection... Reseting message connections cache...');
             keep_search = false;
             break;
@@ -1635,7 +1645,7 @@ class Synchronizer {
 
     // Update conn sequence if 'conn_sequence' options is active.
     if (_ws?.subcriptions?.orderbook?.update?.conn_sequence != null) {
-      conn.book_upd_seq = upd[_ws?.subcriptions?.orderbook?.update?.conn_sequence];
+      conn.book_upd_seq = upd[_ws.subcriptions.orderbook.update.conn_sequence];
     }
 
     // Check if orderbook is valid.
