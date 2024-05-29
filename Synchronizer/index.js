@@ -1648,8 +1648,8 @@ class Synchronizer {
       conn.book_upd_seq = upd[_ws.subcriptions.orderbook.update.conn_sequence];
     }
 
-    // Check if orderbook is valid.
-    this.check_ob_is_valid();
+    // // Check if orderbook is valid.
+    // this.check_ob_is_valid();
 
     // Check if its time o resync the orderbook.
     this.check_resync_time(upd, _ws, __ws, _prom);
