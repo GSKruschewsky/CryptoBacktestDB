@@ -1121,7 +1121,7 @@ class Synchronizer {
     }
   }
 
-  apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts, from_snap_sub = false) {
+  async apply_orderbook_snap (update, _ws, __ws, _prom, ws_recv_ts, from_snap_sub = false) {
     // Define 'conn'.
     const conn = this.connections?.[update?.__conn_id]?.[update?.__conn_type];
     
@@ -1316,6 +1316,23 @@ class Synchronizer {
     this.orderbook_log('Book snapshot b4 cached updates:');
     this.orderbook_log(update.asks.slice(0, 10).reverse().map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
     this.orderbook_log(update.bids.slice(0, 10).map(([p, q]) => p.padEnd(8, ' ')+'\t'+q).join('\n'),'\n');
+
+    if (Big(update.asks[0][0]).lte(update.bids[0][0])) {
+      console.log('[E] Received a wrong snapshot update.');
+      console.log('update:',update);
+
+      this.orderbook_log('[E] Received a wrong snapshot update.');
+      this.orderbook_log('update:',update);
+  
+      console.log('Ending orderbook log...');
+      try {
+        await this.end_orderbook_log();
+      } catch (error) {
+        console.log('[E] Failed to end orderbook log:',error);
+      }
+
+      process.exit(1);
+    }
 
     if (_ws?.subcriptions?.orderbook?.update?.cache_until_complete_resync != true || this.all_conns_resynced == true) {
 
