@@ -153,7 +153,7 @@ class Synchronizer {
       if (_endpoint.require_auth)
         headers = { ...headers, ...this.get_auth_headers(url.replace(_rest.url, '')) };
       
-      console.log('Requesting "'+url+'"...');
+      // console.log('Requesting "'+url+'"...');
       let r = await Promise.race([
         new Promise((res, rej) => setTimeout(rej, (_rest.timeout || 5000), "TIMEOUT")),
         fetch(url, {
@@ -1205,19 +1205,21 @@ class Synchronizer {
       }
     
     } else {
-      console.log('(' + update.__conn_id + ') Appling book update without validation:');
-      console.log('this.orderbook == null:', (this.orderbook == null));
-      console.log('this.orderbook.snapshot_applied_at:',this.orderbook == null ? undefined : this.orderbook.snapshot_applied_at);
-      console.log('Minutes since last snapshot:',this.orderbook == null ? undefined : ((Date.now() - this.orderbook.snapshot_applied_at) / 60e3));
-      console.log('resync_again_after_min:',_ws?.subcriptions?.orderbook?.update?.resync_again_after_min);
-      console.log(' ');
-      
-      this.orderbook_log('(' + update.__conn_id + ') Appling book update without validation:');
-      this.orderbook_log('this.orderbook == null:', (this.orderbook == null));
-      this.orderbook_log('this.orderbook.snapshot_applied_at:',this.orderbook == null ? undefined : this.orderbook.snapshot_applied_at);
-      this.orderbook_log('Minutes since last snapshot:',this.orderbook == null ? undefined : ((Date.now() - this.orderbook?.snapshot_applied_at) / 60e3));
-      this.orderbook_log('resync_again_after_min:',_ws?.subcriptions?.orderbook?.update?.resync_again_after_min);
-      this.orderbook_log(' ');
+      if (this.is_lantecy_test == false) {
+        console.log('(' + update.__conn_id + ') Appling book update without validation:');
+        console.log('this.orderbook == null:', (this.orderbook == null));
+        console.log('this.orderbook.snapshot_applied_at:',this.orderbook == null ? undefined : this.orderbook.snapshot_applied_at);
+        console.log('Minutes since last snapshot:',this.orderbook == null ? undefined : ((Date.now() - this.orderbook.snapshot_applied_at) / 60e3));
+        console.log('resync_again_after_min:',_ws?.subcriptions?.orderbook?.update?.resync_again_after_min);
+        console.log(' ');
+        
+        this.orderbook_log('(' + update.__conn_id + ') Appling book update without validation:');
+        this.orderbook_log('this.orderbook == null:', (this.orderbook == null));
+        this.orderbook_log('this.orderbook.snapshot_applied_at:',this.orderbook == null ? undefined : this.orderbook.snapshot_applied_at);
+        this.orderbook_log('Minutes since last snapshot:',this.orderbook == null ? undefined : ((Date.now() - this.orderbook?.snapshot_applied_at) / 60e3));
+        this.orderbook_log('resync_again_after_min:',_ws?.subcriptions?.orderbook?.update?.resync_again_after_min);
+        this.orderbook_log(' ');
+      }
 
       // If uses 'avoid_repetition', reset 'last_book_updates'.
       if (_ws?.subcriptions?.orderbook?.update?.avoid_repetition) {
@@ -1356,7 +1358,7 @@ class Synchronizer {
       console.log('Book snap applied but not applied any cached updates.');
     }
     
-    if (!from_snap_sub)
+    if ((!from_snap_sub && (!this.is_lantecy_test)))
       console.log('Book snap applied (conn= ' + update.__conn_id + '):',(update.timestamp_us || update.timestamp));
 
     if (this.orderbook?.asks != null && this.orderbook?.bids != null) {
@@ -2613,7 +2615,7 @@ class Synchronizer {
 
       } else {
         // Make rest request to get initial orderbook snapshot.
-        console.log("REST Requesting orderbook snapshot... (attemp " + (attemps_count++) + ")");
+        // console.log("REST Requesting orderbook snapshot... (attemp " + (attemps_count++) + ")");
         let { success, response: r } = await this.rest_request('orderbook', [
           [ '<market>', this.market.rest ]
         ]);
@@ -3047,10 +3049,10 @@ class Synchronizer {
     this.connections = [];
     this.attemp_delay = {};
         
-    if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache) {
-      this.last_book_updates = new Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512).fill(undefined);
-      this.last_book_updates_nonce = 0;
-    }
+    // if (_ws?.subcriptions?.orderbook?.snapshot?.reset_avoid_repetition_cache) {
+    //   this.last_book_updates = new Array(_ws.subcriptions.orderbook.update.avoid_repetition_size || 512).fill(undefined);
+    //   this.last_book_updates_nonce = 0;
+    // }
   }
 }
 

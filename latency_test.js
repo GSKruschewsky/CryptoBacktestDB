@@ -16,7 +16,7 @@ if (args[0] == 'us') {
   exchanges_to_test = [ args[0] ];
 }
 
-const min_latencies = 540;
+const min_latencies = 10;
 
 function calcMean (arr) {
   const mid_arr = Math.floor(arr.length / 2);
@@ -50,6 +50,9 @@ async function calcLatency (sync) {
     '\n');
 
     sync.end(); // Then, ends synchronization...
+
+    console.log(Math.min(sync.conn_latency.length, sync.subr_latency.length, sync.diff_latency.length), '/', min_latencies);
+    
   }
   
   await new Promise(r => setTimeout(r, 1e3)); // Just in case...
