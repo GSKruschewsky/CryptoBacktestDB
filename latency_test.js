@@ -37,7 +37,7 @@ async function calcLatency (sync) {
   while (Math.min(sync.conn_latency.length, sync.subr_latency.length, sync.diff_latency.length) < min_latencies) {
     try {
       await sync.initiate(); // Initiate exchange synchronization.
-      await new Promise(r => setTimeout(r, (exchanges_to_test.length == 1 && exchanges_to_test['0'] != 'kraken-spot' ? 10e3 : 20e3))); // Then, waits 10 seconds (if kraken is involved 20 seconds)...
+      await new Promise(r => setTimeout(r, (exchanges_to_test.length == 1 && exchanges_to_test['0'] != 'kraken-spot' ? 60e3*5 : 20e3))); // Then, waits 10 seconds (if kraken is involved 20 seconds)...
 
     } catch (error) {
       console.log(sync.exchange,'error:',error);
@@ -92,9 +92,9 @@ Promise.all(exchanges_to_test.map(exchange => {
   let txt = "";
   for (const r of results) {
     txt += r.exchange+':\n'+
-    'conn_latency  mean= '+r.conn_latency.mean+'ms  avg= '+r.conn_latency.avg+'ms  lowest= '+r.conn_latency.lowest+'ms  highest= '+r.conn_latency.highest+'ms  ('+r.conn_latency.length+')\n'+
-    'subr_latency  mean= '+r.subr_latency.mean+'ms  avg= '+r.subr_latency.avg+'ms  lowest= '+r.subr_latency.lowest+'ms  highest= '+r.subr_latency.highest+'ms  ('+r.subr_latency.length+')\n'+
-    'diff_latency  mean= '+r.diff_latency.mean+'ms  avg= '+r.diff_latency.avg+'ms  lowest= '+r.diff_latency.lowest+'ms  highest= '+r.diff_latency.highest+'ms  ('+r.diff_latency.length+')\n \n';
+    'conn_latency\tmean= '+r.conn_latency.mean+'ms\tavg= '+r.conn_latency.avg+'ms\tlowest= '+r.conn_latency.lowest+'ms\thighest= '+r.conn_latency.highest+'ms\t('+r.conn_latency.length+')\n'+
+    'subr_latency\tmean= '+r.subr_latency.mean+'ms\tavg= '+r.subr_latency.avg+'ms\tlowest= '+r.subr_latency.lowest+'ms\thighest= '+r.subr_latency.highest+'ms\t('+r.subr_latency.length+')\n'+
+    'diff_latency\tmean= '+r.diff_latency.mean+'ms\tavg= '+r.diff_latency.avg+'ms\tlowest= '+r.diff_latency.lowest+'ms\thighest= '+r.diff_latency.highest+'ms\t('+r.diff_latency.length+')\n \n';
   }
 
   const strtime = new Date(Date.now()-60e3*60*3).toLocaleString('pt-BR', { timeZone: 'UTC' }).replace(',', '').replace(' ', '_').replaceAll('/', '-').replaceAll(':', '-');

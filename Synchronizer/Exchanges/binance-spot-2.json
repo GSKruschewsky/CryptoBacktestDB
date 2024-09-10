@@ -1,0 +1,100 @@
+{
+  "separator": "",
+  "latency-test-symbol": "BTC/USDT",
+  "rest": {
+    "url": "https://api.binance.com",
+    "timeout": 15000,
+    "is_market_upper": true,
+    "error": {
+      "key": "code"
+    },
+    "endpoints": {
+      "available_pairs": {
+        "path": "/api/v3/exchangeInfo",
+        "response": {
+          "data_inside": "symbols",
+          "symbol": "symbol",
+          "status_key": "status",
+          "status_active": "TRADING"
+        }
+      },
+      "orderbook": {
+        "path": "/api/v3/depth?symbol=<market>&limit=5000",
+        "response": {
+          "asks": "asks",
+          "bids": "bids",
+          "last_update_nonce": "lastUpdateId"
+        }
+      },
+      "trades": {
+        "path": "/api/v3/aggTrades?symbol=<market>&limit=1000&startTime=<since>",
+        "response": {
+          "trade_id_key": "l",
+          "newer_first": false,
+          "timestamp": "T",
+          "is_buy_key": "m",
+          "is_buy_value": false,
+          "price": "p",
+          "amount": "q",
+          "pagination": {
+            "check_for_newer": true,
+            "max_arr_size": 1000,
+            "to_del_url": "&startTime=<since>",
+            "to_add_url": "&fromId=<page_id>",
+            "page_id": "a"
+          }
+        }
+      }
+    }
+  },
+  "ws": {
+    "url": "wss://stream.binance.com:443",
+    "timeout": 15000,
+    "is_market_upper": false,
+    "error": { 
+      "key": "code" 
+    },
+    "subcriptions": {
+      "orderbook": {
+        "request": "{\"method\":\"SUBSCRIBE\",\"params\":[\"<market>@depth@100ms\"],\"id\":<ws_req_id>}",
+        "response": {
+          "id": "id"
+        },
+        "update": {
+          "resync_again_after_min": 5,
+          "channel_id_key": "stream",
+          "channel_id": "<market>@depth@100ms",
+          "data_inside": "data",
+          "asks": "a",
+          "bids": "b",
+          "pl": {
+            "price": "0",
+            "amount": "1"
+          },
+          "timestamp": "E",
+          "last_upd_nonce_key": "u",
+          "first_upd_nonce_key": "U"
+        }
+      },
+      "trades": {
+        "request": "{\"method\":\"SUBSCRIBE\",\"params\":[\"<market>@trade\"],\"id\":<ws_req_id>}",
+        "response": {
+          "id": "id"
+        },
+        "update": {
+          "id_should_be_higher": true,
+          "trade_id_key": "t",
+          "channel_id_key": "stream",
+          "channel_id": "<market>@trade",
+          "data_inside": "data",
+          "receive_separately_trades_as_obj": true,
+          "timestamp": "T",
+          "is_buy_key": "m",
+          "is_buy_value": false,
+          "price": "p",
+          "amount": "q"
+        }
+      }
+    }
+  }
+}
